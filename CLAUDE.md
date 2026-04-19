@@ -98,3 +98,11 @@ Hand-written types in `lib/types/database.ts`. Once Supabase CLI is installed, r
 ```bash
 npx supabase gen types typescript --project-id fexxmtjmrlpitzsjrgbd > src/lib/types/database.ts
 ```
+
+### Wallet UI — deferred
+`wallet_balance` column stays in the `profiles` table (needed for future boost/feature payments), but **all wallet UI is hidden**:
+- Navbar dropdown: no wallet item (โปรไฟล์ + ประกาศของฉัน + ออกจากระบบ only)
+- Profile page: no balance display
+- Register form: never had a wallet field
+
+Do not add wallet UI until the topup + Omise payment flow is fully built.

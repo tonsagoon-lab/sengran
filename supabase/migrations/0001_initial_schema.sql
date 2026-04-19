@@ -346,3 +346,21 @@ CREATE POLICY "favorites: users insert own"
 CREATE POLICY "favorites: users delete own"
   ON favorites FOR DELETE
   USING (auth.uid() = user_id);
+-- ── Extra check constraints for data integrity ───────────────
+ALTER TABLE listings
+  ADD CONSTRAINT listings_sale_price_positive
+    CHECK (sale_price IS NULL OR sale_price >= 0),
+  ADD CONSTRAINT listings_rent_price_positive
+    CHECK (rent_price IS NULL OR rent_price >= 0),
+  ADD CONSTRAINT listings_area_positive
+    CHECK (area_sqm IS NULL OR area_sqm > 0),
+  ADD CONSTRAINT listings_has_price
+    CHECK (
+      (listing_type = 'sale' AND sale_price IS NOT NULL) OR
+      (listing_type = 'rent' AND rent_price IS NOT NULL) OR
+      (listing_type = 'both' AND sale_price IS NOT NULL AND rent_price IS NOT NULL)
+    );
+
+-- Extra index for "my listings" page
+CREATE INDEX idx_listings_user_status_updated
+  ON listings (user_id, status, updated_at DESC);

@@ -19,32 +19,13 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    .select("display_name, mobile, line_id")
     .eq("id", user.id)
     .single();
-
-  const walletDisplay = (profile?.wallet_balance ?? 0).toLocaleString("th-TH", {
-    style: "currency",
-    currency: "THB",
-    minimumFractionDigits: 0,
-  });
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10 space-y-6">
       <h1 className="text-2xl font-bold text-neutral-900">โปรไฟล์ของฉัน</h1>
-
-      {/* Wallet balance */}
-      <Card className="bg-orange-50 border-orange-200">
-        <CardHeader className="pb-2">
-          <CardDescription className="text-orange-700">ยอดเงินคงเหลือ</CardDescription>
-          <CardTitle className="text-3xl font-bold text-orange-600">{walletDisplay}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-orange-600">
-            ใช้สำหรับโปรโมตประกาศ — ยังไม่สามารถเติมเงินได้ (เปิดเร็วๆ นี้)
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Account info (read-only) */}
       <Card>
