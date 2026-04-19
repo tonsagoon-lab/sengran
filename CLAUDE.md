@@ -174,18 +174,19 @@ See `supabase/migrations/0003_view_count_function.sql` (includes SET search_path
 - Profile page shows amber alert when `?reason=missing_contact`
 - Edit does not re-check (user already has a listing)
 
-### 5-Step Wizard (`src/components/listing-wizard.tsx`)
+### 4-Step Wizard (`src/components/listing-wizard.tsx`)
 - Manages all state in `sessionStorage` (persisted on every change, cleared on submit)
-- Hash routing: `/listings/new#step-1` … `#step-5`; browser back navigates steps
+- Hash routing: `/listings/new#step-1` … `#step-4`; browser back navigates steps
 - Progress: numbered circles (desktop) / text + bar (mobile)
-- Step 1: listing type (icon cards), title, RichTextEditor description
-- Step 2: ฿-prefixed prices, deposit month quick-select, price note
-- Step 3: province combobox, district, address textarea, GoogleMapsInput
-- Step 4: category, area_sqm, video URL, amenity checkboxes
-- Step 5: ImageUploader + read-only summary card + "เผยแพร่" / "บันทึกแบบร่าง"
+- Step 1 "ข้อมูลพื้นฐาน": listing type (icon cards), title, category, prices + deposit, RichTextEditor description
+- Step 2 "ที่ตั้ง": province combobox, district, address textarea, GoogleMapsInput
+- Step 3 "รายละเอียดเพิ่มเติม": video URL, amenity checkboxes
+- Step 4 "รูปภาพ": ImageUploader (≥1 required) + read-only summary card + "เผยแพร่" / "บันทึกแบบร่าง"
 - Validation per step (Zod); price fields cleared when listing_type changes retroactively
+- `migrateState()` strips unknown fields + clamps old `#step-5` → `#step-4` for forward compat
 - "บันทึกแบบร่าง" in header from step 2 onwards
 - Edit mode: pre-filled from existing listing + amenities, no profile check
+- `price_note` and `area_sqm` removed from UI (DB columns kept for WP migration)
 
 ### db/listings.ts additions
 - `getAllAmenities()` — fetch all amenities ordered by name
