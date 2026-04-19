@@ -19,7 +19,7 @@ export async function PopularProvinces() {
         {popular.map((prov) => (
           <Link
             key={prov.province_id}
-            href={`/province/${prov.slug}`}
+            href={`/city/${prov.slug}`}
             className="flex flex-col items-start rounded-xl border bg-white p-3 hover:border-orange-300 hover:shadow-sm transition-all group"
           >
             <span className="font-medium text-sm text-neutral-800 group-hover:text-orange-600 truncate w-full">

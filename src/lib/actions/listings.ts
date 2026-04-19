@@ -247,7 +247,7 @@ export async function updateListingAction(
   }
 
   revalidatePath(`/my-listings`);
-  revalidatePath(`/listing`);
+  revalidatePath(`/property`);
   return { success: true, listingId };
 }
 
@@ -316,6 +316,6 @@ export async function toggleFavoriteAction(listingId: string): Promise<{ error?:
     await supabase.from("favorites").insert({ user_id: user.id, listing_id: listingId });
   }
 
-  revalidatePath(`/listing`);
+  revalidatePath(`/property`);
   return {};
 }

@@ -20,7 +20,7 @@ export async function CategoriesShowcase({ supabaseUrl }: CategoriesShowcaseProp
               {category.icon ? `${category.icon} ` : ""}{category.name_th}
             </h3>
             <Link
-              href={`/category/${category.slug}`}
+              href={`/property-type/${category.slug}`}
               className="text-sm text-orange-600 hover:underline"
             >
               ดูทั้งหมด →

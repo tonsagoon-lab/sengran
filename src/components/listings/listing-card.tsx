@@ -52,7 +52,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-start justify-between gap-2">
           <Link
-            href={`/listing/${listing.slug}`}
+            href={`/property/${listing.slug}`}
             className="font-medium text-sm line-clamp-2 hover:text-orange-600"
           >
             {listing.title}

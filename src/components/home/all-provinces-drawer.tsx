@@ -63,7 +63,7 @@ export function AllProvincesDrawer({ provinces }: AllProvincesDrawerProps) {
                 {provs.map((p) => (
                   <Link
                     key={p.id}
-                    href={`/province/${p.slug}`}
+                    href={`/city/${p.slug}`}
                     onClick={() => setOpen(false)}
                     className="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-orange-50 hover:text-orange-700"
                   >

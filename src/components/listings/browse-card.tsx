@@ -60,7 +60,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false }: BrowseCar
 
   return (
     <Link
-      href={`/listing/${listing.slug}`}
+      href={`/property/${listing.slug}`}
       className="group flex flex-col rounded-xl border bg-white overflow-hidden hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
     >
       {/* Image */}

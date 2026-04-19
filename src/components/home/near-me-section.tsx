@@ -205,7 +205,7 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
       : "📍 ร้านใกล้คุณ";
 
   const seeAllHref =
-    location?.type === "province" ? `/province/${location.slug}` : "/listings?location=1";
+    location?.type === "province" ? `/city/${location.slug}` : "/listings?location=1";
 
   return (
     <section className="py-4 space-y-3">

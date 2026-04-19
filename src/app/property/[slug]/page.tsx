@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Phone, MessageCircle, MapPin, Tag, Eye, Calendar, ExternalLink } from "lucide-react";
 import { getListingBySlug } from "@/lib/db/listings";
 import { ImageGallery } from "@/components/listings/image-gallery";
@@ -8,6 +9,8 @@ import { RichTextDisplay } from "@/components/rich-text-display";
 import { stripHtmlTags } from "@/lib/utils/html";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xn--12c1bik6bbd8af5l3d.com";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -20,12 +23,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const descText = stripHtmlTags(listing.description).slice(0, 160);
 
+  const coverImage = listing.listing_images.sort((a, b) => a.display_order - b.display_order)[0];
+  const coverUrl = coverImage
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/listings/${coverImage.storage_path}`
+    : undefined;
+
   return {
     title: `${listing.title} — เซ้งร้าน.com`,
     description: descText,
+    alternates: { canonical: `/property/${slug}` },
     openGraph: {
       title: listing.title,
       description: descText,
+      images: coverUrl ? [{ url: coverUrl }] : undefined,
     },
   };
 }
@@ -50,6 +60,43 @@ export default async function ListingDetailPage({ params }: Props) {
     (a, b) => a.display_order - b.display_order
   );
 
+  const coverImage = sortedImages[0];
+  const coverUrl = coverImage
+    ? `${supabaseUrl}/storage/v1/object/public/listings/${coverImage.storage_path}`
+    : undefined;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: listing.title,
+    description: stripHtmlTags(listing.description).slice(0, 500),
+    url: `${BASE_URL}/property/${slug}`,
+    ...(coverUrl ? { image: [coverUrl] } : {}),
+    ...(listing.sale_price != null
+      ? {
+          offers: {
+            "@type": "Offer",
+            price: listing.sale_price,
+            priceCurrency: "THB",
+            availability: "https://schema.org/InStock",
+          },
+        }
+      : {}),
+    ...(listing.provinces
+      ? {
+          locationCreated: {
+            "@type": "Place",
+            address: {
+              "@type": "PostalAddress",
+              addressLocality: listing.district ?? listing.provinces.name_th,
+              addressRegion: listing.provinces.name_th,
+              addressCountry: "TH",
+            },
+          },
+        }
+      : {}),
+  };
+
   const hasCoords = listing.latitude != null && listing.longitude != null;
   const mapEmbedUrl = hasCoords
     ? `https://www.google.com/maps?q=${listing.latitude},${listing.longitude}&z=16&output=embed`
@@ -60,6 +107,11 @@ export default async function ListingDetailPage({ params }: Props) {
 
   return (
     <>
+      <Script
+        id="json-ld-listing"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <ViewCountTracker slug={slug} />
       <main className="mx-auto max-w-3xl px-4 py-8 space-y-6">
         {/* Gallery */}
