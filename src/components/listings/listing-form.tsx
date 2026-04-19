@@ -118,7 +118,7 @@ export function ListingForm({ userId, categories, provinces, action, listing }: 
               name="listing_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ประเภทการขาย/เช่า *</FormLabel>
+                  <FormLabel>ประเภทการเซ้ง/เช่า *</FormLabel>
                   <FormControl>
                     <RadioGroup
                       value={field.value}
@@ -129,7 +129,7 @@ export function ListingForm({ userId, categories, provinces, action, listing }: 
                       <div className="flex items-center gap-2">
                         <RadioGroupItem value="sale" id="sale" />
                         <label htmlFor="sale" className="text-sm cursor-pointer">
-                          ขายอย่างเดียว
+                          เซ้งอย่างเดียว
                         </label>
                       </div>
                       <div className="flex items-center gap-2">
@@ -141,7 +141,7 @@ export function ListingForm({ userId, categories, provinces, action, listing }: 
                       <div className="flex items-center gap-2">
                         <RadioGroupItem value="both" id="both" />
                         <label htmlFor="both" className="text-sm cursor-pointer">
-                          ขายและเช่า
+                          เซ้งและให้เช่า
                         </label>
                       </div>
                     </RadioGroup>
@@ -231,7 +231,7 @@ export function ListingForm({ userId, categories, provinces, action, listing }: 
                 name="sale_price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ราคาขาย (บาท) *</FormLabel>
+                    <FormLabel>ราคาเซ้ง (บาท) *</FormLabel>
                     <FormControl>
                       <Input
                         {...field}

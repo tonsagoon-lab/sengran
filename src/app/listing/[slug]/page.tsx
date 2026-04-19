@@ -27,9 +27,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  sale: "ขาย",
+  sale: "เซ้ง",
   rent: "เช่า",
-  both: "ขายและเช่า",
+  both: "เซ้งและให้เช่า",
 };
 
 function formatPrice(price: number) {
@@ -80,7 +80,7 @@ export default async function ListingDetailPage({ params }: Props) {
             <div className="flex items-center gap-2">
               <Tag className="h-4 w-4 text-orange-500" />
               <span className="text-lg font-bold text-orange-600">
-                ราคาขาย: {formatPrice(listing.sale_price)} บาท
+                ราคาเซ้ง: {formatPrice(listing.sale_price)} บาท
               </span>
             </div>
           )}

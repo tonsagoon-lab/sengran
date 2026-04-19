@@ -31,13 +31,13 @@ export const listingSchema = z
       if (!data.sale_price || data.sale_price.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกราคาขาย",
+          message: "กรุณากรอกราคาเซ้ง",
           path: ["sale_price"],
         });
       } else if (isNaN(Number(data.sale_price)) || Number(data.sale_price) < 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "ราคาขายต้องเป็นตัวเลขที่มากกว่า 0",
+          message: "ราคาเซ้งต้องเป็นตัวเลขที่มากกว่า 0",
           path: ["sale_price"],
         });
       }

@@ -9,15 +9,15 @@ import type { ListingWithImages } from "@/lib/db/listings";
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   published: { label: "เผยแพร่แล้ว", variant: "default" },
   draft: { label: "แบบร่าง", variant: "secondary" },
-  sold: { label: "ขายแล้ว/เช่าแล้ว", variant: "outline" },
+  sold: { label: "เซ้งแล้ว/เช่าแล้ว", variant: "outline" },
   expired: { label: "หมดอายุ", variant: "destructive" },
   hidden: { label: "ซ่อน", variant: "secondary" },
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  sale: "ขาย",
+  sale: "เซ้ง",
   rent: "เช่า",
-  both: "ขาย/เช่า",
+  both: "เซ้ง/เช่า",
 };
 
 function formatPrice(price: number | null) {
