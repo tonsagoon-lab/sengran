@@ -239,3 +239,53 @@ All browse filters live in the URL query string (`?province=chiang-mai&cat=cafe&
 - `getTotalListingCount` cached 5 min via `unstable_cache` using anon client (no cookie dependency)
 - `sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"`
 - Featured strip and main grid wrapped in Suspense with skeleton fallback
+
+---
+
+## Session 5A Additions — Homepage Redesign
+
+### Route change
+- Browse/search page moved from `/` → `/listings`
+- `/` is now a sectioned landing page (Server Component, Suspense-per-section)
+- `/listings` keeps all filter/search/grid functionality unchanged
+- Internal "ดูประกาศทั้งหมด" links updated to `/listings`
+
+### Homepage architecture
+Each section is a Server Component with its own Suspense boundary:
+```
+<HeroSearch />           (server — cached listing count)
+<NearMeSection />        (client — GPS/province, calls server action)
+<BannerSection />        (server → BannerSliderClient)
+<LatestListings />       (server — 8 latest)
+<CategoriesShowcase />   (server — 4 listings/category, parallel queries)
+<PopularProvinces />     (server — 10-min cache)
+```
+
+### Near-me flow
+1. On mount: check localStorage `user_location` (cached GPS or province)
+2. If `user_location_denied`: skip to province picker
+3. Otherwise: show prompt card (GPS button + province picker)
+4. GPS success → `listings_within_distance` RPC → 4 nearest listings
+5. Deny/error → store `user_location_denied`, show province select
+6. Province select → simple `WHERE province_id` query → 4 listings
+7. Empty GPS → "ขยายรัศมี" button expands to 50km
+
+### Banner system
+- Table: `banners` (id, title, image_url, link_url, display_order, is_active, starts_at, ends_at)
+- RLS: public SELECT for active banners within date range
+- Storage: create bucket "banners" (public) manually in Supabase dashboard
+- Migration: `0006_banners.sql`
+- BannerSliderClient: embla-carousel + 5s autoplay + dots + desktop arrows
+
+### New SQL functions (migration 0005)
+- `listings_within_distance(lat, lng, radius_km)` — haversine formula, SECURITY DEFINER
+- `popular_provinces(limit_n)` — GROUP BY province with listing count, cached 10 min
+
+### getPopularProvinces / getTotalListingCount
+Both use anon client directly (not SSR client) inside `unstable_cache` to avoid cookie dependency at cache time.
+
+### SearchBox targetPath prop
+`<SearchBox targetPath="/listings" />` navigates to a fresh `/listings?q=...` without carrying existing params. Without `targetPath`, stays on current page (used on `/listings` itself).
+
+### Footer
+`HomeFooter` added to root layout (all pages). 4-col: brand + nav + Facebook (iframe + link) + help links. Facebook SVG icon inline (lucide-react has no Facebook icon).
