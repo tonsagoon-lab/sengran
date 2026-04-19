@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Phone, MessageCircle, MapPin, Tag, Ruler, Eye, Calendar } from "lucide-react";
+import { Phone, MessageCircle, MapPin, Tag, Ruler, Eye, Calendar, ExternalLink } from "lucide-react";
 import { getListingBySlug } from "@/lib/db/listings";
 import { ImageGallery } from "@/components/listings/image-gallery";
 import { ViewCountTracker } from "@/components/listings/view-count-tracker";
+import { RichTextDisplay } from "@/components/rich-text-display";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { stripHtmlTags } from "@/components/rich-text-display";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -16,19 +18,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const listing = await getListingBySlug(slug);
   if (!listing) return { title: "ไม่พบประกาศ" };
 
+  const descText = stripHtmlTags(listing.description).slice(0, 160);
+
   return {
     title: `${listing.title} — เซ้งร้าน.com`,
-    description: listing.description.slice(0, 160),
+    description: descText,
     openGraph: {
       title: listing.title,
-      description: listing.description.slice(0, 160),
+      description: descText,
     },
   };
 }
 
 const TYPE_LABELS: Record<string, string> = {
   sale: "เซ้ง",
-  rent: "เช่า",
+  rent: "ให้เช่า",
   both: "เซ้งและให้เช่า",
 };
 
@@ -46,7 +50,13 @@ export default async function ListingDetailPage({ params }: Props) {
     (a, b) => a.display_order - b.display_order
   );
 
-  const profile = listing.profiles;
+  const hasCoords = listing.latitude != null && listing.longitude != null;
+  const mapEmbedUrl = hasCoords
+    ? `https://www.google.com/maps?q=${listing.latitude},${listing.longitude}&z=16&output=embed`
+    : null;
+  const mapLinkUrl = hasCoords
+    ? `https://www.google.com/maps?q=${listing.latitude},${listing.longitude}`
+    : null;
 
   return (
     <>
@@ -93,9 +103,7 @@ export default async function ListingDetailPage({ params }: Props) {
             </div>
           )}
           {listing.deposit_months != null && (
-            <p className="text-sm text-neutral-600">
-              มัดจำ {listing.deposit_months} เดือน
-            </p>
+            <p className="text-sm text-neutral-600">มัดจำ {listing.deposit_months} เดือน</p>
           )}
           {listing.price_note && (
             <p className="text-sm text-neutral-600">{listing.price_note}</p>
@@ -104,14 +112,13 @@ export default async function ListingDetailPage({ params }: Props) {
 
         <Separator />
 
-        {/* Details */}
-        <div className="space-y-4">
+        {/* Description (rich text) */}
+        <div className="space-y-3">
           <h2 className="font-semibold text-neutral-900">รายละเอียด</h2>
-          <p className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">
-            {listing.description}
-          </p>
+          <RichTextDisplay html={listing.description} />
         </div>
 
+        {/* Area */}
         {listing.area_sqm && (
           <div className="flex items-center gap-2 text-sm text-neutral-600">
             <Ruler className="h-4 w-4" />
@@ -119,10 +126,38 @@ export default async function ListingDetailPage({ params }: Props) {
           </div>
         )}
 
-        {listing.address && (
+        {/* Address text */}
+        {listing.address && !hasCoords && (
           <div className="flex items-start gap-2 text-sm text-neutral-600">
             <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
             <span>{listing.address}</span>
+          </div>
+        )}
+
+        {/* Google Maps embed */}
+        {hasCoords && mapEmbedUrl && mapLinkUrl && (
+          <div className="space-y-2">
+            {listing.address && (
+              <div className="flex items-start gap-2 text-sm text-neutral-600">
+                <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{listing.address}</span>
+              </div>
+            )}
+            <iframe
+              src={mapEmbedUrl}
+              className="w-full h-72 rounded-xl border"
+              loading="lazy"
+              title="แผนที่ร้าน"
+            />
+            <a
+              href={mapLinkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-orange-600 hover:underline"
+            >
+              เปิดใน Google Maps
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
           </div>
         )}
 
