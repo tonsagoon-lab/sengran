@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Phone, MessageCircle, MapPin, Tag, Ruler, Eye, Calendar, ExternalLink } from "lucide-react";
+import { Phone, MessageCircle, MapPin, Tag, Eye, Calendar, ExternalLink } from "lucide-react";
 import { getListingBySlug } from "@/lib/db/listings";
 import { ImageGallery } from "@/components/listings/image-gallery";
 import { ViewCountTracker } from "@/components/listings/view-count-tracker";
 import { RichTextDisplay } from "@/components/rich-text-display";
+import { stripHtmlTags } from "@/lib/utils/html";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { stripHtmlTags } from "@/components/rich-text-display";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -105,9 +105,6 @@ export default async function ListingDetailPage({ params }: Props) {
           {listing.deposit_months != null && (
             <p className="text-sm text-neutral-600">มัดจำ {listing.deposit_months} เดือน</p>
           )}
-          {listing.price_note && (
-            <p className="text-sm text-neutral-600">{listing.price_note}</p>
-          )}
         </div>
 
         <Separator />
@@ -117,14 +114,6 @@ export default async function ListingDetailPage({ params }: Props) {
           <h2 className="font-semibold text-neutral-900">รายละเอียด</h2>
           <RichTextDisplay html={listing.description} />
         </div>
-
-        {/* Area */}
-        {listing.area_sqm && (
-          <div className="flex items-center gap-2 text-sm text-neutral-600">
-            <Ruler className="h-4 w-4" />
-            <span>พื้นที่ใช้สอย {listing.area_sqm} ตร.ม.</span>
-          </div>
-        )}
 
         {/* Address text */}
         {listing.address && !hasCoords && (
