@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { HeroSearch } from "@/components/home/hero-search";
 import { NearMeSection } from "@/components/home/near-me-section";
+import { BannerSection } from "@/components/home/banner-section";
 import { getAllProvinces } from "@/lib/db/listings";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -40,6 +41,11 @@ export default async function HomePage() {
       <div className="mx-auto w-full max-w-7xl px-4 py-8 space-y-12">
         {/* Near me */}
         <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
+
+        {/* Banner slider */}
+        <Suspense fallback={null}>
+          <BannerSection />
+        </Suspense>
 
         {/* More sections added in subsequent commits */}
       </div>

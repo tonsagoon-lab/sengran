@@ -329,6 +329,27 @@ export async function getAllProvincesPublic() {
   return data ?? [];
 }
 
+export type Banner = {
+  id: string;
+  title: string | null;
+  image_url: string;
+  link_url: string | null;
+  display_order: number;
+};
+
+export async function getActiveBanners(): Promise<Banner[]> {
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const { data } = await supabase
+    .from("banners")
+    .select("id, title, image_url, link_url, display_order")
+    .eq("is_active", true)
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
+    .order("display_order");
+  return (data ?? []) as Banner[];
+}
+
 export const getTotalListingCount = unstable_cache(
   async () => {
     const supabase = createAnonClient(
