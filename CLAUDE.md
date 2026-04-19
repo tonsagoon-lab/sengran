@@ -64,3 +64,37 @@ src/
 - **Supabase RLS**: every table must have Row Level Security enabled; never expose service key client-side
 - **Font**: add Noto Sans Thai or Sarabun from Google Fonts for proper Thai rendering
 - **No mock data**: always use real Supabase queries; seed data only for local dev
+
+---
+
+## Session 2 Additions
+
+### Database Schema Summary
+10 tables: `profiles`, `categories`, `provinces` (77), `amenities`, `listings`, `listing_images`, `listing_amenities`, `transactions`, `boosts`, `favorites`.
+
+Key design decisions:
+- `profiles` extends `auth.users` via trigger (auto-created on signup)
+- `listings.slug` is unique — generate from title + short uuid suffix
+- `listings.listing_type` can be 'sale', 'rent', or 'both' (เซ้ง, เช่า, หรือทั้งคู่)
+- `wallet_balance` is stored on profile, debited on boost creation
+- FTS uses 'simple' config (Thai text not supported by built-in Postgres FTS — consider pg_jieba or typesense for production)
+
+### How RLS Works
+Every table has RLS enabled. Key rules:
+- Public can SELECT published listings and all reference data (categories/provinces/amenities)
+- Users can only see/edit their own drafts, transactions, boosts, favorites
+- `profiles` is publicly readable (display_name shown on listing cards)
+- Triggers and functions use SECURITY DEFINER to bypass RLS for system operations
+
+### Auth Flow
+1. User registers → Supabase creates `auth.users` row → DB trigger creates `profiles` row
+2. Login → Supabase issues session cookie → `proxy.ts` refreshes on every request
+3. Server Components call `createClient()` from `lib/supabase/server.ts` to get session
+4. Protected pages: call `supabase.auth.getUser()`, redirect to /login if null
+5. Server Actions in `lib/actions/auth.ts` handle form submissions (no API routes needed)
+
+### TypeScript Types
+Hand-written types in `lib/types/database.ts`. Once Supabase CLI is installed, replace with:
+```bash
+npx supabase gen types typescript --project-id fexxmtjmrlpitzsjrgbd > src/lib/types/database.ts
+```
