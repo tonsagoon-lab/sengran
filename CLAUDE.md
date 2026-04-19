@@ -191,3 +191,51 @@ See `supabase/migrations/0003_view_count_function.sql` (includes SET search_path
 ### db/listings.ts additions
 - `getAllAmenities()` — fetch all amenities ordered by name
 - `getListingForEdit()` — now selects `listing_amenities(amenity_id)`, `categories`, `provinces`
+
+---
+
+## Session 4 Additions — Search, Filter, and Browse Page
+
+### Architecture: URL-Based State
+All browse filters live in the URL query string (`?province=chiang-mai&cat=cafe&type=rent`).
+- Server Component fetches data per URL → SSR-friendly, shareable links
+- Client Components only for interactive controls (FilterBar, SearchBox, BrowsePagination)
+- `useSearchParams` + `useRouter` for filter changes; 400ms debounce on text/price inputs
+
+### New Files
+- `src/components/listings/browse-card.tsx` — public browse card: 4:3 image, type badge, heart placeholder, price, title, location, category link
+- `src/components/listings/filter-bar.tsx` — sticky filter bar (type pills, category, province combobox, price popover, sort, advanced Sheet)
+- `src/components/listings/listings-grid.tsx` — Server Component grid: 1/2/3/4 cols, result count, empty state
+- `src/components/listings/browse-pagination.tsx` — condensed pagination with ellipsis, URL-based
+- `src/components/listings/featured-strip.tsx` — horizontally scrollable featured listings strip
+- `src/components/listings/browse-page.tsx` — shared layout: hero + filter bar + featured strip + grid
+- `src/components/listings/search-box.tsx` — debounced search input, URL-based
+- `src/app/loading.tsx` — skeleton grid for Suspense fallback
+- `src/app/category/[slug]/page.tsx` — SEO category page (uses BrowsePage with lockedCategory)
+- `src/app/province/[slug]/page.tsx` — SEO province page (uses BrowsePage with lockedProvince)
+- `supabase/migrations/0004_search_indexes.sql` — pg_trgm + composite indexes for common filter combos
+
+### Filter → DB Query Mapping (searchListings in db/listings.ts)
+- `type=sale` → `listing_type IN ('sale', 'both')`
+- `type=rent` → `listing_type IN ('rent', 'both')`
+- `type=both` → `listing_type = 'both'`
+- `cat=slug` → resolve to category_id, then `WHERE category_id = N`
+- `province=slug` → resolve to province_id, then `WHERE province_id = N`
+- `min_price`/`max_price` + type=rent → on rent_price; type=sale → on sale_price; no type → OR on both
+- `amenities=1,3,5` → pre-query listing_amenities, group by listing_id, keep those with count = N (all required)
+- `q=text` → `ILIKE '%text%'` on title
+- `video=1` / `location=1` → NOT NULL checks on video_url / latitude
+- Sort: boost_rank DESC always first, then published_at/price/view_count
+
+### SEO Routes
+- `/category/[slug]` — canonical URL, title "ร้าน{name} เซ้งและให้เช่า", noindex on page 2+
+- `/province/[slug]` — canonical URL, title "ประกาศร้านใน{name}", noindex on page 2+
+- Both use `generateStaticParams` for SSG
+- `BrowsePage` accepts `lockedProvince`/`lockedCategory` to pre-apply and merge with searchParams
+- Category names and province tags on BrowseCard link to these SEO pages
+
+### Performance
+- First 4 cards use `priority` prop (LCP images)
+- `getTotalListingCount` cached 5 min via `unstable_cache` using anon client (no cookie dependency)
+- `sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"`
+- Featured strip and main grid wrapped in Suspense with skeleton fallback
