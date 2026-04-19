@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { SearchListing } from "@/lib/db/listings";
 
@@ -117,24 +116,16 @@ export function BrowseCard({ listing, supabaseUrl, priority = false }: BrowseCar
         {location && (
           <div className="flex items-center gap-1 text-xs text-neutral-500">
             <MapPin className="h-3 w-3 shrink-0" />
-            <Link
-              href={listing.provinces?.slug ? `/province/${listing.provinces.slug}` : "#"}
-              onClick={(e) => e.stopPropagation()}
-              className="truncate hover:text-orange-600"
-            >
-              {location}
-            </Link>
+            <span className="truncate">{location}</span>
           </div>
         )}
 
         {listing.categories && (
-          <Link
-            href={`/category/${listing.categories.slug}`}
-            onClick={(e) => e.stopPropagation()}
-            className="mt-auto text-xs text-neutral-400 hover:text-orange-600 truncate"
+          <span
+            className="mt-auto text-xs text-neutral-400 truncate"
           >
             {listing.categories.name_th}
-          </Link>
+          </span>
         )}
       </div>
     </Link>
