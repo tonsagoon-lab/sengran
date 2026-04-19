@@ -6,9 +6,11 @@ import { Search } from "lucide-react";
 
 interface SearchBoxProps {
   defaultValue?: string;
+  /** When set, search submits to this path (starts fresh, no existing params carried) */
+  targetPath?: string;
 }
 
-export function SearchBox({ defaultValue = "" }: SearchBoxProps) {
+export function SearchBox({ defaultValue = "", targetPath }: SearchBoxProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -17,13 +19,20 @@ export function SearchBox({ defaultValue = "" }: SearchBoxProps) {
 
   const push = useCallback(
     (q: string) => {
-      const next = new URLSearchParams(searchParams.toString());
-      if (q.trim()) next.set("q", q.trim());
-      else next.delete("q");
-      next.delete("page");
-      router.push(`${pathname}?${next.toString()}`);
+      if (targetPath) {
+        // Navigate to a different page — start fresh (no existing filters)
+        const qs = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+        router.push(`${targetPath}${qs}`);
+      } else {
+        // Stay on same page — preserve existing filters
+        const next = new URLSearchParams(searchParams.toString());
+        if (q.trim()) next.set("q", q.trim());
+        else next.delete("q");
+        next.delete("page");
+        router.push(`${pathname}?${next.toString()}`);
+      }
     },
-    [searchParams, router, pathname]
+    [searchParams, router, pathname, targetPath]
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
