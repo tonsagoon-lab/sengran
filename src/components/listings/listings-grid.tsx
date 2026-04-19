@@ -19,7 +19,7 @@ export async function ListingsGrid({ searchParams, supabaseUrl }: ListingsGridPr
         <h3 className="text-lg font-semibold text-neutral-700">ไม่พบประกาศที่ตรงกับเงื่อนไข</h3>
         <p className="mt-1 text-sm text-neutral-500">ลองปรับตัวกรองหรือดูประกาศทั้งหมด</p>
         <a
-          href="/"
+          href="/listings"
           className="mt-4 inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
         >
           ดูประกาศทั้งหมด
