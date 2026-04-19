@@ -88,16 +88,30 @@ export async function getMyListings(userId: string): Promise<ListingWithImages[]
 export async function getListingForEdit(
   listingId: string,
   userId: string
-): Promise<ListingWithImages | null> {
+) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("listings")
-    .select(`*, listing_images(id, storage_path, display_order, alt_text)`)
+    .select(
+      `*, listing_images(id, storage_path, display_order, alt_text),
+       listing_amenities(amenity_id),
+       categories(name_th, slug), provinces(name_th, slug)`
+    )
     .eq("id", listingId)
     .eq("user_id", userId)
     .single();
 
-  return data as ListingWithImages | null;
+  return data as (ListingWithImages & {
+    listing_amenities: { amenity_id: number }[];
+    categories: { name_th: string; slug: string } | null;
+    provinces: { name_th: string; slug: string } | null;
+  }) | null;
+}
+
+export async function getAllAmenities() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("amenities").select("id, name_th, slug").order("name_th");
+  return data ?? [];
 }
 
 export async function getAllCategories() {

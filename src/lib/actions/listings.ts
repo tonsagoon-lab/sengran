@@ -75,12 +75,22 @@ export async function createListingAction(
     contact_line: profile.line_id || null,
     video_url: d.video_url || null,
     slug,
-    status: "published",
-    published_at: new Date().toISOString(),
-    expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    status: (raw.status as "published" | "draft") ?? "published",
+    published_at: raw.status !== "draft" ? new Date().toISOString() : null,
+    expires_at: raw.status !== "draft"
+      ? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+      : null,
   });
 
   if (insertError) return { error: `เกิดข้อผิดพลาด: ${insertError.message}` };
+
+  // Insert amenities
+  const amenityIds = formData.getAll("amenity_ids[]") as string[];
+  if (amenityIds.length > 0) {
+    await supabase.from("listing_amenities").insert(
+      amenityIds.map((aid) => ({ listing_id: listingId, amenity_id: Number(aid) }))
+    );
+  }
 
   // Insert image rows
   const imagePaths = formData.getAll("image_paths[]") as string[];
