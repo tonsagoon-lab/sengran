@@ -71,10 +71,9 @@ export function ListingForm({ userId, categories, provinces, action, listing }: 
       district: listing?.district ?? "",
       address: listing?.address ?? "",
       area_sqm: listing?.area_sqm != null ? String(listing.area_sqm) : "",
-      contact_name: listing?.contact_name ?? "",
-      contact_mobile: listing?.contact_mobile ?? "",
-      contact_line: listing?.contact_line ?? "",
       video_url: listing?.video_url ?? "",
+      latitude: listing?.latitude != null ? String(listing.latitude) : "",
+      longitude: listing?.longitude != null ? String(listing.longitude) : "",
     },
   });
 
@@ -393,66 +392,18 @@ export function ListingForm({ userId, categories, provinces, action, listing }: 
           </CardContent>
         </Card>
 
-        {/* Contact */}
+        {/* Video */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">ข้อมูลติดต่อ</CardTitle>
+            <CardTitle className="text-base">ลิงก์วิดีโอ</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="contact_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ชื่อผู้ติดต่อ *</FormLabel>
-                  <FormControl>
-                    <Input {...field} name="contact_name" placeholder="ชื่อ-นามสกุล" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="contact_mobile"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>เบอร์โทรศัพท์ *</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      name="contact_mobile"
-                      type="tel"
-                      placeholder="0812345678"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="contact_line"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>LINE ID (ไม่บังคับ)</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      name="contact_line"
-                      placeholder="@yourlineid"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <CardContent>
             <FormField
               control={form.control}
               name="video_url"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ลิงก์วิดีโอ (YouTube / TikTok)</FormLabel>
+                  <FormLabel>ลิงก์วิดีโอ (YouTube / TikTok) ไม่บังคับ</FormLabel>
                   <FormControl>
                     <Input
                       {...field}

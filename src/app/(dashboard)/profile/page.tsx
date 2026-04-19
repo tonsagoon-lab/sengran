@@ -9,7 +9,12 @@ import { updateProfileAction } from "@/lib/actions/auth";
 
 export const metadata = { title: "โปรไฟล์ — เซ้งร้าน.com" };
 
-export default async function ProfilePage() {
+interface Props {
+  searchParams: Promise<{ reason?: string }>;
+}
+
+export default async function ProfilePage({ searchParams }: Props) {
+  const { reason } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,6 +31,12 @@ export default async function ProfilePage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-10 space-y-6">
       <h1 className="text-2xl font-bold text-neutral-900">โปรไฟล์ของฉัน</h1>
+
+      {reason === "missing_contact" && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+          กรุณากรอกชื่อและเบอร์โทรในโปรไฟล์ก่อนลงประกาศ
+        </div>
+      )}
 
       {/* Account info (read-only) */}
       <Card>

@@ -3,7 +3,7 @@ import { z } from "zod";
 export const listingSchema = z
   .object({
     title: z.string().min(5, "กรุณากรอกชื่อประกาศอย่างน้อย 5 ตัวอักษร").max(200),
-    description: z.string().min(20, "กรุณากรอกรายละเอียดอย่างน้อย 20 ตัวอักษร"),
+    description: z.string().min(30, "กรุณากรอกรายละเอียดอย่างน้อย 30 ตัวอักษร"),
     listing_type: z.enum(["sale", "rent", "both"]),
     sale_price: z.string().optional(),
     rent_price: z.string().optional(),
@@ -12,19 +12,16 @@ export const listingSchema = z
     category_id: z.string().optional(),
     province_id: z.string().min(1, "กรุณาเลือกจังหวัด"),
     district: z.string().max(100).optional(),
-    address: z.string().max(300).optional(),
+    address: z.string().max(500).optional(),
     area_sqm: z.string().optional(),
-    contact_name: z.string().min(2, "กรุณากรอกชื่อผู้ติดต่อ"),
-    contact_mobile: z
-      .string()
-      .min(9, "กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง")
-      .regex(/^[0-9+\-\s]+$/, "รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง"),
-    contact_line: z.string().max(50).optional(),
     video_url: z
       .string()
       .url("URL วิดีโอไม่ถูกต้อง")
       .optional()
       .or(z.literal("")),
+    // lat/lng stored as strings in form state, parsed server-side
+    latitude: z.string().optional(),
+    longitude: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.listing_type === "sale" || data.listing_type === "both") {

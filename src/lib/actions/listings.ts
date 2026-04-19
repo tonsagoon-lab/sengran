@@ -5,11 +5,21 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { listingSchema } from "@/lib/schemas/listing";
+import { stripHtmlTags } from "@/components/rich-text-display";
 
 export type ListingActionResult =
   | { error: string; success?: never }
   | { success: true; listingId: string; error?: never }
   | undefined;
+
+async function getProfileContact(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const { data } = await supabase
+    .from("profiles")
+    .select("display_name, mobile, line_id")
+    .eq("id", userId)
+    .single();
+  return data;
+}
 
 export async function createListingAction(
   _prevState: ListingActionResult,
@@ -21,8 +31,19 @@ export async function createListingAction(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const profile = await getProfileContact(supabase, user.id);
+  if (!profile?.display_name || !profile?.mobile) {
+    return { error: "กรุณากรอกชื่อและเบอร์โทรในโปรไฟล์ก่อนลงประกาศ" };
+  }
+
   const raw = Object.fromEntries(formData.entries());
-  const parsed = listingSchema.safeParse(raw);
+
+  // Validate description as plain text (strip HTML first)
+  const descHtml = raw.description as string;
+  const descText = stripHtmlTags(descHtml);
+  const rawForValidation = { ...raw, description: descText };
+
+  const parsed = listingSchema.safeParse(rawForValidation);
   if (!parsed.success) {
     const firstError = parsed.error.issues[0];
     return { error: firstError.message };
@@ -36,7 +57,7 @@ export async function createListingAction(
     id: listingId,
     user_id: user.id,
     title: d.title,
-    description: d.description,
+    description: descHtml, // store raw HTML
     listing_type: d.listing_type,
     sale_price: d.sale_price ? Number(d.sale_price) : null,
     rent_price: d.rent_price ? Number(d.rent_price) : null,
@@ -47,9 +68,11 @@ export async function createListingAction(
     district: d.district || null,
     address: d.address || null,
     area_sqm: d.area_sqm ? Number(d.area_sqm) : null,
-    contact_name: d.contact_name,
-    contact_mobile: d.contact_mobile,
-    contact_line: d.contact_line || null,
+    latitude: d.latitude ? Number(d.latitude) : null,
+    longitude: d.longitude ? Number(d.longitude) : null,
+    contact_name: profile.display_name,
+    contact_mobile: profile.mobile,
+    contact_line: profile.line_id || null,
     video_url: d.video_url || null,
     slug,
     status: "published",
@@ -59,7 +82,7 @@ export async function createListingAction(
 
   if (insertError) return { error: `เกิดข้อผิดพลาด: ${insertError.message}` };
 
-  // Insert image rows from hidden inputs
+  // Insert image rows
   const imagePaths = formData.getAll("image_paths[]") as string[];
   if (imagePaths.length > 0) {
     await supabase.from("listing_images").insert(
@@ -89,8 +112,14 @@ export async function updateListingAction(
   const listingId = formData.get("listing_id") as string;
   if (!listingId) return { error: "ไม่พบประกาศ" };
 
+  const profile = await getProfileContact(supabase, user.id);
+
   const raw = Object.fromEntries(formData.entries());
-  const parsed = listingSchema.safeParse(raw);
+  const descHtml = raw.description as string;
+  const descText = stripHtmlTags(descHtml);
+  const rawForValidation = { ...raw, description: descText };
+
+  const parsed = listingSchema.safeParse(rawForValidation);
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
@@ -100,7 +129,7 @@ export async function updateListingAction(
     .from("listings")
     .update({
       title: d.title,
-      description: d.description,
+      description: descHtml,
       listing_type: d.listing_type,
       sale_price: d.sale_price ? Number(d.sale_price) : null,
       rent_price: d.rent_price ? Number(d.rent_price) : null,
@@ -111,9 +140,11 @@ export async function updateListingAction(
       district: d.district || null,
       address: d.address || null,
       area_sqm: d.area_sqm ? Number(d.area_sqm) : null,
-      contact_name: d.contact_name,
-      contact_mobile: d.contact_mobile,
-      contact_line: d.contact_line || null,
+      latitude: d.latitude ? Number(d.latitude) : null,
+      longitude: d.longitude ? Number(d.longitude) : null,
+      contact_name: profile?.display_name ?? undefined,
+      contact_mobile: profile?.mobile ?? undefined,
+      contact_line: profile?.line_id ?? undefined,
       video_url: d.video_url || null,
     })
     .eq("id", listingId)
@@ -152,16 +183,13 @@ export async function deleteListingAction(listingId: string): Promise<{ error?: 
   } = await supabase.auth.getUser();
   if (!user) return { error: "ไม่ได้เข้าสู่ระบบ" };
 
-  // Get images to delete from storage
   const { data: images } = await supabase
     .from("listing_images")
     .select("storage_path")
     .eq("listing_id", listingId);
 
   if (images && images.length > 0) {
-    await supabase.storage
-      .from("listings")
-      .remove(images.map((i) => i.storage_path));
+    await supabase.storage.from("listings").remove(images.map((i) => i.storage_path));
   }
 
   const { error } = await supabase
