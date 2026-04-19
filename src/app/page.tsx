@@ -5,6 +5,7 @@ import { NearMeSection } from "@/components/home/near-me-section";
 import { BannerSection } from "@/components/home/banner-section";
 import { LatestListings } from "@/components/home/latest-listings";
 import { CategoriesShowcase } from "@/components/home/categories-showcase";
+import { PopularProvinces } from "@/components/home/popular-provinces";
 import { getAllProvinces } from "@/lib/db/listings";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -78,7 +79,10 @@ export default async function HomePage() {
           <CategoriesShowcase supabaseUrl={supabaseUrl} />
         </Suspense>
 
-        {/* More sections added in subsequent commits */}
+        {/* Popular provinces */}
+        <Suspense fallback={<SectionSkeleton />}>
+          <PopularProvinces />
+        </Suspense>
       </div>
     </div>
   );

@@ -369,6 +369,28 @@ export async function getCategoriesWithListings(): Promise<
   return results.filter((r) => r.listings.length > 0);
 }
 
+export type PopularProvince = {
+  province_id: number;
+  name_th: string;
+  name_en: string;
+  slug: string;
+  listing_count: number;
+};
+
+export const getPopularProvinces = unstable_cache(
+  async (limit = 12): Promise<PopularProvince[]> => {
+    const supabase = createAnonClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any).rpc("popular_provinces", { limit_n: limit });
+    return (data ?? []) as PopularProvince[];
+  },
+  ["popular-provinces"],
+  { revalidate: 600 }
+);
+
 export type Banner = {
   id: string;
   title: string | null;
