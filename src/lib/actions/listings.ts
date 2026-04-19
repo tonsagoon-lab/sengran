@@ -5,7 +5,72 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { listingSchema } from "@/lib/schemas/listing";
-import { stripHtmlTags } from "@/components/rich-text-display";
+import { stripHtmlTags } from "@/lib/utils/html";
+import type { SearchListing } from "@/lib/db/listings";
+
+const NEAR_ME_SELECT = `
+  id, title, slug, listing_type, sale_price, rent_price,
+  is_featured, featured_until, district, province_id, view_count, published_at,
+  listing_images(id, storage_path, display_order),
+  categories(name_th, slug),
+  provinces(name_th, slug)
+`.trim();
+
+export async function getNearMeListings(
+  params:
+    | { type: "gps"; lat: number; lng: number; radiusKm?: number }
+    | { type: "province"; provinceId: number }
+): Promise<{ listings: SearchListing[]; total: number }> {
+  const supabase = await createClient();
+
+  if (params.type === "gps") {
+    const { lat, lng, radiusKm = 10 } = params;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: nearIds } = await (supabase as any).rpc("listings_within_distance", {
+      center_lat: lat,
+      center_lng: lng,
+      radius_km: radiusKm,
+    });
+
+    if (!nearIds || nearIds.length === 0) {
+      return { listings: [], total: 0 };
+    }
+
+    const ids = (nearIds as unknown as { id: string; distance_km: number }[])
+      .slice(0, 4)
+      .map((r) => r.id);
+
+    const { data: rawData } = await supabase
+      .from("listings")
+      .select(NEAR_ME_SELECT)
+      .in("id", ids)
+      .eq("status", "published");
+
+    const data = (rawData ?? []) as unknown as SearchListing[];
+
+    // Preserve distance order
+    const byId = new Map(data.map((l) => [l.id, l]));
+    const ordered = ids.map((id) => byId.get(id)).filter((x): x is SearchListing => !!x);
+
+    return {
+      listings: ordered,
+      total: (nearIds as unknown[]).length,
+    };
+  } else {
+    const { data, count } = await supabase
+      .from("listings")
+      .select(NEAR_ME_SELECT, { count: "exact" })
+      .eq("province_id", params.provinceId)
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(4);
+
+    return {
+      listings: (data ?? []) as unknown as SearchListing[],
+      total: count ?? 0,
+    };
+  }
+}
 
 export type ListingActionResult =
   | { error: string; success?: never }

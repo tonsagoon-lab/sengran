@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { HeroSearch } from "@/components/home/hero-search";
+import { NearMeSection } from "@/components/home/near-me-section";
+import { getAllProvinces } from "@/lib/db/listings";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = {
@@ -25,6 +27,9 @@ function HeroSkeleton() {
 }
 
 export default async function HomePage() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const provinces = await getAllProvinces();
+
   return (
     <div className="flex flex-col">
       {/* Hero + search */}
@@ -33,7 +38,10 @@ export default async function HomePage() {
       </Suspense>
 
       <div className="mx-auto w-full max-w-7xl px-4 py-8 space-y-12">
-        {/* Sections added in subsequent commits */}
+        {/* Near me */}
+        <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
+
+        {/* More sections added in subsequent commits */}
       </div>
     </div>
   );
