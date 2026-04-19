@@ -139,13 +139,54 @@ Do not add wallet UI until the topup + Omise payment flow is fully built.
 - `zod` v4 uses `error.issues` not `error.errors`; `z.enum` params use `error` not `required_error`
 
 ### Run This SQL in Supabase (migration 0003)
-```sql
--- from supabase/migrations/0003_view_count_function.sql
-CREATE OR REPLACE FUNCTION increment_listing_view_count(listing_slug text)
-RETURNS void AS $$
-BEGIN
-  UPDATE listings SET view_count = view_count + 1
-  WHERE slug = listing_slug AND status = 'published';
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
+See `supabase/migrations/0003_view_count_function.sql` (includes SET search_path + REVOKE/GRANT).
+
+---
+
+## Session 3B Additions — UX Improvements
+
+### Terminology
+- UI label "ขาย" → "เซ้ง" everywhere. DB value `'sale'` unchanged.
+- `listing_type = 'both'` → "เซ้งและให้เช่า"
+
+### Rich Text Description
+- **Editor**: `src/components/rich-text-editor.tsx` — TipTap + StarterKit + Link + Placeholder
+  - Toolbar: Bold, Italic, BulletList, OrderedList, Link, Emoji picker (@emoji-mart/react, lazy-loaded)
+  - Min 280px, max 500px scroll, styled to match shadcn
+- **Display**: `src/components/rich-text-display.tsx` — sanitized with DOMPurify (client-side)
+  - `stripHtmlTags()` exported for server-side plain text extraction (schema validation, OG meta)
+- **Validation**: strip HTML → require ≥ 30 chars of actual text
+- **DB**: stores raw HTML; sanitized on display (never raw to DOM)
+
+### Google Maps Location
+- `src/lib/utils/google-maps.ts` — `extractCoordsFromGoogleMapsUrl()` handles:
+  - Short URLs (maps.app.goo.gl, goo.gl/maps) — server-side redirect follow
+  - `@lat,lng`, `!3d/!4d`, `?q=`, `?ll=` formats
+- `src/lib/actions/maps.ts` — `resolveGoogleMapsUrl()` server action (CORS-safe)
+- `src/components/google-maps-input.tsx` — 500ms debounce paste handler, status indicators, embed preview
+- **Stores lat/lng only** (not the raw URL); embed via `?output=embed` (no API key)
+- Public listing page: shows embed iframe + "เปิดใน Google Maps →" link when lat/lng present
+
+### Contact Info Sourced from Profile
+- Form no longer has contact fields; server action fetches snapshot at submit time
+- `createListingAction` checks `profile.display_name && profile.mobile` before proceeding
+- If missing: server-side redirect `/profile?reason=missing_contact` (also enforced in page.tsx)
+- Profile page shows amber alert when `?reason=missing_contact`
+- Edit does not re-check (user already has a listing)
+
+### 5-Step Wizard (`src/components/listing-wizard.tsx`)
+- Manages all state in `sessionStorage` (persisted on every change, cleared on submit)
+- Hash routing: `/listings/new#step-1` … `#step-5`; browser back navigates steps
+- Progress: numbered circles (desktop) / text + bar (mobile)
+- Step 1: listing type (icon cards), title, RichTextEditor description
+- Step 2: ฿-prefixed prices, deposit month quick-select, price note
+- Step 3: province combobox, district, address textarea, GoogleMapsInput
+- Step 4: category, area_sqm, video URL, amenity checkboxes
+- Step 5: ImageUploader + read-only summary card + "เผยแพร่" / "บันทึกแบบร่าง"
+- Validation per step (Zod); price fields cleared when listing_type changes retroactively
+- "บันทึกแบบร่าง" in header from step 2 onwards
+- Edit mode: pre-filled from existing listing + amenities, no profile check
+
+### db/listings.ts additions
+- `getAllAmenities()` — fetch all amenities ordered by name
+- `getListingForEdit()` — now selects `listing_amenities(amenity_id)`, `categories`, `provinces`
