@@ -62,7 +62,9 @@ export default async function HomePage() {
 
       <div className="mx-auto w-full max-w-7xl px-4 py-8 space-y-12">
         {/* Near me */}
-        <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
+        <div id="near-me">
+          <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
+        </div>
 
         {/* Banner slider */}
         <Suspense fallback={null}>

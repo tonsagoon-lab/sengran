@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Sarabun } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/shared/navbar";
+import { TopMenuBar } from "@/components/top-menu-bar";
 import { HomeFooter } from "@/components/home/home-footer";
 
 const sarabun = Sarabun({
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="th" className={`${sarabun.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         <Navbar />
+        <TopMenuBar />
         <div className="flex-1">{children}</div>
         <HomeFooter />
       </body>

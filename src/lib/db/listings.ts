@@ -9,7 +9,7 @@ export type ListingWithDetails = Listing & {
   listing_images: ListingImage[];
   categories: { name_th: string; slug: string } | null;
   provinces: { name_th: string; slug: string } | null;
-  profiles: { display_name: string | null; mobile: string | null; line_id: string | null } | null;
+  profiles: { display_name: string | null; mobile: string | null; line_id: string | null; avatar_url: string | null } | null;
 };
 
 export async function getPublishedListings(options?: {
@@ -67,7 +67,7 @@ export async function getListingBySlug(slug: string): Promise<ListingWithDetails
     .select(
       `*, listing_images(id, storage_path, display_order, alt_text),
        categories(name_th, slug), provinces(name_th, slug),
-       profiles(display_name, mobile, line_id)`
+       profiles!listings_user_id_fkey(display_name, mobile, line_id, avatar_url)`
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -318,7 +318,7 @@ async function anonClient() {
 export async function getAllCategoriesPublic() {
   const supabase = await anonClient();
   const { data } = await supabase
-    .from("categories").select("id, name_th, slug").eq("is_active", true).order("display_order");
+    .from("categories").select("id, name_th, slug, icon").eq("is_active", true).order("display_order");
   return data ?? [];
 }
 
@@ -327,6 +327,55 @@ export async function getAllProvincesPublic() {
   const { data } = await supabase
     .from("provinces").select("id, name_th, slug, region").order("name_th");
   return data ?? [];
+}
+
+export async function getRelatedListings(
+  currentSlug: string,
+  provinceId: number | null,
+  categoryId: number | null,
+  limit = 3
+): Promise<SearchListing[]> {
+  const supabase = await createClient();
+
+  // Try same province first, fall back to same category, then latest
+  if (provinceId) {
+    const { data } = await supabase
+      .from("listings")
+      .select(LISTING_CARD_SELECT)
+      .eq("status", "published")
+      .eq("province_id", provinceId)
+      .neq("slug", currentSlug)
+      .order("published_at", { ascending: false })
+      .limit(limit);
+    if (data && data.length === limit) return data as unknown as SearchListing[];
+
+    // Pad with same category if province didn't fill slots
+    const provinceIds = ((data ?? []) as unknown as { slug: string }[]).map((r) => r.slug);
+    const remaining = limit - (data ?? []).length;
+    if (categoryId && remaining > 0) {
+      const { data: catData } = await supabase
+        .from("listings")
+        .select(LISTING_CARD_SELECT)
+        .eq("status", "published")
+        .eq("category_id", categoryId)
+        .neq("slug", currentSlug)
+        .not("slug", "in", `(${[currentSlug, ...provinceIds].join(",")})`)
+        .order("published_at", { ascending: false })
+        .limit(remaining);
+      return [...(data ?? []), ...(catData ?? [])] as unknown as SearchListing[];
+    }
+    if ((data ?? []).length > 0) return data as unknown as SearchListing[];
+  }
+
+  // Fallback: latest listings
+  const { data } = await supabase
+    .from("listings")
+    .select(LISTING_CARD_SELECT)
+    .eq("status", "published")
+    .neq("slug", currentSlug)
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as unknown as SearchListing[];
 }
 
 export async function getLatestListings(limit = 8): Promise<SearchListing[]> {

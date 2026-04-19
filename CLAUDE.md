@@ -289,3 +289,20 @@ Both use anon client directly (not SSR client) inside `unstable_cache` to avoid 
 
 ### Footer
 `HomeFooter` added to root layout (all pages). 4-col: brand + nav + Facebook (iframe + link) + help links. Facebook SVG icon inline (lucide-react has no Facebook icon).
+
+---
+
+## Session 5B Additions — TopMenuBar
+
+### TopMenuBar placement
+`src/components/top-menu-bar.tsx` (server) + `src/components/top-menu-bar-client.tsx` (client).
+Added to root layout between `<Navbar />` and `{children}` — appears on every page.
+
+### Menu items
+1. **หน้าแรก** → `/`
+2. **เซ้งร้านใกล้ฉัน** → `/#near-me` — if on homepage, smoothly scrolls to `id="near-me"` div wrapping NearMeSection; if on other page, navigates home normally
+3. **ประเภทร้าน** — dropdown (desktop) / bottom Sheet (mobile) with all active categories from DB → `/property-type/{slug}`
+4. **ฝากเซ้งร้าน** — LINE CTA: `https://line.me/R/ti/p/sale4biz` (universal link, works desktop + mobile app). **If LINE account changes, update `LINE_CTA_URL` constant in `top-menu-bar-client.tsx`**
+
+### NearMeSection scroll target
+`id="near-me"` is on a wrapper `<div>` in `src/app/page.tsx` (not inside NearMeSection itself, since it returns null during init state).
