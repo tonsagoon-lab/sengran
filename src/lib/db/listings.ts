@@ -329,6 +329,46 @@ export async function getAllProvincesPublic() {
   return data ?? [];
 }
 
+export async function getLatestListings(limit = 8): Promise<SearchListing[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("listings")
+    .select(LISTING_CARD_SELECT)
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as unknown as SearchListing[];
+}
+
+export async function getCategoriesWithListings(): Promise<
+  { category: { id: number; name_th: string; slug: string; icon: string | null }; listings: SearchListing[] }[]
+> {
+  const supabase = await createClient();
+
+  const { data: cats } = await supabase
+    .from("categories")
+    .select("id, name_th, slug, icon")
+    .eq("is_active", true)
+    .order("display_order");
+
+  if (!cats || cats.length === 0) return [];
+
+  const results = await Promise.all(
+    cats.map(async (cat) => {
+      const { data } = await supabase
+        .from("listings")
+        .select(LISTING_CARD_SELECT)
+        .eq("category_id", cat.id)
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .limit(4);
+      return { category: cat, listings: (data ?? []) as unknown as SearchListing[] };
+    })
+  );
+
+  return results.filter((r) => r.listings.length > 0);
+}
+
 export type Banner = {
   id: string;
   title: string | null;
