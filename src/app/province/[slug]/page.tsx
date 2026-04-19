@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getAllProvinces } from "@/lib/db/listings";
+import { getAllProvinces, getAllProvincesPublic } from "@/lib/db/listings";
 import { BrowsePage } from "@/components/listings/browse-page";
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-  const provinces = await getAllProvinces();
+  const provinces = await getAllProvincesPublic();
   return provinces.map((p) => ({ slug: p.slug }));
 }
 

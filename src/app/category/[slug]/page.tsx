@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getAllCategories } from "@/lib/db/listings";
+import { getAllCategories, getAllCategoriesPublic } from "@/lib/db/listings";
 import { BrowsePage } from "@/components/listings/browse-page";
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-  const categories = await getAllCategories();
+  const categories = await getAllCategoriesPublic();
   return categories.map((c) => ({ slug: c.slug }));
 }
 

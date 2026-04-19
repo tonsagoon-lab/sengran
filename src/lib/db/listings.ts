@@ -307,6 +307,28 @@ export async function getFeaturedListings(): Promise<SearchListing[]> {
   return (data ?? []) as unknown as SearchListing[];
 }
 
+// Anon-client versions for use in generateStaticParams (no cookie dependency)
+async function anonClient() {
+  return createAnonClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+
+export async function getAllCategoriesPublic() {
+  const supabase = await anonClient();
+  const { data } = await supabase
+    .from("categories").select("id, name_th, slug").eq("is_active", true).order("display_order");
+  return data ?? [];
+}
+
+export async function getAllProvincesPublic() {
+  const supabase = await anonClient();
+  const { data } = await supabase
+    .from("provinces").select("id, name_th, slug, region").order("name_th");
+  return data ?? [];
+}
+
 export const getTotalListingCount = unstable_cache(
   async () => {
     const supabase = createAnonClient(
