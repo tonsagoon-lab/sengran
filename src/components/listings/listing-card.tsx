@@ -1,0 +1,96 @@
+import Link from "next/link";
+import Image from "next/image";
+import { MapPin, Eye, Pencil } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DeleteListingButton } from "./delete-listing-button";
+import type { ListingWithImages } from "@/lib/db/listings";
+
+const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  published: { label: "เผยแพร่แล้ว", variant: "default" },
+  draft: { label: "แบบร่าง", variant: "secondary" },
+  sold: { label: "ขายแล้ว/เช่าแล้ว", variant: "outline" },
+  expired: { label: "หมดอายุ", variant: "destructive" },
+  hidden: { label: "ซ่อน", variant: "secondary" },
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  sale: "ขาย",
+  rent: "เช่า",
+  both: "ขาย/เช่า",
+};
+
+function formatPrice(price: number | null) {
+  if (price == null) return null;
+  return price.toLocaleString("th-TH");
+}
+
+interface ListingCardProps {
+  listing: ListingWithImages;
+}
+
+export function ListingCard({ listing }: ListingCardProps) {
+  const coverImage = listing.listing_images.sort((a, b) => a.display_order - b.display_order)[0];
+  const coverUrl = coverImage
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/listings/${coverImage.storage_path}`
+    : null;
+
+  const status = STATUS_LABELS[listing.status] ?? { label: listing.status, variant: "secondary" as const };
+
+  return (
+    <div className="flex gap-4 p-4 border rounded-xl bg-white hover:shadow-sm transition-shadow">
+      <div className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden bg-neutral-100">
+        {coverUrl ? (
+          <Image src={coverUrl} alt={listing.title} fill className="object-cover" sizes="96px" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs">
+            ไม่มีรูป
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex items-start justify-between gap-2">
+          <Link
+            href={`/listing/${listing.slug}`}
+            className="font-medium text-sm line-clamp-2 hover:text-orange-600"
+          >
+            {listing.title}
+          </Link>
+          <Badge variant={status.variant} className="shrink-0 text-xs">
+            {status.label}
+          </Badge>
+        </div>
+
+        <div className="flex items-center gap-1 text-xs text-neutral-500">
+          <MapPin className="h-3 w-3" />
+          <span>{listing.district || "—"}</span>
+        </div>
+
+        <div className="flex gap-2 text-xs font-medium text-neutral-700">
+          <span className="text-neutral-400">{TYPE_LABELS[listing.listing_type]}</span>
+          {listing.sale_price != null && (
+            <span>{formatPrice(listing.sale_price)} บาท</span>
+          )}
+          {listing.rent_price != null && (
+            <span>{formatPrice(listing.rent_price)} บาท/เดือน</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 text-xs text-neutral-400">
+          <Eye className="h-3 w-3" />
+          <span>{listing.view_count} ครั้ง</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 shrink-0">
+        <Button size="sm" variant="outline" asChild className="h-8 px-2">
+          <Link href={`/listings/${listing.id}/edit`}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
+        <DeleteListingButton listingId={listing.id} />
+      </div>
+    </div>
+  );
+}

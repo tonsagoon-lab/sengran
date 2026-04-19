@@ -106,3 +106,46 @@ npx supabase gen types typescript --project-id fexxmtjmrlpitzsjrgbd > src/lib/ty
 - Register form: never had a wallet field
 
 Do not add wallet UI until the topup + Omise payment flow is fully built.
+
+---
+
+## Session 3A Additions — Listing CRUD + Image Upload
+
+### New Files
+- `src/lib/schemas/listing.ts` — Zod schema (string-typed numeric fields; superRefine for conditional price validation)
+- `src/lib/utils/slug.ts` — Thai→roman transliteration via Unicode code points; `generateUniqueSlug()` checks DB for collisions
+- `src/lib/utils/image-upload.ts` — client-side compress (browser-image-compression, max 1MB/1920px) + upload to Supabase Storage "listings" bucket
+- `src/lib/db/listings.ts` — server data access layer: `getPublishedListings`, `getListingBySlug`, `getMyListings`, `getListingForEdit`, `getAllCategories`, `getAllProvinces`
+- `src/lib/actions/listings.ts` — `createListingAction`, `updateListingAction`, `deleteListingAction`, `deleteListingImageAction`, `incrementViewCountAction`, `toggleFavoriteAction`
+- `src/components/listings/province-combobox.tsx` — Command+Popover combobox for 77 provinces
+- `src/components/listings/image-uploader.tsx` — dnd-kit drag-reorder; immediate upload on file select; hidden inputs for form submission
+- `src/components/listings/listing-form.tsx` — multi-section form (react-hook-form + zod + useActionState)
+- `src/components/listings/listing-card.tsx` — card for my-listings page
+- `src/components/listings/delete-listing-button.tsx` — AlertDialog confirmation before delete
+- `src/components/listings/image-gallery.tsx` — embla-carousel-react gallery
+- `src/components/listings/view-count-tracker.tsx` — client component; sessionStorage debounce to avoid double-counting
+- `supabase/migrations/0003_view_count_function.sql` — SECURITY DEFINER `increment_listing_view_count(slug)` to bypass RLS for anon users
+
+### Pages
+- `/listings/new` — create listing (protected)
+- `/listings/[id]/edit` — edit listing (owner-only via `getListingForEdit`)
+- `/my-listings` — owner's listing list with edit/delete
+- `/listing/[slug]` — public detail page with SEO metadata, gallery, contact
+
+### Key Architectural Decisions
+- Listing UUID is generated **client-side** (`crypto.randomUUID()` in `useState`) so images can upload before the listing row exists in DB
+- Images upload immediately on file select (not on form submit); storage paths passed via hidden `<input name="image_paths[]">`
+- View count increment uses SECURITY DEFINER Postgres function (RLS blocks anon UPDATE on listings)
+- `zod` v4 uses `error.issues` not `error.errors`; `z.enum` params use `error` not `required_error`
+
+### Run This SQL in Supabase (migration 0003)
+```sql
+-- from supabase/migrations/0003_view_count_function.sql
+CREATE OR REPLACE FUNCTION increment_listing_view_count(listing_slug text)
+RETURNS void AS $$
+BEGIN
+  UPDATE listings SET view_count = view_count + 1
+  WHERE slug = listing_slug AND status = 'published';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
