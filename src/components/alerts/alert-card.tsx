@@ -54,7 +54,7 @@ export function AlertCard({ alert, provinces, categories }: Props) {
       {/* Toggle */}
       <button
         disabled={pending}
-        onClick={() => startTransition(() => toggleAlertAction(alert.id, !alert.is_active))}
+        onClick={() => startTransition(() => void toggleAlertAction(alert.id, !alert.is_active))}
         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${alert.is_active ? "bg-orange-500" : "bg-neutral-200"}`}
         title={alert.is_active ? "ปิดการแจ้งเตือน" : "เปิดการแจ้งเตือน"}
       >
