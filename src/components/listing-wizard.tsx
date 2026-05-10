@@ -15,8 +15,9 @@ import {
   Loader2,
   Store,
   MapPin,
-  Info,
   Image as ImageIcon,
+  MessageCircle,
+  X,
 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -132,10 +133,12 @@ const step2Schema = z.object({
 const STEPS = [
   { label: "ข้อมูลพื้นฐาน", icon: Store },
   { label: "ที่ตั้ง", icon: MapPin },
-  { label: "รายละเอียดเพิ่มเติม", icon: Info },
   { label: "รูปภาพ", icon: ImageIcon },
 ];
-const TOTAL_STEPS = STEPS.length; // 4
+const TOTAL_STEPS = STEPS.length; // 3
+
+const LINE_PACKAGE_URL = "https://line.me/R/ti/p/~salebiz";
+const PACKAGE_IMAGE_URL = "https://fexxmtjmrlpitzsjrgbd.supabase.co/storage/v1/object/public/banners/bannerseng.jpg";
 
 function ProgressBar({ step }: { step: number }) {
   return (
@@ -264,20 +267,20 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
   const isEdit = !!listing;
   const storageKey = isEdit ? `${STORAGE_KEY}_${listing?.id}` : STORAGE_KEY;
 
-  const [data, setDataRaw] = useState<WizardState>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = sessionStorage.getItem(storageKey);
-        if (saved) {
-          const migrated = migrateState(saved, isEdit ? listing?.id : undefined);
-          if (migrated) return migrated;
-          // Migration failed — clear stale state
-          sessionStorage.removeItem(storageKey);
-        }
-      } catch {}
-    }
-    return buildInitialState(listing);
-  });
+  // Always start with default state (matches SSR), then hydrate from sessionStorage
+  const [data, setDataRaw] = useState<WizardState>(() => buildInitialState(listing));
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) {
+        const migrated = migrateState(saved, isEdit ? listing?.id : undefined);
+        if (migrated) { setDataRaw(migrated); return; }
+        sessionStorage.removeItem(storageKey);
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setData = useCallback(
     (updater: Partial<WizardState> | ((prev: WizardState) => WizardState)) => {
@@ -379,6 +382,8 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
 
   const [isPending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   function buildFormData(status: "published" | "draft"): FormData {
@@ -412,7 +417,11 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
       const result = await action(undefined, fd);
       if (result?.error) { setSubmitError(result.error); return; }
       try { sessionStorage.removeItem(storageKey); } catch {}
-      router.push("/my-listings");
+      if (status === "published" && !isEdit) {
+        setShowSuccessModal(true);
+      } else {
+        router.push("/my-listings");
+      }
     });
   }
 
@@ -654,55 +663,8 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
         </div>
       )}
 
-      {/* ── Step 3: รายละเอียดเพิ่มเติม ────────────────────────── */}
+      {/* ── Step 3: รูปภาพและตรวจสอบ ───────────────────────────── */}
       {step === 3 && (
-        <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-200">
-          <Card>
-            <CardContent className="pt-5 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="video_url">ลิงก์วิดีโอ (YouTube / TikTok) — ไม่บังคับ</Label>
-                <Input
-                  id="video_url"
-                  type="url"
-                  value={data.video_url}
-                  onChange={(e) => setData({ video_url: e.target.value })}
-                  placeholder="https://youtube.com/..."
-                />
-              </div>
-
-              {amenities.length > 0 && (
-                <div className="space-y-3">
-                  <Label>สิ่งอำนวยความสะดวก</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {amenities.map((a) => {
-                      const checked = data.amenity_ids.includes(a.id);
-                      return (
-                        <label key={a.id} className="flex items-center gap-2 cursor-pointer">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(v) =>
-                              setData((prev) => ({
-                                ...prev,
-                                amenity_ids: v
-                                  ? [...prev.amenity_ids, a.id]
-                                  : prev.amenity_ids.filter((id) => id !== a.id),
-                              }))
-                            }
-                          />
-                          <span className="text-sm">{a.name_th}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ── Step 4: รูปภาพและตรวจสอบ ───────────────────────────── */}
-      {step === 4 && (
         <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-200">
           <Card>
             <CardHeader><CardTitle className="text-base">รูปภาพ</CardTitle></CardHeader>
@@ -781,21 +743,6 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
                 )}
               </div>
 
-              {data.amenity_ids.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-neutral-500 mb-2">สิ่งอำนวยความสะดวก</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {data.amenity_ids.map((id) => {
-                        const a = amenities.find((am) => am.id === id);
-                        return a ? <Badge key={id} variant="secondary">{a.name_th}</Badge> : null;
-                      })}
-                    </div>
-                  </div>
-                </>
-              )}
-
               <Separator />
 
               {/* Description preview */}
@@ -805,6 +752,56 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* ── Success Modal ──────────────────────────────────────── */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-5">
+            <button
+              onClick={() => { setShowSuccessModal(false); router.push("/my-listings"); }}
+              className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-600"
+              aria-label="ปิด"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center space-y-2">
+              <CheckCircle2 className="h-12 w-12 text-green-500" />
+              <h2 className="text-lg font-bold text-neutral-900">ประกาศเผยแพร่แล้ว!</h2>
+              <p className="text-sm text-neutral-500">ขณะนี้ประกาศของคุณได้เผยแพร่แล้ว</p>
+            </div>
+
+            {PACKAGE_IMAGE_URL && (
+              <img
+                src={PACKAGE_IMAGE_URL}
+                alt="แพ็กเกจโปรโมท"
+                className="w-full rounded-xl object-cover"
+              />
+            )}
+
+            <div className="space-y-2">
+              <p className="text-center text-sm font-medium text-neutral-700">
+                ต้องการโปรโมทประกาศให้ขายได้เร็วขึ้น?
+              </p>
+              <a
+                href={LINE_PACKAGE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#06C755] hover:bg-[#05b34c] py-3 font-semibold text-sm text-white transition-colors"
+              >
+                <MessageCircle className="h-4 w-4" />
+                สั่งซื้อแพ็กเกจผ่าน LINE
+              </a>
+              <button
+                onClick={() => { setShowSuccessModal(false); router.push("/my-listings"); }}
+                className="w-full rounded-xl border py-3 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors"
+              >
+                ดูประกาศของฉัน
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { listingSchema } from "@/lib/schemas/listing";
 import { stripHtmlTags } from "@/lib/utils/html";
+import { rateLimit } from "@/lib/rate-limit";
 import type { SearchListing } from "@/lib/db/listings";
 
 const NEAR_ME_SELECT = `
@@ -37,7 +38,7 @@ export async function getNearMeListings(
     }
 
     const ids = (nearIds as unknown as { id: string; distance_km: number }[])
-      .slice(0, 4)
+      .slice(0, 8)
       .map((r) => r.id);
 
     const { data: rawData } = await supabase
@@ -63,7 +64,7 @@ export async function getNearMeListings(
       .eq("province_id", params.provinceId)
       .eq("status", "published")
       .order("published_at", { ascending: false })
-      .limit(4);
+      .limit(8);
 
     return {
       listings: (data ?? []) as unknown as SearchListing[],
@@ -95,6 +96,10 @@ export async function createListingAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // 5 listings per hour per user
+  const { allowed } = await rateLimit(`listing:${user.id}`, 5, 3600);
+  if (!allowed) return { error: "ลงประกาศถี่เกินไป กรุณารอสักครู่" };
 
   const profile = await getProfileContact(supabase, user.id);
   if (!profile?.display_name || !profile?.mobile) {
@@ -171,7 +176,15 @@ export async function createListingAction(
 
   revalidatePath("/my-listings");
   revalidatePath("/");
+  revalidatePath("/listings");
   return { success: true, listingId };
+}
+
+function isPrivileged(email: string | undefined): boolean {
+  if (!email) return false;
+  const admin = process.env.ADMIN_EMAIL ?? "";
+  const staff = (process.env.STAFF_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
+  return email === admin || staff.includes(email);
 }
 
 export async function updateListingAction(
@@ -187,7 +200,22 @@ export async function updateListingAction(
   const listingId = formData.get("listing_id") as string;
   if (!listingId) return { error: "ไม่พบประกาศ" };
 
-  const profile = await getProfileContact(supabase, user.id);
+  const privileged = isPrivileged(user.email ?? undefined);
+
+  // Admin/staff: use service role client to bypass RLS; keep original owner's contact
+  const updateClient = privileged
+    ? (await import("@/lib/supabase/admin")).createAdminClient()
+    : supabase;
+
+  let contactFields: Record<string, string | null | undefined> = {};
+  if (!privileged) {
+    const profile = await getProfileContact(supabase, user.id);
+    contactFields = {
+      contact_name: profile?.display_name ?? undefined,
+      contact_mobile: profile?.mobile ?? undefined,
+      contact_line: profile?.line_id ?? undefined,
+    };
+  }
 
   const raw = Object.fromEntries(formData.entries());
   const descHtml = raw.description as string;
@@ -200,7 +228,7 @@ export async function updateListingAction(
   }
 
   const d = parsed.data;
-  const { error: updateError } = await supabase
+  let query = updateClient
     .from("listings")
     .update({
       title: d.title,
@@ -217,14 +245,15 @@ export async function updateListingAction(
       area_sqm: d.area_sqm ? Number(d.area_sqm) : null,
       latitude: d.latitude ? Number(d.latitude) : null,
       longitude: d.longitude ? Number(d.longitude) : null,
-      contact_name: profile?.display_name ?? undefined,
-      contact_mobile: profile?.mobile ?? undefined,
-      contact_line: profile?.line_id ?? undefined,
       video_url: d.video_url || null,
+      ...contactFields,
     })
-    .eq("id", listingId)
-    .eq("user_id", user.id);
+    .eq("id", listingId);
 
+  // Non-privileged users can only edit their own listings
+  if (!privileged) query = (query as typeof query).eq("user_id", user.id);
+
+  const { error: updateError } = await query;
   if (updateError) return { error: `เกิดข้อผิดพลาด: ${updateError.message}` };
 
   // Add new images
@@ -246,8 +275,9 @@ export async function updateListingAction(
     );
   }
 
-  revalidatePath(`/my-listings`);
-  revalidatePath(`/property`);
+  revalidatePath("/my-listings");
+  revalidatePath("/listings");
+  revalidatePath("/");
   return { success: true, listingId };
 }
 
@@ -276,6 +306,29 @@ export async function deleteListingAction(listingId: string): Promise<{ error?: 
   if (error) return { error: error.message };
 
   revalidatePath("/my-listings");
+  revalidatePath("/listings");
+  revalidatePath("/");
+  return {};
+}
+
+export async function updateListingStatusAction(
+  listingId: string,
+  status: "published" | "hidden" | "sold"
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "ไม่ได้เข้าสู่ระบบ" };
+
+  const { error } = await supabase
+    .from("listings")
+    .update({ status })
+    .eq("id", listingId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/my-listings");
+  revalidatePath("/listings");
+  revalidatePath("/");
   return {};
 }
 

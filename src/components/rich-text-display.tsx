@@ -35,7 +35,5 @@ export function RichTextDisplay({ html, className }: RichTextDisplayProps) {
   );
 }
 
-/** Server-safe HTML sanitizer: strips all tags, used before DB save */
-export function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-}
+// Re-export for convenience — actual implementation lives in lib/utils/html.ts
+export { stripHtmlTags } from "@/lib/utils/html";

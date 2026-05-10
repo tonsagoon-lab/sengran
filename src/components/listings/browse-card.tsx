@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { MapPin, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toggleFavoriteAction } from "@/lib/actions/listings";
 import type { SearchListing } from "@/lib/db/listings";
 
 const TYPE_BADGE: Record<string, { label: string; className: string }> = {
@@ -45,9 +48,25 @@ interface BrowseCardProps {
   listing: SearchListing;
   supabaseUrl: string;
   priority?: boolean;
+  isFavorited?: boolean;
 }
 
-export function BrowseCard({ listing, supabaseUrl, priority = false }: BrowseCardProps) {
+export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited = false }: BrowseCardProps) {
+  const router = useRouter();
+  const [favorited, setFavorited] = useState(isFavorited);
+  const [pending, setPending] = useState(false);
+
+  async function handleFavorite(e: React.MouseEvent) {
+    e.preventDefault();
+    setPending(true);
+    const result = await toggleFavoriteAction(listing.id);
+    if (result?.error === "กรุณาเข้าสู่ระบบ") {
+      router.push("/login");
+    } else {
+      setFavorited((prev) => !prev);
+    }
+    setPending(false);
+  }
   const cover = listing.listing_images
     .slice()
     .sort((a, b) => a.display_order - b.display_order)[0];
@@ -91,16 +110,17 @@ export function BrowseCard({ listing, supabaseUrl, priority = false }: BrowseCar
             {typeBadge.label}
           </span>
         </div>
-        {/* Featured badge top-right (placeholder heart for Phase 5) */}
+        {/* Favorite button */}
         <div className="absolute top-2 right-2">
           <button
-            onClick={(e) => e.preventDefault()}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-neutral-400 hover:text-red-500 transition-colors"
-            aria-label="บันทึกรายการโปรด"
+            onClick={handleFavorite}
+            disabled={pending}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 transition-colors hover:bg-white disabled:opacity-60"
+            aria-label={favorited ? "เอาออกจากรายการโปรด" : "บันทึกรายการโปรด"}
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
+            <Heart
+              className={cn("h-4 w-4 transition-colors", favorited ? "fill-red-500 text-red-500" : "text-neutral-400 hover:text-red-400")}
+            />
           </button>
         </div>
       </div>

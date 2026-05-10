@@ -23,13 +23,13 @@ type Status = "init" | "prompt" | "gps-loading" | "province-select" | "fetching"
 
 const STORAGE_KEY = "user_location";
 const DENIED_KEY = "user_location_denied";
+const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50];
 
 export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   const [status, setStatus] = useState<Status>("init");
   const [location, setLocation] = useState<LocationState | null>(null);
   const [listings, setListings] = useState<SearchListing[]>([]);
   const [total, setTotal] = useState(0);
-  const [canExpand, setCanExpand] = useState(false);
 
   const fetchListings = useCallback(async (loc: LocationState) => {
     setStatus("fetching");
@@ -42,7 +42,6 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
       setListings(result.listings);
       setTotal(result.total);
       setStatus(result.listings.length > 0 ? "loaded" : "empty");
-      if (loc.type === "gps" && result.listings.length === 0) setCanExpand(true);
     } catch {
       setStatus("prompt");
     }
@@ -101,12 +100,10 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
     );
   };
 
-  const expandRadius = () => {
+  const changeRadius = (km: number) => {
     if (!location || location.type !== "gps") return;
-    const expanded = { ...location, radiusKm: 50 };
-    setLocation(expanded);
-    setCanExpand(false);
-    fetchListings(expanded);
+    const updated = { ...location, radiusKm: km };
+    applyLocation(updated);
   };
 
   const reset = () => {
@@ -115,7 +112,6 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
     setLocation(null);
     setListings([]);
     setStatus("prompt");
-    setCanExpand(false);
   };
 
   // "init" — brief flash before useEffect runs; render nothing
@@ -209,10 +205,10 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
 
   return (
     <section className="py-4 space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-semibold text-neutral-800">{title}</h2>
         <div className="flex items-center gap-3">
-          {total > 4 && (
+          {total > 8 && (
             <Link href={seeAllHref} className="text-sm text-orange-600 hover:underline">
               ดูทั้งหมด →
             </Link>
@@ -223,23 +219,39 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
         </div>
       </div>
 
+      {/* Radius selector — GPS mode only */}
+      {location?.type === "gps" && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs text-neutral-500">ระยะ:</span>
+          {RADIUS_OPTIONS.map((km) => (
+            <button
+              key={km}
+              onClick={() => changeRadius(km)}
+              disabled={status === "fetching"}
+              className={`rounded-full px-3 py-0.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                location.radiusKm === km
+                  ? "bg-orange-500 text-white"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              }`}
+            >
+              {km} กม.
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Empty state */}
       {status === "empty" && (
         <div className="rounded-xl border bg-neutral-50 py-8 text-center space-y-2">
-          {canExpand ? (
+          {location?.type === "gps" ? (
             <>
-              <p className="text-sm text-neutral-600">ไม่พบร้านภายใน 10 กม.</p>
-              <Button size="sm" variant="outline" onClick={expandRadius}>
-                ขยายรัศมีการค้นหา (50 กม.)
-              </Button>
+              <p className="text-sm text-neutral-600">ไม่พบร้านในระยะ {location.radiusKm} กม.</p>
+              <p className="text-xs text-neutral-400">ลองเพิ่มระยะด้านบน</p>
             </>
           ) : (
             <>
               <p className="text-sm text-neutral-600">ยังไม่มีประกาศในจังหวัดนี้</p>
-              <Link
-                href="/listings/new"
-                className="text-sm text-orange-600 hover:underline"
-              >
+              <Link href="/listings/new" className="text-sm text-orange-600 hover:underline">
                 ลงประกาศแรก →
               </Link>
             </>

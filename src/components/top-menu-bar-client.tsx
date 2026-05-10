@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, MapPin, LayoutGrid, Megaphone, ChevronDown } from "lucide-react";
+import { Home, MapPin, LayoutGrid, Megaphone, ChevronDown, MessageCircle, ShieldCheck, BookOpen, Bell } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,11 +27,15 @@ interface Category {
 
 interface TopMenuBarClientProps {
   categories: Category[];
+  unreadCount: number;
+  unreadNotifCount: number;
+  isAdmin: boolean;
+  isLoggedIn: boolean;
 }
 
-const LINE_CTA_URL = "https://line.me/R/ti/p/sale4biz";
+const LINE_CTA_URL = "https://line.me/R/ti/p/~salebiz";
 
-export function TopMenuBarClient({ categories }: TopMenuBarClientProps) {
+export function TopMenuBarClient({ categories, unreadCount, unreadNotifCount, isAdmin, isLoggedIn }: TopMenuBarClientProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -44,6 +48,7 @@ export function TopMenuBarClient({ categories }: TopMenuBarClientProps) {
 
   const isHome = pathname === "/";
   const isCategoryActive = pathname.startsWith("/property-type");
+  const isMessages = pathname.startsWith("/messages");
 
   const linkClass = (active: boolean) =>
     `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
@@ -84,10 +89,9 @@ export function TopMenuBarClient({ categories }: TopMenuBarClientProps) {
               <ChevronDown className="h-3.5 w-3.5 opacity-60" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-52">
-              {categories.map((cat) => (
+              {categories.filter((cat) => cat.name_th).map((cat) => (
                 <DropdownMenuItem key={cat.id} asChild>
                   <Link href={`/property-type/${cat.slug}`} className="cursor-pointer">
-                    {cat.icon && <span className="mr-2">{cat.icon}</span>}
                     {cat.name_th}
                   </Link>
                 </DropdownMenuItem>
@@ -116,14 +120,13 @@ export function TopMenuBarClient({ categories }: TopMenuBarClientProps) {
                 <SheetTitle>เลือกประเภทร้าน</SheetTitle>
               </SheetHeader>
               <div className="mt-4 space-y-1 pb-6">
-                {categories.map((cat) => (
+                {categories.filter((cat) => cat.name_th).map((cat) => (
                   <Link
                     key={cat.id}
                     href={`/property-type/${cat.slug}`}
                     onClick={() => router.push(`/property-type/${cat.slug}`)}
                     className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-orange-50 hover:text-orange-700"
                   >
-                    {cat.icon && <span className="text-lg">{cat.icon}</span>}
                     {cat.name_th}
                   </Link>
                 ))}
@@ -139,6 +142,50 @@ export function TopMenuBarClient({ categories }: TopMenuBarClientProps) {
             </SheetContent>
           </Sheet>
         </div>
+
+        {/* บทความ */}
+        <Link href="/blog" className={linkClass(pathname.startsWith("/blog"))} aria-label="บทความ">
+          <BookOpen className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">บทความ</span>
+        </Link>
+
+        {/* แจ้งเตือนร้านเซ้ง — shown to everyone */}
+        <Link
+          href="/alerts"
+          aria-label="แจ้งเตือนร้านเซ้ง"
+          className="relative flex shrink-0 items-center gap-1.5 rounded-full bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors whitespace-nowrap"
+        >
+          <Bell className="h-4 w-4 shrink-0" />
+          <span>แจ้งเตือนร้านเซ้ง</span>
+          {unreadNotifCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
+              {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+            </span>
+          )}
+        </Link>
+
+        {/* ข้อความ */}
+        <Link href="/messages" className={`${linkClass(isMessages)} relative`} aria-label="ข้อความ">
+          <MessageCircle className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">ข้อความ</span>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </Link>
+
+        {/* Admin link — only for admin/staff */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={linkClass(pathname.startsWith("/admin"))}
+            aria-label="Admin"
+          >
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">Admin</span>
+          </Link>
+        )}
 
         {/* LINE CTA */}
         <a

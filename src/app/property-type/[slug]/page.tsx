@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getAllCategories, getAllCategoriesPublic } from "@/lib/db/listings";
 import { BrowsePage } from "@/components/listings/browse-page";
+import { TopMenuBar } from "@/components/top-menu-bar";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -14,7 +15,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
   const categories = await getAllCategories();
   const cat = categories.find((c) => c.slug === slug);
   if (!cat) return { title: "ไม่พบหมวดหมู่" };
@@ -31,7 +33,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
   const categories = await getAllCategories();
   const cat = categories.find((c) => c.slug === slug);
   if (!cat) notFound();
@@ -44,11 +47,14 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   }
 
   return (
-    <BrowsePage
-      searchParams={flat}
-      lockedCategory={slug}
-      heroTitle={`ร้าน${cat.name_th} เซ้งและให้เช่า`}
-      heroSubtitle={`เซ้งร้าน${cat.name_th} และร้านให้เช่า ทั่วประเทศไทย`}
-    />
+    <>
+      <TopMenuBar />
+      <BrowsePage
+        searchParams={flat}
+        lockedCategory={slug}
+        heroTitle={`ร้าน${cat.name_th} เซ้งและให้เช่า`}
+        heroSubtitle={`เซ้งร้าน${cat.name_th} และร้านให้เช่า ทั่วประเทศไทย`}
+      />
+    </>
   );
 }

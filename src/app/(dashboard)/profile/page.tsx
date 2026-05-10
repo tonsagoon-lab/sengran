@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AuthForm } from "@/components/shared/auth-form";
+import { AvatarUploader } from "@/components/profile/avatar-uploader";
+import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { updateProfileAction } from "@/lib/actions/auth";
+import type { Metadata } from "next";
 
-export const metadata = { title: "โปรไฟล์ — เซ้งร้าน.com" };
+export const metadata: Metadata = { title: "โปรไฟล์ — เซ้งร้าน.com" };
 
 interface Props {
   searchParams: Promise<{ reason?: string }>;
@@ -16,15 +19,12 @@ interface Props {
 export default async function ProfilePage({ searchParams }: Props) {
   const { reason } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, mobile, line_id")
+    .select("display_name, mobile, line_id, avatar_url")
     .eq("id", user.id)
     .single();
 
@@ -37,6 +37,19 @@ export default async function ProfilePage({ searchParams }: Props) {
           กรุณากรอกชื่อและเบอร์โทรในโปรไฟล์ก่อนลงประกาศ
         </div>
       )}
+
+      {/* Avatar */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">รูปโปรไฟล์</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center py-4">
+          <AvatarUploader
+            currentUrl={profile?.avatar_url ?? null}
+            displayName={profile?.display_name ?? null}
+          />
+        </CardContent>
+      </Card>
 
       {/* Account info (read-only) */}
       <Card>
@@ -52,17 +65,13 @@ export default async function ProfilePage({ searchParams }: Props) {
           <div className="space-y-1">
             <Label className="text-neutral-500 text-xs">สมาชิกตั้งแต่</Label>
             <p className="text-sm font-medium">
-              {new Date(user.created_at).toLocaleDateString("th-TH", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {new Date(user.created_at).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Editable profile form */}
+      {/* Editable profile */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">แก้ไขข้อมูลส่วนตัว</CardTitle>
@@ -72,37 +81,28 @@ export default async function ProfilePage({ searchParams }: Props) {
           <AuthForm action={updateProfileAction} submitLabel="บันทึกการเปลี่ยนแปลง">
             <div className="space-y-2">
               <Label htmlFor="display_name">ชื่อที่แสดง</Label>
-              <Input
-                id="display_name"
-                name="display_name"
-                type="text"
-                defaultValue={profile?.display_name ?? ""}
-                placeholder="ชื่อ-นามสกุล หรือชื่อร้าน"
-                required
-              />
+              <Input id="display_name" name="display_name" type="text" defaultValue={profile?.display_name ?? ""} placeholder="ชื่อ-นามสกุล หรือชื่อร้าน" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="mobile">เบอร์โทรศัพท์</Label>
-              <Input
-                id="mobile"
-                name="mobile"
-                type="tel"
-                defaultValue={profile?.mobile ?? ""}
-                placeholder="0812345678"
-                required
-              />
+              <Input id="mobile" name="mobile" type="tel" defaultValue={profile?.mobile ?? ""} placeholder="0812345678" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="line_id">LINE ID (ไม่บังคับ)</Label>
-              <Input
-                id="line_id"
-                name="line_id"
-                type="text"
-                defaultValue={profile?.line_id ?? ""}
-                placeholder="@yourlineid"
-              />
+              <Input id="line_id" name="line_id" type="text" defaultValue={profile?.line_id ?? ""} placeholder="@yourlineid" />
             </div>
           </AuthForm>
+        </CardContent>
+      </Card>
+
+      {/* Change password */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">เปลี่ยนรหัสผ่าน</CardTitle>
+          <CardDescription>ทิ้งว่างไว้หากไม่ต้องการเปลี่ยน</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChangePasswordForm />
         </CardContent>
       </Card>
     </main>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { NavbarClient } from "./navbar-client";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export async function Navbar() {
   const supabase = await createClient();
@@ -27,7 +28,10 @@ export async function Navbar() {
         </Link>
 
         {/* Desktop nav */}
-        <NavbarClient user={user} profile={profile} />
+        <div className="flex items-center gap-1">
+          {user && <NotificationBell />}
+          <NavbarClient user={user} profile={profile} />
+        </div>
       </div>
     </header>
   );

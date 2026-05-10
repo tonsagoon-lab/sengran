@@ -67,3 +67,16 @@ $$;
 
 REVOKE ALL ON FUNCTION popular_provinces(integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION popular_provinces(integer) TO anon, authenticated;
+
+-- เพิ่มต่อท้ายของ 0005_location_search.sql เดิม
+-- Partial index สำหรับ geo search: เฉพาะประกาศ published ที่มีพิกัด
+CREATE INDEX IF NOT EXISTS idx_listings_geo_published
+  ON listings (latitude, longitude)
+  WHERE status = 'published' 
+    AND latitude IS NOT NULL 
+    AND longitude IS NOT NULL;
+
+-- Index สำหรับ popular_provinces (group by province)
+CREATE INDEX IF NOT EXISTS idx_listings_province_status
+  ON listings (province_id, status)
+  WHERE province_id IS NOT NULL;

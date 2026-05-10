@@ -7,7 +7,7 @@ interface LatestListingsProps {
 }
 
 export async function LatestListings({ supabaseUrl }: LatestListingsProps) {
-  const listings = await getLatestListings(8);
+  const listings = await getLatestListings(4);
   if (listings.length === 0) return null;
 
   return (
@@ -18,7 +18,7 @@ export async function LatestListings({ supabaseUrl }: LatestListingsProps) {
           ดูทั้งหมด →
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {listings.map((listing, i) => (
           <BrowseCard
             key={listing.id}

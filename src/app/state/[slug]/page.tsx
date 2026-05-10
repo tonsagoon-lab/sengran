@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { getAllProvinces } from "@/lib/db/listings";
 import { REGIONS, getRegionBySlug } from "@/lib/utils/regions";
+import { TopMenuBar } from "@/components/top-menu-bar";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -14,7 +15,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
   const region = getRegionBySlug(slug);
   if (!region) return { title: "ไม่พบภาค" };
 
@@ -30,7 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function RegionPage({ params }: Props) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
   const region = getRegionBySlug(slug);
   if (!region) notFound();
 
@@ -40,6 +43,8 @@ export default async function RegionPage({ params }: Props) {
   if (regionProvinces.length === 0) notFound();
 
   return (
+    <>
+    <TopMenuBar />
     <div className="mx-auto max-w-7xl px-4 py-8 space-y-8">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-neutral-800">
@@ -66,5 +71,6 @@ export default async function RegionPage({ params }: Props) {
         </div>
       </section>
     </div>
+    </>
   );
 }

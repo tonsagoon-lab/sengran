@@ -61,17 +61,19 @@ export async function registerAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { error: signUpError } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: { display_name, mobile },
-    },
+    options: { data: { display_name, mobile } },
   });
 
-  if (error) return { error: toThaiError(error.message) };
+  if (signUpError) return { error: toThaiError(signUpError.message) };
 
-  return { success: "สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลของคุณเพื่อยืนยัน" };
+  // Auto-login immediately after register
+  const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+  if (loginError) return { success: "สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ" };
+
+  redirect("/");
 }
 
 // ── Forgot Password ───────────────────────────────────────────
@@ -148,4 +150,59 @@ export async function updateProfileAction(
   if (error) return { error: "บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง" };
 
   return { success: "บันทึกข้อมูลสำเร็จ" };
+}
+
+// ── Change Password ────────────────────────────────────────────
+export async function changePasswordAction(
+  _prevState: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const newPassword = formData.get("new_password") as string;
+  const confirm = formData.get("confirm_password") as string;
+
+  if (!newPassword || newPassword.length < 6)
+    return { error: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" };
+  if (newPassword !== confirm)
+    return { error: "รหัสผ่านไม่ตรงกัน" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { error: toThaiError(error.message) };
+  return { success: "เปลี่ยนรหัสผ่านสำเร็จ" };
+}
+
+// ── Upload Avatar ──────────────────────────────────────────────
+export async function updateAvatarAction(
+  _prevState: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "กรุณาเข้าสู่ระบบ" };
+
+  const file = formData.get("avatar") as File | null;
+  if (!file || file.size === 0) return { error: "กรุณาเลือกรูปภาพ" };
+  if (file.size > 2 * 1024 * 1024) return { error: "ขนาดรูปต้องไม่เกิน 2MB" };
+  if (!file.type.startsWith("image/")) return { error: "รองรับเฉพาะไฟล์รูปภาพ" };
+
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${user.id}/avatar.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) return { error: "อัปโหลดรูปไม่สำเร็จ" };
+
+  const { data: { publicUrl } } = supabase.storage
+    .from("avatars")
+    .getPublicUrl(path);
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ avatar_url: publicUrl })
+    .eq("id", user.id);
+
+  if (updateError) return { error: "บันทึกรูปโปรไฟล์ไม่สำเร็จ" };
+  return { success: "อัปเดตรูปโปรไฟล์สำเร็จ" };
 }

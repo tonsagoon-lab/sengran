@@ -5,6 +5,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import Image from "@tiptap/extension-image";
 import {
   Bold,
   Italic,
@@ -12,6 +13,8 @@ import {
   ListOrdered,
   Link2,
   Smile,
+  ImagePlus,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -28,6 +31,7 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
   placeholder?: string;
   error?: string;
+  onImageUpload?: (file: File) => Promise<string>;
 }
 
 const ToolbarButton = ({
@@ -62,9 +66,12 @@ export function RichTextEditor({
   onChange,
   placeholder = "รายละเอียดร้าน...",
   error,
+  onImageUpload,
 }: RichTextEditorProps) {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [emojiData, setEmojiData] = useState<unknown>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const isInit = useRef(false);
 
   useEffect(() => {
@@ -72,10 +79,12 @@ export function RichTextEditor({
   }, []);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
-      StarterKit.configure({ heading: false, code: false, codeBlock: false }),
+      StarterKit.configure({ heading: false, code: false, codeBlock: false, link: false }),
       Link.configure({ openOnClick: false, autolink: true }),
       Placeholder.configure({ placeholder }),
+      Image.configure({ inline: false, allowBase64: false }),
     ],
     content: value || "",
     editorProps: {
@@ -111,6 +120,19 @@ export function RichTextEditor({
   function insertEmoji(emoji: { native: string }) {
     editor?.chain().focus().insertContent(emoji.native).run();
     setEmojiOpen(false);
+  }
+
+  async function handleImageFile(file: File) {
+    if (!onImageUpload || !editor) return;
+    setImageUploading(true);
+    try {
+      const url = await onImageUpload(file);
+      editor.chain().focus().setImage({ src: url }).run();
+    } catch {
+      // ignore
+    } finally {
+      setImageUploading(false);
+    }
   }
 
   return (
@@ -155,6 +177,26 @@ export function RichTextEditor({
         <ToolbarButton title="ลิงก์" onClick={insertLink} active={editor?.isActive("link")}>
           <Link2 className="h-4 w-4" />
         </ToolbarButton>
+
+        {onImageUpload && (
+          <>
+            <div className="w-px h-4 bg-neutral-200 mx-1" />
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ""; }}
+            />
+            <ToolbarButton
+              title="แทรกรูปภาพ"
+              onClick={() => imageInputRef.current?.click()}
+              active={false}
+            >
+              {imageUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+            </ToolbarButton>
+          </>
+        )}
 
         <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
           <PopoverTrigger asChild>

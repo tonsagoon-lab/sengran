@@ -1,22 +1,24 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { TopMenuBar } from "@/components/top-menu-bar";
 import { HeroSearch } from "@/components/home/hero-search";
 import { NearMeSection } from "@/components/home/near-me-section";
 import { BannerSection } from "@/components/home/banner-section";
+import { CategoryGrid } from "@/components/home/category-grid";
 import { LatestListings } from "@/components/home/latest-listings";
-import { CategoriesShowcase } from "@/components/home/categories-showcase";
 import { PopularProvinces } from "@/components/home/popular-provinces";
+import { EditorialPicks } from "@/components/home/editorial-picks";
 import { getAllProvinces } from "@/lib/db/listings";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = {
-  title: "เซ้งร้าน.com - ตลาดซื้อขาย เซ้ง และเช่าร้านค้า ทั่วประเทศไทย",
+  title: "เซ้งร้าน.com ประกาศเซ้งร้านฟรี เซ้งร้านกาแฟ เซ้งคาเฟ่ เซ้งร้านอาหาร เซ้งร้านเหล้า เซ้งกิจการต่างๆ",
   description:
-    "ค้นหาร้านเซ้ง ร้านให้เช่า ทำเลดีราคาโดนใจทั่วประเทศไทย ซื้อขายเซ้งร้านค้า คาเฟ่ ร้านอาหาร พื้นที่เชิงพาณิชย์",
+    "ประกาศเซ้งร้านฟรี เซ้งร้านกาแฟ เซ้งคาเฟ่ เซ้งร้านอาหาร เซ้งร้านเหล้า เซ้งกิจการทุกประเภท ทำเลดีทั่วประเทศไทย ติดต่อได้ทันที",
   openGraph: {
-    title: "เซ้งร้าน.com - ตลาดซื้อขายเซ้งร้านค้า ให้เช่า",
+    title: "เซ้งร้าน.com ประกาศเซ้งร้านฟรี เซ้งร้านกาแฟ เซ้งคาเฟ่ เซ้งร้านอาหาร",
     description:
-      "รวมร้านค้าทำเลดีทั่วประเทศไทย เซ้งและให้เช่า ราคาโดนใจ ติดต่อได้ทันที",
+      "ประกาศเซ้งร้านฟรี เซ้งร้านกาแฟ เซ้งคาเฟ่ เซ้งร้านอาหาร เซ้งร้านเหล้า เซ้งกิจการทุกประเภท ทำเลดีทั่วประเทศไทย",
   },
 };
 
@@ -55,9 +57,15 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col">
+      <TopMenuBar />
       {/* Hero + search */}
       <Suspense fallback={<HeroSkeleton />}>
         <HeroSearch />
+      </Suspense>
+
+      {/* Category grid */}
+      <Suspense fallback={null}>
+        <CategoryGrid />
       </Suspense>
 
       <div className="mx-auto w-full max-w-7xl px-4 py-8 space-y-12">
@@ -66,19 +74,14 @@ export default async function HomePage() {
           <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
         </div>
 
-        {/* Banner slider */}
-        <Suspense fallback={null}>
-          <BannerSection />
-        </Suspense>
-
         {/* Latest listings */}
         <Suspense fallback={<SectionSkeleton />}>
           <LatestListings supabaseUrl={supabaseUrl} />
         </Suspense>
 
-        {/* Categories showcase */}
-        <Suspense fallback={<SectionSkeleton />}>
-          <CategoriesShowcase supabaseUrl={supabaseUrl} />
+        {/* Editorial picks */}
+        <Suspense fallback={null}>
+          <EditorialPicks supabaseUrl={supabaseUrl} />
         </Suspense>
 
         {/* Popular provinces */}
@@ -86,6 +89,13 @@ export default async function HomePage() {
           <PopularProvinces />
         </Suspense>
       </div>
+
+      {/* Banner — before footer, 50% width centered */}
+      <Suspense fallback={null}>
+        <div className="mx-auto w-1/2 px-4 py-8">
+          <BannerSection />
+        </div>
+      </Suspense>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import type { Listing, ListingImage } from "@/lib/types/database";
 export type ListingWithImages = Listing & { listing_images: ListingImage[] };
 
 export type ListingWithDetails = Listing & {
+  user_id: string;
   listing_images: ListingImage[];
   categories: { name_th: string; slug: string } | null;
   provinces: { name_th: string; slug: string } | null;
@@ -76,6 +77,29 @@ export async function getListingBySlug(slug: string): Promise<ListingWithDetails
   return data as ListingWithDetails | null;
 }
 
+export async function getMyFavoriteListings(userId: string): Promise<SearchListing[]> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
+    .from("favorites")
+    .select(`listing_id, listings!inner(id, title, slug, listing_type, sale_price, rent_price, is_featured, featured_until, district, province_id, view_count, published_at, listing_images(id, storage_path, display_order), categories(name_th, slug), provinces(name_th, slug))`)
+    .eq("user_id", userId)
+    .eq("listings.status", "published")
+    .order("created_at", { ascending: false });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []).map((r: any) => r.listings)) as unknown as SearchListing[];
+}
+
+export async function getMyFavoriteIds(userId: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("favorites")
+    .select("listing_id")
+    .eq("user_id", userId);
+  return new Set((data ?? []).map((r: { listing_id: string }) => r.listing_id));
+}
+
 export async function getMyListings(userId: string): Promise<ListingWithImages[]> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -101,6 +125,26 @@ export async function getListingForEdit(
     )
     .eq("id", listingId)
     .eq("user_id", userId)
+    .single();
+
+  return data as (ListingWithImages & {
+    listing_amenities: { amenity_id: number }[];
+    categories: { name_th: string; slug: string } | null;
+    provinces: { name_th: string; slug: string } | null;
+  }) | null;
+}
+
+export async function getListingForEditAdmin(listingId: string) {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("listings")
+    .select(
+      `*, listing_images(id, storage_path, display_order, alt_text),
+       listing_amenities(amenity_id),
+       categories(name_th, slug), provinces(name_th, slug)`
+    )
+    .eq("id", listingId)
     .single();
 
   return data as (ListingWithImages & {
@@ -255,9 +299,15 @@ export async function searchListings(params: SearchParams): Promise<{
     }
   }
 
-  // Text search (ILIKE on title)
+  // Text search — title, district, address
   if (params.q?.trim()) {
-    query = query.ilike("title", `%${params.q.trim()}%`);
+    const q = params.q.trim();
+    query = query.or(
+      `title.ilike.%${q}%,district.ilike.%${q}%,address.ilike.%${q}%`
+    );
+    // Log search query (fire-and-forget)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).rpc("log_search", { q }).then(() => {});
   }
 
   // Amenity filter
@@ -410,7 +460,7 @@ export async function getCategoriesWithListings(): Promise<
         .eq("category_id", cat.id)
         .eq("status", "published")
         .order("published_at", { ascending: false })
-        .limit(4);
+        .limit(3);
       return { category: cat, listings: (data ?? []) as unknown as SearchListing[] };
     })
   );

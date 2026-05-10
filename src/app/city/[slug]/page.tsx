@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getAllProvinces, getAllProvincesPublic } from "@/lib/db/listings";
 import { BrowsePage } from "@/components/listings/browse-page";
+import { TopMenuBar } from "@/components/top-menu-bar";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -14,7 +15,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
   const provinces = await getAllProvinces();
   const prov = provinces.find((p) => p.slug === slug);
   if (!prov) return { title: "ไม่พบจังหวัด" };
@@ -31,7 +33,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProvincePage({ params, searchParams }: Props) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
   const provinces = await getAllProvinces();
   const prov = provinces.find((p) => p.slug === slug);
   if (!prov) notFound();
@@ -44,11 +47,14 @@ export default async function ProvincePage({ params, searchParams }: Props) {
   }
 
   return (
-    <BrowsePage
-      searchParams={flat}
-      lockedProvince={slug}
-      heroTitle={`ประกาศร้านใน${prov.name_th}`}
-      heroSubtitle={`ร้านเซ้งและให้เช่าใน${prov.name_th} ราคาโดนใจ ทำเลดี`}
-    />
+    <>
+      <TopMenuBar />
+      <BrowsePage
+        searchParams={flat}
+        lockedProvince={slug}
+        heroTitle={`ประกาศร้านใน${prov.name_th}`}
+        heroSubtitle={`ร้านเซ้งและให้เช่าใน${prov.name_th} ราคาโดนใจ ทำเลดี`}
+      />
+    </>
   );
 }

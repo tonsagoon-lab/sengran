@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
-import { Menu, X, ChevronDown, LogOut, User as UserIcon, FileText } from "lucide-react";
+import { Menu, X, ChevronDown, LogOut, User as UserIcon, FileText, MessageCircle, Heart, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -70,6 +70,24 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   <Link href="/my-listings" className="cursor-pointer">
                     <FileText className="mr-2 h-4 w-4" />
                     ประกาศของฉัน
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/favorites" className="cursor-pointer">
+                    <Heart className="mr-2 h-4 w-4" />
+                    ประกาศที่บันทึกไว้
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/messages" className="cursor-pointer">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    ข้อความ
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/alerts" className="cursor-pointer">
+                    <Bell className="mr-2 h-4 w-4" />
+                    แจ้งเตือนร้านเซ้ง
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -145,6 +163,27 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   onClick={() => setMobileOpen(false)}
                 >
                   <FileText className="h-4 w-4" /> ประกาศของฉัน
+                </Link>
+                <Link
+                  href="/favorites"
+                  className="flex items-center gap-2 py-2 text-sm"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <Heart className="h-4 w-4" /> ประกาศที่บันทึกไว้
+                </Link>
+                <Link
+                  href="/messages"
+                  className="flex items-center gap-2 py-2 text-sm"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <MessageCircle className="h-4 w-4" /> ข้อความ
+                </Link>
+                <Link
+                  href="/alerts"
+                  className="flex items-center gap-2 py-2 text-sm"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <Bell className="h-4 w-4" /> แจ้งเตือนร้านเซ้ง
                 </Link>
                 <form action={logoutAction}>
                   <button

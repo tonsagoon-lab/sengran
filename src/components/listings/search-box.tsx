@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 
@@ -15,7 +15,6 @@ export function SearchBox({ defaultValue = "", targetPath }: SearchBoxProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [value, setValue] = useState(defaultValue);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const push = useCallback(
     (q: string) => {
@@ -37,13 +36,10 @@ export function SearchBox({ defaultValue = "", targetPath }: SearchBoxProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => push(e.target.value), 400);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (timer.current) clearTimeout(timer.current);
     push(value);
   };
 

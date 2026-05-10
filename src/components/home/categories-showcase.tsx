@@ -17,7 +17,7 @@ export async function CategoriesShowcase({ supabaseUrl }: CategoriesShowcaseProp
         <div key={category.id} className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-neutral-700">
-              {category.icon ? `${category.icon} ` : ""}{category.name_th}
+              {category.name_th}
             </h3>
             <Link
               href={`/property-type/${category.slug}`}
@@ -26,7 +26,7 @@ export async function CategoriesShowcase({ supabaseUrl }: CategoriesShowcaseProp
               ดูทั้งหมด →
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {listings.map((listing) => (
               <BrowseCard
                 key={listing.id}

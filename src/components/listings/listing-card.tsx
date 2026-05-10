@@ -4,6 +4,7 @@ import { MapPin, Eye, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DeleteListingButton } from "./delete-listing-button";
+import { ListingStatusButtons } from "./listing-status-buttons";
 import type { ListingWithImages } from "@/lib/db/listings";
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -83,13 +84,16 @@ export function ListingCard({ listing }: ListingCardProps) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 shrink-0">
-        <Button size="sm" variant="outline" asChild className="h-8 px-2">
-          <Link href={`/listings/${listing.id}/edit`}>
-            <Pencil className="h-3.5 w-3.5" />
-          </Link>
-        </Button>
-        <DeleteListingButton listingId={listing.id} />
+      <div className="flex flex-col gap-1.5 shrink-0 items-end">
+        <div className="flex gap-1.5">
+          <Button size="sm" variant="outline" asChild className="h-8 px-2">
+            <Link href={`/listings/${listing.id}/edit`}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+          <DeleteListingButton listingId={listing.id} />
+        </div>
+        <ListingStatusButtons listingId={listing.id} currentStatus={listing.status} />
       </div>
     </div>
   );

@@ -132,7 +132,6 @@ export function FilterBar({ categories, provinces, amenities }: FilterBarProps) 
     router.push(pathname);
   };
 
-  // Apply sheet filters
   const applySheet = () => {
     updateURL({
       amenities: sheetAmenities.size > 0 ? [...sheetAmenities].join(",") : null,

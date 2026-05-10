@@ -24,6 +24,7 @@ export function HomeFooter() {
               <li><Link href="/listings/new" className="hover:text-orange-400 transition-colors">ลงประกาศ</Link></li>
               <li><Link href="/listings?type=sale" className="hover:text-orange-400 transition-colors">ร้านเซ้ง</Link></li>
               <li><Link href="/listings?type=rent" className="hover:text-orange-400 transition-colors">ร้านให้เช่า</Link></li>
+              <li><Link href="/blog" className="hover:text-orange-400 transition-colors">บทความ</Link></li>
             </ul>
           </div>
 
@@ -60,8 +61,8 @@ export function HomeFooter() {
             <ul className="space-y-2 text-sm">
               <li><Link href="#" className="hover:text-orange-400 transition-colors">เกี่ยวกับเรา</Link></li>
               <li><Link href="#" className="hover:text-orange-400 transition-colors">ติดต่อ</Link></li>
-              <li><Link href="#" className="hover:text-orange-400 transition-colors">เงื่อนไขการใช้งาน</Link></li>
-              <li><Link href="#" className="hover:text-orange-400 transition-colors">นโยบายความเป็นส่วนตัว</Link></li>
+              <li><Link href="/terms" className="hover:text-orange-400 transition-colors">เงื่อนไขการใช้งาน</Link></li>
+              <li><Link href="/privacy" className="hover:text-orange-400 transition-colors">นโยบายความเป็นส่วนตัว</Link></li>
             </ul>
           </div>
         </div>

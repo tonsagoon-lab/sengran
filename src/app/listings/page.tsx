@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { TopMenuBar } from "@/components/top-menu-bar";
 import { BrowsePage } from "@/components/listings/browse-page";
 
 interface Props {
@@ -32,5 +33,10 @@ export default async function ListingsPage({ searchParams }: Props) {
     else if (Array.isArray(v) && v[0]) flat[k] = v[0];
   }
 
-  return <BrowsePage searchParams={flat} />;
+  return (
+    <>
+      <TopMenuBar />
+      <BrowsePage searchParams={flat} />
+    </>
+  );
 }

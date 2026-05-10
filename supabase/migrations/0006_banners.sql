@@ -29,3 +29,20 @@ CREATE POLICY "banners: public read active" ON banners
 -- INSERT INTO banners (title, image_url, display_order)
 -- VALUES ('ลงประกาศฟรี',
 --   'https://<project-ref>.supabase.co/storage/v1/object/public/banners/welcome.jpg', 1);
+
+-- เพิ่มต่อท้ายของ 0006_banners.sql เดิม (หลัง CREATE POLICY)
+
+-- Index สำหรับ query หลัก: active banners เรียง display_order
+CREATE INDEX IF NOT EXISTS idx_banners_active_order
+  ON banners (display_order)
+  WHERE is_active = true;
+
+-- Constraint กัน end date มาก่อน start date
+ALTER TABLE banners 
+  ADD CONSTRAINT banners_date_range_valid
+  CHECK (starts_at IS NULL OR ends_at IS NULL OR starts_at < ends_at);
+
+-- Constraint กัน image_url เป็นสตริงว่าง
+ALTER TABLE banners
+  ADD CONSTRAINT banners_image_url_not_empty
+  CHECK (length(trim(image_url)) > 0);

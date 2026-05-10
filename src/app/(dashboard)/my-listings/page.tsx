@@ -17,7 +17,9 @@ export default async function MyListingsPage() {
   const listings = await getMyListings(user.id);
 
   const published = listings.filter((l) => l.status === "published");
-  const drafts = listings.filter((l) => l.status !== "published");
+  const hidden = listings.filter((l) => l.status === "hidden");
+  const sold = listings.filter((l) => l.status === "sold");
+  const drafts = listings.filter((l) => l.status === "draft");
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
@@ -53,10 +55,34 @@ export default async function MyListingsPage() {
               </div>
             </section>
           )}
+          {hidden.length > 0 && (
+            <section>
+              <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-3">
+                ซ่อนอยู่ ({hidden.length})
+              </h2>
+              <div className="space-y-3">
+                {hidden.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+            </section>
+          )}
+          {sold.length > 0 && (
+            <section>
+              <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-3">
+                ขายแล้ว ({sold.length})
+              </h2>
+              <div className="space-y-3">
+                {sold.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+            </section>
+          )}
           {drafts.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-3">
-                แบบร่าง / อื่นๆ ({drafts.length})
+                แบบร่าง ({drafts.length})
               </h2>
               <div className="space-y-3">
                 {drafts.map((listing) => (
