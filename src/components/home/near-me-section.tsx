@@ -227,7 +227,7 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
             <button
               key={km}
               onClick={() => changeRadius(km)}
-              disabled={status === "fetching"}
+              disabled={(status as string) === "fetching"}
               className={`rounded-full px-3 py-0.5 text-xs font-medium transition-colors disabled:opacity-50 ${
                 location.radiusKm === km
                   ? "bg-orange-500 text-white"

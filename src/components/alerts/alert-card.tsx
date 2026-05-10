@@ -88,7 +88,7 @@ export function AlertCard({ alert, provinces, categories }: Props) {
         disabled={pending}
         onClick={() => {
           if (!confirm("ลบเงื่อนไขนี้?")) return;
-          startTransition(() => deleteAlertAction(alert.id));
+          startTransition(() => void deleteAlertAction(alert.id));
         }}
         className="p-1.5 rounded-lg text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-colors"
       >
