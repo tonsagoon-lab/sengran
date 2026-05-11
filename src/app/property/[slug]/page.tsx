@@ -8,6 +8,7 @@ import { getListingBySlug, getRelatedListings } from "@/lib/db/listings";
 import { createClient } from "@/lib/supabase/server";
 import { startConversationAction } from "@/lib/actions/messages";
 import { ImageGallery } from "@/components/listings/image-gallery";
+import { resolveImageUrl } from "@/lib/utils/image-url";
 import { ViewCountTracker } from "@/components/listings/view-count-tracker";
 import { RichTextDisplay } from "@/components/rich-text-display";
 import { SearchBox } from "@/components/listings/search-box";
@@ -72,9 +73,7 @@ export default async function ListingDetailPage({ params }: Props) {
   const related = await getRelatedListings(slug, listing.province_id, listing.category_id);
 
   const coverImage = sortedImages[0];
-  const coverUrl = coverImage
-    ? `${supabaseUrl}/storage/v1/object/public/listings/${coverImage.storage_path}`
-    : undefined;
+  const coverUrl = coverImage ? resolveImageUrl(coverImage.storage_path) : undefined;
 
   const jsonLd = {
     "@context": "https://schema.org",

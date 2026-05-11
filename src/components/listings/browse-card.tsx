@@ -8,6 +8,7 @@ import { MapPin, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toggleFavoriteAction } from "@/lib/actions/listings";
 import type { SearchListing } from "@/lib/db/listings";
+import { resolveImageUrl } from "@/lib/utils/image-url";
 
 const TYPE_BADGE: Record<string, { label: string; className: string }> = {
   sale: { label: "เซ้ง", className: "bg-blue-100 text-blue-700 border-blue-200" },
@@ -70,9 +71,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
   const cover = listing.listing_images
     .slice()
     .sort((a, b) => a.display_order - b.display_order)[0];
-  const coverUrl = cover
-    ? `${supabaseUrl}/storage/v1/object/public/listings/${cover.storage_path}`
-    : null;
+  const coverUrl = cover ? resolveImageUrl(cover.storage_path) : null;
 
   const typeBadge = TYPE_BADGE[listing.listing_type];
   const location = [listing.district, listing.provinces?.name_th].filter(Boolean).join(", ");

@@ -22,7 +22,9 @@ export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
   }
 
   const url = (path: string) =>
-    `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
+    path.startsWith("http://") || path.startsWith("https://")
+      ? path
+      : `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
 
   const prev = () => setActive((a) => (a - 1 + images.length) % images.length);
   const next = () => setActive((a) => (a + 1) % images.length);

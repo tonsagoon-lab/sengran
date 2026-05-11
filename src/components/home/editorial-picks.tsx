@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MapPin } from "lucide-react";
 import { getEditorialPicks } from "@/lib/db/editorial-picks";
+import { resolveImageUrl } from "@/lib/utils/image-url";
 
 const TYPE_BADGE: Record<string, { label: string; className: string }> = {
   sale: { label: "เซ้ง", className: "bg-blue-100 text-blue-700" },
@@ -31,9 +32,7 @@ export async function EditorialPicks({ supabaseUrl }: EditorialPicksProps) {
           const cover = listing.listing_images
             .slice()
             .sort((a, b) => a.display_order - b.display_order)[0];
-          const coverUrl = cover
-            ? `${supabaseUrl}/storage/v1/object/public/listings/${cover.storage_path}`
-            : null;
+          const coverUrl = cover ? resolveImageUrl(cover.storage_path) : null;
           const badge = TYPE_BADGE[listing.listing_type] ?? TYPE_BADGE.sale;
           const location = [listing.district, listing.provinces?.name_th].filter(Boolean).join(", ");
 
