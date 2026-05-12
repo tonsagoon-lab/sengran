@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Heart } from "lucide-react";
+import { MapPin, Heart, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toggleFavoriteAction } from "@/lib/actions/listings";
 import type { SearchListing } from "@/lib/db/listings";
@@ -139,13 +139,25 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
           </div>
         )}
 
-        {listing.categories && (
-          <span
-            className="mt-auto text-xs text-neutral-400 truncate"
-          >
-            {listing.categories.name_th}
-          </span>
-        )}
+        <div className="mt-auto flex items-center justify-between gap-1">
+          {listing.categories && (
+            <span className="text-xs text-neutral-400 truncate">
+              {listing.categories.name_th}
+            </span>
+          )}
+          {listing.published_at && (
+            <div className="flex items-center gap-0.5 text-[10px] text-neutral-400 shrink-0">
+              <Clock className="h-2.5 w-2.5" />
+              <span>
+                {new Date(listing.published_at).toLocaleDateString("th-TH", {
+                  day: "numeric",
+                  month: "short",
+                  year: "2-digit",
+                })}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </Link>
   );
