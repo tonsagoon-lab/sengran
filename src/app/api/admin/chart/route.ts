@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "";
+const STAFF_EMAILS = (process.env.STAFF_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
+function isPrivileged(email: string | undefined) {
+  if (!email) return false;
+  return email === ADMIN_EMAIL || STAFF_EMAILS.includes(email);
+}
 
 type GroupBy = "day" | "month";
 
@@ -26,7 +31,7 @@ function buildDateMap(from: Date, to: Date, groupBy: GroupBy): Record<string, nu
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.email !== ADMIN_EMAIL) {
+  if (!user || !isPrivileged(user.email ?? undefined)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
