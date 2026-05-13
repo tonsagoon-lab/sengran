@@ -34,22 +34,35 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
     setStatus("fetching");
     try {
       const result = await getNearMeListings(
-        // GPS mode: skip distance RPC, show latest listings instead
         loc.type === "gps"
-          ? { type: "latest" }
+          ? { type: "gps", lat: loc.lat, lng: loc.lng, radiusKm: loc.radiusKm }
           : { type: "province", provinceId: loc.provinceId }
       );
       if (result.listings.length > 0) {
         setListings(result.listings);
         setTotal(result.total);
         setStatus("loaded");
+      } else if (loc.type === "gps") {
+        // No nearby listings with coords → ask user to pick province
+        localStorage.removeItem(STORAGE_KEY);
+        setLocation(null);
+        setStatus("province-select");
       } else {
         setListings([]);
         setTotal(0);
         setStatus("empty");
       }
     } catch {
-      setStatus("province-select");
+      // RPC error → ask province, never bounce back to prompt
+      if (loc.type === "gps") {
+        localStorage.removeItem(STORAGE_KEY);
+        setLocation(null);
+        setStatus("province-select");
+      } else {
+        setListings([]);
+        setTotal(0);
+        setStatus("empty");
+      }
     }
   }, []);
 
@@ -95,22 +108,7 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(loc));
         setLocation(loc);
-        // Skip distance RPC (no coords on most listings); show latest instead
-        setStatus("fetching");
-        try {
-          const result = await getNearMeListings({ type: "latest" });
-          if (result.listings.length > 0) {
-            setListings(result.listings);
-            setTotal(result.total);
-            setStatus("loaded");
-          } else {
-            setListings([]);
-            setTotal(0);
-            setStatus("empty");
-          }
-        } catch {
-          setStatus("province-select");
-        }
+        fetchListings(loc);
       },
       () => {
         setStatus("province-select");
