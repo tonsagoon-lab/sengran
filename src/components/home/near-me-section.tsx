@@ -34,26 +34,13 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   const fetchListings = useCallback(async (loc: LocationState) => {
     setStatus("fetching");
     try {
-      const result = await getNearMeListings(
-        loc.type === "gps"
-          ? { type: "gps", lat: loc.lat, lng: loc.lng, radiusKm: loc.radiusKm }
-          : { type: "province", provinceId: loc.provinceId }
-      );
-      if (result.listings.length > 0) {
-        setListings(result.listings);
-        setTotal(result.total);
-        setStatus("loaded");
-      } else if (loc.type === "gps") {
-        // GPS ได้พิกัดแต่ไม่มีประกาศใกล้เคียง → ดึงประกาศล่าสุดแทน
-        const fallback = await getNearMeListings({ type: "latest" });
-        setListings(fallback.listings);
-        setTotal(fallback.total);
-        setStatus(fallback.listings.length > 0 ? "loaded" : "empty");
-      } else {
-        setListings([]);
-        setTotal(0);
-        setStatus("empty");
-      }
+      const params = loc.type === "gps"
+        ? { type: "latest" as const }
+        : { type: "province" as const, provinceId: loc.provinceId };
+      const result = await getNearMeListings(params);
+      setListings(result.listings);
+      setTotal(result.total);
+      setStatus(result.listings.length > 0 ? "loaded" : "empty");
     } catch {
       setStatus("prompt");
     }
