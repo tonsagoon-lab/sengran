@@ -209,7 +209,7 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   const title =
     location?.type === "province"
       ? `📍 ร้านใน${location.provinceName}`
-      : "🆕 ประกาศล่าสุด";
+      : "📍 เซ้งร้านใกล้ฉัน";
 
   const seeAllHref =
     location?.type === "province"
