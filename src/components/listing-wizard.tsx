@@ -208,7 +208,7 @@ function buildInitialState(listing?: WizardProps["listing"]): WizardState {
   return {
     listingId: listing?.id ?? crypto.randomUUID(),
     title: listing?.title ?? "",
-    listing_type: listing?.listing_type ?? "rent",
+    listing_type: listing?.listing_type ?? "sale",
     category_id: listing?.category_id != null ? String(listing.category_id) : "",
     sale_price: listing?.sale_price != null ? String(listing.sale_price) : "",
     rent_price: listing?.rent_price != null ? String(listing.rent_price) : "",
@@ -240,7 +240,7 @@ function migrateState(raw: string, listingId?: string): WizardState | null {
       title: parsed.title ?? "",
       listing_type: ["sale", "rent", "both"].includes(parsed.listing_type)
         ? parsed.listing_type
-        : "rent",
+        : "sale",
       category_id: parsed.category_id ?? "",
       sale_price: parsed.sale_price ?? "",
       rent_price: parsed.rent_price ?? "",
