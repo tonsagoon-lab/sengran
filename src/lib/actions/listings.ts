@@ -47,8 +47,9 @@ export async function getNearMeListings(
       .in("id", ids)
       .eq("status", "published");
 
+    const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
     const data = ((rawData ?? []) as unknown as SearchListing[]).filter(
-      (l) => l.listing_images.length > 0
+      (l) => l.published_at && new Date(l.published_at).getTime() > oneYearAgo
     );
 
     // Preserve distance order
@@ -68,8 +69,9 @@ export async function getNearMeListings(
       .order("published_at", { ascending: false })
       .limit(8);
 
+    const oneYearAgo2 = Date.now() - 365 * 24 * 60 * 60 * 1000;
     const filtered = ((data ?? []) as unknown as SearchListing[]).filter(
-      (l) => l.listing_images.length > 0
+      (l) => l.published_at && new Date(l.published_at).getTime() > oneYearAgo2
     );
     return {
       listings: filtered,
