@@ -39,9 +39,20 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
           ? { type: "gps", lat: loc.lat, lng: loc.lng, radiusKm: loc.radiusKm }
           : { type: "province", provinceId: loc.provinceId }
       );
-      setListings(result.listings);
-      setTotal(result.total);
-      setStatus(result.listings.length > 0 ? "loaded" : "empty");
+      if (result.listings.length > 0) {
+        setListings(result.listings);
+        setTotal(result.total);
+        setStatus("loaded");
+      } else if (loc.type === "gps") {
+        // GPS ได้พิกัดแต่ไม่มีประกาศใกล้เคียง → ให้เลือกจังหวัดแทน
+        localStorage.removeItem(STORAGE_KEY);
+        setLocation(null);
+        setStatus("province-select");
+      } else {
+        setListings([]);
+        setTotal(0);
+        setStatus("empty");
+      }
     } catch {
       setStatus("prompt");
     }
