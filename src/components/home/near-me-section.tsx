@@ -23,6 +23,7 @@ type Status = "init" | "prompt" | "gps-loading" | "province-select" | "fetching"
 
 const STORAGE_KEY = "user_location";
 const DENIED_KEY = "user_location_denied";
+const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50, 100];
 
 export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   const [status, setStatus] = useState<Status>("init");
@@ -115,6 +116,12 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
       },
       { timeout: 10000 }
     );
+  };
+
+  const changeRadius = (km: number) => {
+    if (!location || location.type !== "gps") return;
+    const updated = { ...location, radiusKm: km };
+    applyLocation(updated);
   };
 
   const reset = () => {
@@ -224,6 +231,27 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
           <X className="h-3 w-3" /> เปลี่ยนตำแหน่ง
         </button>
       </div>
+
+      {/* Radius selector — GPS mode only */}
+      {location?.type === "gps" && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs text-neutral-500">ระยะ:</span>
+          {RADIUS_OPTIONS.map((km) => (
+            <button
+              key={km}
+              onClick={() => changeRadius(km)}
+              disabled={status === "fetching"}
+              className={`rounded-full px-3 py-0.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                location.radiusKm === km
+                  ? "bg-orange-500 text-white"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              }`}
+            >
+              {km} กม.
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Empty state */}
       {status === "empty" && (
