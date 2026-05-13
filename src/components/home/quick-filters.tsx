@@ -8,6 +8,32 @@ interface QuickFiltersProps {
   provinces: { id: number; name_th: string; slug: string }[];
 }
 
+const PRICE_OPTIONS = [
+  { label: "ราคาต่ำสุด", value: "" },
+  { label: "0", value: "0" },
+  { label: "100,000", value: "100000" },
+  { label: "200,000", value: "200000" },
+  { label: "300,000", value: "300000" },
+  { label: "500,000", value: "500000" },
+  { label: "700,000", value: "700000" },
+  { label: "1,000,000", value: "1000000" },
+  { label: "2,000,000", value: "2000000" },
+  { label: "5,000,000", value: "5000000" },
+];
+
+const PRICE_MAX_OPTIONS = [
+  { label: "ราคาสูงสุด", value: "" },
+  { label: "100,000", value: "100000" },
+  { label: "200,000", value: "200000" },
+  { label: "300,000", value: "300000" },
+  { label: "500,000", value: "500000" },
+  { label: "700,000", value: "700000" },
+  { label: "1,000,000", value: "1000000" },
+  { label: "2,000,000", value: "2000000" },
+  { label: "5,000,000", value: "5000000" },
+  { label: "ไม่จำกัด", value: "" },
+];
+
 const TYPES = [
   { label: "เซ้ง", value: "sale" },
   { label: "ให้เช่า", value: "rent" },
@@ -61,25 +87,19 @@ export function QuickFilters({ categories, provinces }: QuickFiltersProps) {
         ))}
       </select>
 
-      {/* ช่วงราคา — min/max */}
+      {/* ช่วงราคา — dropdown */}
       <div className="flex items-center gap-1">
-        <input
-          type="number"
-          min={0}
-          placeholder="ราคาต่ำสุด"
-          value={minPrice}
-          onChange={(e) => setMinPrice(e.target.value)}
-          className={inputCls}
-        />
+        <select value={minPrice} onChange={(e) => setMinPrice(e.target.value)} className={selectCls}>
+          {PRICE_OPTIONS.map((o) => (
+            <option key={o.label} value={o.value}>{o.label}</option>
+          ))}
+        </select>
         <span className="text-xs text-neutral-400">–</span>
-        <input
-          type="number"
-          min={0}
-          placeholder="ราคาสูงสุด"
-          value={maxPrice}
-          onChange={(e) => setMaxPrice(e.target.value)}
-          className={inputCls}
-        />
+        <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className={selectCls}>
+          {PRICE_MAX_OPTIONS.map((o) => (
+            <option key={o.label} value={o.value}>{o.label}</option>
+          ))}
+        </select>
       </div>
 
       {/* ปุ่มค้นหา */}
