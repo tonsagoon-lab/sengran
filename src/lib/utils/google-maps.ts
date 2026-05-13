@@ -4,16 +4,16 @@ export interface Coords {
 }
 
 function parseFromResolvedUrl(url: string): Coords | null {
-  // @lat,lng,zoom
-  const atMatch = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-  if (atMatch) {
-    return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
-  }
-
-  // !3d<lat>!4d<lng>
+  // !3d<lat>!4d<lng> — actual pin location (highest priority)
   const d3Match = url.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
   if (d3Match) {
     return { lat: parseFloat(d3Match[1]), lng: parseFloat(d3Match[2]) };
+  }
+
+  // @lat,lng,zoom — map viewport center (fallback)
+  const atMatch = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (atMatch) {
+    return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
   }
 
   // ?q=lat,lng or q=name@lat,lng
@@ -60,8 +60,8 @@ export async function extractCoordsFromGoogleMapsUrl(url: string): Promise<Coord
 
       // Fallback: parse coords from HTML body
       const html = await res.text();
-      const coordMatch = html.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                         html.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) ||
+      const coordMatch = html.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) ||
+                         html.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
                          html.match(/"(-?\d+\.\d{4,}),(-?\d+\.\d{4,})"/);
       if (coordMatch) {
         return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
