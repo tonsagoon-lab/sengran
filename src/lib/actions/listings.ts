@@ -21,8 +21,19 @@ export async function getNearMeListings(
   params:
     | { type: "gps"; lat: number; lng: number; radiusKm?: number }
     | { type: "province"; provinceId: number }
+    | { type: "latest" }
 ): Promise<{ listings: SearchListing[]; total: number }> {
   const supabase = await createClient();
+
+  if (params.type === "latest") {
+    const { data, count } = await supabase
+      .from("listings")
+      .select(NEAR_ME_SELECT, { count: "exact" })
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(4);
+    return { listings: (data ?? []) as unknown as SearchListing[], total: count ?? 0 };
+  }
 
   if (params.type === "gps") {
     const { lat, lng, radiusKm = 10 } = params;

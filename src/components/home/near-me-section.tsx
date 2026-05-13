@@ -44,10 +44,11 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
         setTotal(result.total);
         setStatus("loaded");
       } else if (loc.type === "gps") {
-        // GPS ได้พิกัดแต่ไม่มีประกาศใกล้เคียง → ให้เลือกจังหวัดแทน
-        localStorage.removeItem(STORAGE_KEY);
-        setLocation(null);
-        setStatus("province-select");
+        // GPS ได้พิกัดแต่ไม่มีประกาศใกล้เคียง → ดึงประกาศล่าสุดแทน
+        const fallback = await getNearMeListings({ type: "latest" });
+        setListings(fallback.listings);
+        setTotal(fallback.total);
+        setStatus(fallback.listings.length > 0 ? "loaded" : "empty");
       } else {
         setListings([]);
         setTotal(0);
@@ -205,11 +206,9 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
 
   // ── Section title ─────────────────────────────────────────
   const title =
-    location?.type === "gps"
-      ? `📍 ร้านใกล้คุณ (ภายใน ${location.radiusKm} กม.)`
-      : location?.type === "province"
+    location?.type === "province"
       ? `📍 ร้านใน${location.provinceName}`
-      : "📍 ร้านใกล้คุณ";
+      : "🆕 ประกาศล่าสุด";
 
   const seeAllHref =
     location?.type === "province"
