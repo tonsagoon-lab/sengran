@@ -203,8 +203,6 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   const seeAllHref =
     location?.type === "province"
       ? `/city/${location.slug}`
-      : location?.type === "gps"
-      ? `/listings?lat=${location.lat}&lng=${location.lng}&radius=${location.radiusKm}`
       : "/listings";
 
   return (
