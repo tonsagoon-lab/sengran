@@ -38,7 +38,7 @@ export async function getNearMeListings(
     }
 
     const ids = (nearIds as unknown as { id: string; distance_km: number }[])
-      .slice(0, 8)
+      .slice(0, 4)
       .map((r) => r.id);
 
     const { data: rawData } = await supabase
@@ -67,7 +67,7 @@ export async function getNearMeListings(
       .eq("province_id", params.provinceId)
       .eq("status", "published")
       .order("published_at", { ascending: false })
-      .limit(8);
+      .limit(4);
 
     const oneYearAgo2 = Date.now() - 365 * 24 * 60 * 60 * 1000;
     const filtered = ((data ?? []) as unknown as SearchListing[]).filter(

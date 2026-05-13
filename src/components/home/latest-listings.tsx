@@ -7,7 +7,7 @@ interface LatestListingsProps {
 }
 
 export async function LatestListings({ supabaseUrl }: LatestListingsProps) {
-  const listings = await getLatestListings(4);
+  const listings = await getLatestListings(8);
   if (listings.length === 0) return null;
 
   return (

@@ -1,4 +1,3 @@
-import { getAllCategoriesPublic } from "@/lib/db/listings";
 import { getUnreadMessageCount } from "@/lib/db/messages";
 import { getUnreadCount } from "@/lib/db/alerts";
 import { createClient } from "@/lib/supabase/server";
@@ -15,15 +14,13 @@ export async function TopMenuBar() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [categories, unreadCount, unreadNotifCount] = await Promise.all([
-    getAllCategoriesPublic(),
+  const [unreadCount, unreadNotifCount] = await Promise.all([
     getUnreadMessageCount(),
     user ? getUnreadCount() : Promise.resolve(0),
   ]);
 
   return (
     <TopMenuBarClient
-      categories={categories}
       unreadCount={unreadCount}
       unreadNotifCount={unreadNotifCount}
       isAdmin={isPrivileged(user?.email ?? undefined)}

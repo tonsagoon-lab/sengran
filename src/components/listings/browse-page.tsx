@@ -34,7 +34,7 @@ function GridSkeleton() {
 
 export async function BrowsePage({
   searchParams,
-  heroTitle = "ค้นหาร้านเซ้ง ร้านให้เช่า ทั่วประเทศไทย",
+  heroTitle,
   heroSubtitle,
   lockedProvince,
   lockedCategory,
@@ -47,21 +47,30 @@ export async function BrowsePage({
     ...(lockedCategory ? { cat: lockedCategory } : {}),
   };
 
+  const isGpsMode = Boolean(searchParams.lat && searchParams.lng);
+  const radiusKm = searchParams.radius ?? "10";
+
   const [categories, provinces, amenities, total] = await Promise.all([
     getAllCategories(),
     getAllProvinces(),
     getAllAmenities(),
-    !heroSubtitle ? getTotalListingCount() : Promise.resolve(0),
+    !heroSubtitle && !isGpsMode ? getTotalListingCount() : Promise.resolve(0),
   ]);
 
-  const subtitle = heroSubtitle ?? `พบร้านค้าทำเลดี ราคาโดน กว่า ${total.toLocaleString("th-TH")} รายการ`;
+  const defaultTitle = isGpsMode
+    ? `📍 ร้านใกล้คุณ (ภายใน ${radiusKm} กม.)`
+    : "ค้นหาร้านเซ้ง ร้านให้เช่า ทั่วประเทศไทย";
+  const resolvedTitle = heroTitle ?? defaultTitle;
+  const subtitle = heroSubtitle ?? (isGpsMode
+    ? "ร้านค้าที่อยู่ใกล้พิกัดของคุณ เรียงตามระยะทาง"
+    : `พบร้านค้าทำเลดี ราคาโดน กว่า ${total.toLocaleString("th-TH")} รายการ`);
 
   return (
     <>
       {/* Hero */}
       <section className="bg-gradient-to-b from-orange-50 to-white border-b">
         <div className="mx-auto max-w-3xl px-4 py-8 text-center space-y-3">
-          <h1 className="text-2xl font-bold text-neutral-900 sm:text-3xl">{heroTitle}</h1>
+          <h1 className="text-2xl font-bold text-neutral-900 sm:text-3xl">{resolvedTitle}</h1>
           <p className="text-sm text-neutral-500">{subtitle}</p>
           <SearchBox defaultValue={searchParams.q ?? ""} />
         </div>

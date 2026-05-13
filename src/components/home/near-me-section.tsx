@@ -201,22 +201,19 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
       : "📍 ร้านใกล้คุณ";
 
   const seeAllHref =
-    location?.type === "province" ? `/city/${location.slug}` : "/listings?location=1";
+    location?.type === "province"
+      ? `/city/${location.slug}`
+      : location?.type === "gps"
+      ? `/listings?lat=${location.lat}&lng=${location.lng}&radius=${location.radiusKm}`
+      : "/listings";
 
   return (
     <section className="py-4 space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-semibold text-neutral-800">{title}</h2>
-        <div className="flex items-center gap-3">
-          {total > 8 && (
-            <Link href={seeAllHref} className="text-sm text-orange-600 hover:underline">
-              ดูทั้งหมด →
-            </Link>
-          )}
-          <button onClick={reset} className="text-xs text-neutral-400 hover:text-neutral-600 flex items-center gap-1">
-            <X className="h-3 w-3" /> เปลี่ยนตำแหน่ง
-          </button>
-        </div>
+        <button onClick={reset} className="text-xs text-neutral-400 hover:text-neutral-600 flex items-center gap-1">
+          <X className="h-3 w-3" /> เปลี่ยนตำแหน่ง
+        </button>
       </div>
 
       {/* Radius selector — GPS mode only */}
@@ -261,11 +258,20 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
 
       {/* Listing grid */}
       {status === "loaded" && listings.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {listings.map((listing) => (
-            <BrowseCard key={listing.id} listing={listing} supabaseUrl={supabaseUrl} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {listings.map((listing) => (
+              <BrowseCard key={listing.id} listing={listing} supabaseUrl={supabaseUrl} />
+            ))}
+          </div>
+          <Link
+            href={seeAllHref}
+            className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-orange-400 bg-orange-50 hover:bg-orange-100 text-orange-600 font-semibold py-3 text-sm transition-colors"
+          >
+            <MapPin className="h-4 w-4" />
+            ดูร้านใกล้เคียงเพิ่มเติม →
+          </Link>
+        </>
       )}
     </section>
   );

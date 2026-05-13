@@ -90,9 +90,9 @@ export default async function HomePage() {
         </Suspense>
       </div>
 
-      {/* Banner — before footer, 50% width centered */}
+      {/* Banner — before footer */}
       <Suspense fallback={null}>
-        <div className="mx-auto w-1/2 px-4 py-8">
+        <div className="mx-auto w-full max-w-2xl px-4 py-8">
           <BannerSection />
         </div>
       </Suspense>

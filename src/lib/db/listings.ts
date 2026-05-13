@@ -211,6 +211,9 @@ export interface SearchParams {
   location?: string;
   sort?: string;
   page?: string;
+  lat?: string;
+  lng?: string;
+  radius?: string;
 }
 
 const LISTING_CARD_SELECT = `
@@ -231,6 +234,35 @@ export async function searchListings(params: SearchParams): Promise<{
   const page = Math.max(1, parseInt(params.page ?? "1") || 1);
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
+
+  // GPS mode: use listings_within_distance RPC
+  const lat = params.lat ? parseFloat(params.lat) : null;
+  const lng = params.lng ? parseFloat(params.lng) : null;
+  const radius = params.radius ? parseFloat(params.radius) : 10;
+  if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rpcData } = await (supabase as any).rpc("listings_within_distance", {
+      lat,
+      lng,
+      radius_km: radius,
+    });
+    const nearbyIds: string[] = (rpcData ?? []).map((r: { id: string }) => r.id);
+    if (nearbyIds.length === 0) return { listings: [], total: 0, page, pageSize };
+
+    const slicedIds = nearbyIds.slice(offset, offset + pageSize);
+    const { data } = await supabase
+      .from("listings")
+      .select(LISTING_CARD_SELECT)
+      .in("id", slicedIds)
+      .eq("status", "published");
+
+    // Preserve distance order
+    const idOrder = new Map(slicedIds.map((id, i) => [id, i]));
+    const sorted = ((data ?? []) as unknown as SearchListing[]).sort(
+      (a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0)
+    );
+    return { listings: sorted, total: nearbyIds.length, page, pageSize };
+  }
 
   // Amenity pre-filter (separate query then intersect)
   let amenityListingIds: string[] | null = null;
