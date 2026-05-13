@@ -43,27 +43,16 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
         setListings(result.listings);
         setTotal(result.total);
         setStatus("loaded");
-      } else if (loc.type === "gps") {
-        // No nearby listings with coords → ask user to pick province
-        localStorage.removeItem(STORAGE_KEY);
-        setLocation(null);
-        setStatus("province-select");
       } else {
         setListings([]);
         setTotal(0);
         setStatus("empty");
       }
     } catch {
-      // RPC error → ask province, never bounce back to prompt
-      if (loc.type === "gps") {
-        localStorage.removeItem(STORAGE_KEY);
-        setLocation(null);
-        setStatus("province-select");
-      } else {
-        setListings([]);
-        setTotal(0);
-        setStatus("empty");
-      }
+      // RPC error → show empty so radius selector stays visible
+      setListings([]);
+      setTotal(0);
+      setStatus("empty");
     }
   }, []);
 
@@ -256,10 +245,19 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
       {/* Empty state */}
       {status === "empty" && (
         <div className="rounded-xl border bg-neutral-50 py-8 text-center space-y-2">
-          <p className="text-sm text-neutral-600">ยังไม่มีประกาศในจังหวัดนี้</p>
-          <Link href="/listings/new" className="text-sm text-orange-600 hover:underline">
-            ลงประกาศแรก →
-          </Link>
+          {location?.type === "gps" ? (
+            <>
+              <p className="text-sm text-neutral-600">ไม่พบร้านในระยะ {location.radiusKm} กม.</p>
+              <p className="text-xs text-neutral-400">ลองเพิ่มระยะด้านบน</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-neutral-600">ยังไม่มีประกาศในจังหวัดนี้</p>
+              <Link href="/listings/new" className="text-sm text-orange-600 hover:underline">
+                ลงประกาศแรก →
+              </Link>
+            </>
+          )}
         </div>
       )}
 
