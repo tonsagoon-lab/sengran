@@ -23,7 +23,7 @@ type Status = "init" | "prompt" | "gps-loading" | "province-select" | "fetching"
 
 const STORAGE_KEY = "user_location";
 const DENIED_KEY = "user_location_denied";
-const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50];
+const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50, 100];
 
 export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   const [status, setStatus] = useState<Status>("init");
