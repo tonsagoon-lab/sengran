@@ -187,8 +187,8 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
     );
   }
 
-  // ── Loading listings ──────────────────────────────────────
-  if (status === "fetching") {
+  // ── Loading listings (province mode only) ────────────────
+  if (status === "fetching" && location?.type !== "gps") {
     return (
       <section className="py-6 space-y-3">
         <div className="flex items-center gap-2">
@@ -239,6 +239,14 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
               {km} กม.
             </button>
           ))}
+        </div>
+      )}
+
+      {/* GPS inline loading */}
+      {status === "fetching" && location?.type === "gps" && (
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
+          <span className="text-sm text-neutral-500">กำลังค้นหาร้านใกล้คุณ...</span>
         </div>
       )}
 
