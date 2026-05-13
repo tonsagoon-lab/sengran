@@ -118,7 +118,7 @@ export default async function ListingDetailPage({ params }: Props) {
 
   const hasCoords = listing.latitude != null && listing.longitude != null;
   const mapEmbedUrl = hasCoords
-    ? `https://www.google.com/maps?q=${listing.latitude},${listing.longitude}&z=16&output=embed`
+    ? `https://www.google.com/maps?q=${listing.latitude},${listing.longitude}&z=17&output=embed`
     : null;
   const mapLinkUrl = hasCoords
     ? `https://www.google.com/maps?q=${listing.latitude},${listing.longitude}`

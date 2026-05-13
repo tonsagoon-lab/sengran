@@ -62,7 +62,7 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
 
   const embedUrl =
     coords
-      ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=15&output=embed`
+      ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&output=embed`
       : null;
 
   return (
