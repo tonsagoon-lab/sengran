@@ -17,7 +17,8 @@ export async function getEditorialPicks() {
   const { data } = await supabase
     .from("editorial_picks")
     .select(LISTING_PICK_SELECT)
-    .order("display_order", { ascending: true });
+    .order("display_order", { ascending: true })
+    .limit(4);
   return (data ?? []) as unknown as EditorialPickRow[];
 }
 

@@ -74,14 +74,14 @@ export default async function HomePage() {
           <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
         </div>
 
-        {/* Latest listings */}
-        <Suspense fallback={<SectionSkeleton />}>
-          <LatestListings supabaseUrl={supabaseUrl} />
-        </Suspense>
-
         {/* Editorial picks */}
         <Suspense fallback={null}>
           <EditorialPicks supabaseUrl={supabaseUrl} />
+        </Suspense>
+
+        {/* Latest listings */}
+        <Suspense fallback={<SectionSkeleton />}>
+          <LatestListings supabaseUrl={supabaseUrl} />
         </Suspense>
 
         {/* Popular provinces */}
