@@ -124,11 +124,7 @@ export default async function ListingDetailPage({ params }: Props) {
     ? `https://www.google.com/maps?q=${listing.latitude},${listing.longitude}`
     : null;
 
-  const isExpired = (() => {
-    const pub = listing.published_at ? new Date(listing.published_at) : null;
-    if (!pub) return false;
-    return Date.now() - pub.getTime() > 365 * 24 * 60 * 60 * 1000;
-  })();
+  const isExpired = listing.status === "expired";
 
   return (
     <>

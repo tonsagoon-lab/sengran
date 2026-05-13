@@ -71,7 +71,7 @@ export async function getListingBySlug(slug: string): Promise<ListingWithDetails
        profiles!listings_user_id_fkey(display_name, mobile, line_id, avatar_url)`
     )
     .eq("slug", slug)
-    .eq("status", "published")
+    .in("status", ["published", "expired"])
     .single();
 
   return data as ListingWithDetails | null;
