@@ -71,16 +71,12 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   // On mount: check localStorage
   useEffect(() => {
     try {
-      const denied = localStorage.getItem(DENIED_KEY);
+      localStorage.removeItem(DENIED_KEY); // clear old denied flag
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as LocationState;
         setLocation(parsed);
         fetchListings(parsed);
-        return;
-      }
-      if (denied === "true") {
-        setStatus("province-select");
         return;
       }
     } catch {
@@ -105,8 +101,8 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
         });
       },
       () => {
-        localStorage.setItem(DENIED_KEY, "true");
-        setStatus("province-select");
+        // GPS denied → stay on prompt ให้ user เลือกเอง
+        setStatus("prompt");
       },
       { timeout: 10000 }
     );
