@@ -47,7 +47,9 @@ export async function getNearMeListings(
       .in("id", ids)
       .eq("status", "published");
 
-    const data = (rawData ?? []) as unknown as SearchListing[];
+    const data = ((rawData ?? []) as unknown as SearchListing[]).filter(
+      (l) => l.listing_images.length > 0
+    );
 
     // Preserve distance order
     const byId = new Map(data.map((l) => [l.id, l]));
@@ -66,8 +68,11 @@ export async function getNearMeListings(
       .order("published_at", { ascending: false })
       .limit(8);
 
+    const filtered = ((data ?? []) as unknown as SearchListing[]).filter(
+      (l) => l.listing_images.length > 0
+    );
     return {
-      listings: (data ?? []) as unknown as SearchListing[],
+      listings: filtered,
       total: count ?? 0,
     };
   }
