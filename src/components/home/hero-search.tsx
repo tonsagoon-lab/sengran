@@ -1,17 +1,13 @@
-import Link from "next/link";
-import { getTotalListingCount } from "@/lib/db/listings";
+import { getTotalListingCount, getAllCategories, getAllProvinces } from "@/lib/db/listings";
 import { SearchBox } from "@/components/listings/search-box";
-
-const QUICK_CHIPS = [
-  { label: "เซ้ง", href: "/listings?type=sale" },
-  { label: "ให้เช่า", href: "/listings?type=rent" },
-  { label: "ในกรุงเทพ", href: "/listings?province=bangkok" },
-  { label: "ร้านอาหาร", href: "/listings?cat=restaurant" },
-  { label: "คาเฟ่", href: "/listings?cat=cafe" },
-];
+import { QuickFilters } from "@/components/home/quick-filters";
 
 export async function HeroSearch() {
-  const count = await getTotalListingCount();
+  const [count, categories, provinces] = await Promise.all([
+    getTotalListingCount(),
+    getAllCategories(),
+    getAllProvinces(),
+  ]);
 
   return (
     <section className="bg-gradient-to-b from-orange-50 to-white border-b">
@@ -29,18 +25,7 @@ export async function HeroSearch() {
 
         <SearchBox targetPath="/listings" />
 
-        {/* Quick chips */}
-        <div className="flex flex-wrap justify-center gap-2 pt-1">
-          {QUICK_CHIPS.map((chip) => (
-            <Link
-              key={chip.href}
-              href={chip.href}
-              className="inline-flex items-center rounded-full border border-orange-200 bg-white px-3 py-1 text-xs text-orange-700 hover:bg-orange-50 transition-colors"
-            >
-              {chip.label}
-            </Link>
-          ))}
-        </div>
+        <QuickFilters categories={categories} provinces={provinces} />
       </div>
     </section>
   );
