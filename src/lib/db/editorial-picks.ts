@@ -18,7 +18,7 @@ export async function getEditorialPicks() {
     .from("editorial_picks")
     .select(LISTING_PICK_SELECT)
     .order("display_order", { ascending: true })
-    .limit(4);
+    .limit(8);
   return (data ?? []) as unknown as EditorialPickRow[];
 }
 
