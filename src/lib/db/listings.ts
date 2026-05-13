@@ -242,8 +242,8 @@ export async function searchListings(params: SearchParams): Promise<{
   if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: rpcData } = await (supabase as any).rpc("listings_within_distance", {
-      lat,
-      lng,
+      center_lat: lat,
+      center_lng: lng,
       radius_km: radius,
     });
     const nearbyIds: string[] = (rpcData ?? []).map((r: { id: string }) => r.id);
