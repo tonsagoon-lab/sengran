@@ -23,7 +23,6 @@ type Status = "init" | "prompt" | "gps-loading" | "province-select" | "fetching"
 
 const STORAGE_KEY = "user_location";
 const DENIED_KEY = "user_location_denied";
-const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50, 100];
 
 export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   const [status, setStatus] = useState<Status>("init");
@@ -35,25 +34,22 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
     setStatus("fetching");
     try {
       const result = await getNearMeListings(
+        // GPS mode: skip distance RPC, show latest listings instead
         loc.type === "gps"
-          ? { type: "gps", lat: loc.lat, lng: loc.lng, radiusKm: loc.radiusKm }
+          ? { type: "latest" }
           : { type: "province", provinceId: loc.provinceId }
       );
       if (result.listings.length > 0) {
         setListings(result.listings);
         setTotal(result.total);
         setStatus("loaded");
-      } else if (loc.type === "gps") {
-        setLocation(null);
-        localStorage.removeItem(STORAGE_KEY);
-        setStatus("province-select");
       } else {
         setListings([]);
         setTotal(0);
         setStatus("empty");
       }
     } catch {
-      setStatus("prompt");
+      setStatus("province-select");
     }
   }, []);
 
@@ -90,26 +86,37 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
     }
     setStatus("gps-loading");
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        applyLocation({
+      async (pos) => {
+        const loc: LocationState = {
           type: "gps",
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
           radiusKm: 10,
-        });
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(loc));
+        setLocation(loc);
+        // Skip distance RPC (no coords on most listings); show latest instead
+        setStatus("fetching");
+        try {
+          const result = await getNearMeListings({ type: "latest" });
+          if (result.listings.length > 0) {
+            setListings(result.listings);
+            setTotal(result.total);
+            setStatus("loaded");
+          } else {
+            setListings([]);
+            setTotal(0);
+            setStatus("empty");
+          }
+        } catch {
+          setStatus("province-select");
+        }
       },
       () => {
-        // GPS denied → stay on prompt ให้ user เลือกเอง
-        setStatus("prompt");
+        setStatus("province-select");
       },
       { timeout: 10000 }
     );
-  };
-
-  const changeRadius = (km: number) => {
-    if (!location || location.type !== "gps") return;
-    const updated = { ...location, radiusKm: km };
-    applyLocation(updated);
   };
 
   const reset = () => {
@@ -207,6 +214,8 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   const seeAllHref =
     location?.type === "province"
       ? `/city/${location.slug}`
+      : location?.type === "gps"
+      ? `/listings?lat=${location.lat}&lng=${location.lng}&radius=${location.radiusKm}`
       : "/listings";
 
   return (
@@ -218,43 +227,13 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
         </button>
       </div>
 
-      {/* Radius selector — GPS mode only */}
-      {location?.type === "gps" && (
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs text-neutral-500">ระยะ:</span>
-          {RADIUS_OPTIONS.map((km) => (
-            <button
-              key={km}
-              onClick={() => changeRadius(km)}
-              disabled={(status as string) === "fetching"}
-              className={`rounded-full px-3 py-0.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                location.radiusKm === km
-                  ? "bg-orange-500 text-white"
-                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-              }`}
-            >
-              {km} กม.
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Empty state */}
       {status === "empty" && (
         <div className="rounded-xl border bg-neutral-50 py-8 text-center space-y-2">
-          {location?.type === "gps" ? (
-            <>
-              <p className="text-sm text-neutral-600">ไม่พบร้านในระยะ {location.radiusKm} กม.</p>
-              <p className="text-xs text-neutral-400">ลองเพิ่มระยะด้านบน</p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-neutral-600">ยังไม่มีประกาศในจังหวัดนี้</p>
-              <Link href="/listings/new" className="text-sm text-orange-600 hover:underline">
-                ลงประกาศแรก →
-              </Link>
-            </>
-          )}
+          <p className="text-sm text-neutral-600">ยังไม่มีประกาศในจังหวัดนี้</p>
+          <Link href="/listings/new" className="text-sm text-orange-600 hover:underline">
+            ลงประกาศแรก →
+          </Link>
         </div>
       )}
 

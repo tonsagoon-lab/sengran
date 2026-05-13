@@ -113,6 +113,17 @@ export default async function ListingDetailPage({ params }: Props) {
   const isSeller = user?.id === listing.user_id;
   const sellerId = listing.user_id;
 
+  const isPlaceholder = (v: string | null | undefined) =>
+    !v || v === "ไม่ระบุ" || v.trim() === "";
+
+  const displayName = isPlaceholder(listing.contact_name)
+    ? (listing.profiles?.display_name ?? "ผู้ประกาศ")
+    : listing.contact_name;
+
+  const displayMobile = isPlaceholder(listing.contact_mobile)
+    ? (listing.profiles?.mobile ?? null)
+    : listing.contact_mobile;
+
   // Use profile's live LINE ID if listing snapshot is missing
   const lineId = listing.contact_line || listing.profiles?.line_id || null;
 
@@ -306,7 +317,7 @@ export default async function ListingDetailPage({ params }: Props) {
                 {listing.profiles?.avatar_url ? (
                   <Image
                     src={listing.profiles.avatar_url}
-                    alt={listing.contact_name}
+                    alt={displayName}
                     width={48}
                     height={48}
                     className="rounded-full object-cover"
@@ -315,7 +326,7 @@ export default async function ListingDetailPage({ params }: Props) {
                   <UserCircle className="h-12 w-12 text-neutral-300" />
                 )}
                 <div>
-                  <p className="font-medium text-sm text-neutral-900">{listing.contact_name}</p>
+                  <p className="font-medium text-sm text-neutral-900">{displayName}</p>
                   {lineId && (
                     <p className="text-xs text-neutral-400 mt-0.5">LINE: {lineId}</p>
                   )}
@@ -324,13 +335,15 @@ export default async function ListingDetailPage({ params }: Props) {
 
               {/* Contact buttons */}
               <div className="flex flex-col gap-2">
+                {displayMobile && (
                 <a
-                  href={`tel:${listing.contact_mobile}`}
+                  href={`tel:${displayMobile}`}
                   className="flex items-center justify-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 py-2.5 font-semibold text-sm text-white transition-colors"
                 >
                   <Phone className="h-4 w-4" />
-                  โทร {listing.contact_mobile}
+                  โทร {displayMobile}
                 </a>
+                )}
                 {lineId && (
                   <a
                     href={`https://line.me/ti/p/${lineId.startsWith("@") ? lineId : `~${lineId}`}`}
@@ -363,13 +376,15 @@ export default async function ListingDetailPage({ params }: Props) {
       {/* Sticky contact bar (mobile only) */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white px-4 py-3 shadow-lg lg:hidden">
         <div className="mx-auto flex max-w-3xl gap-2">
+          {displayMobile && (
           <a
-            href={`tel:${listing.contact_mobile}`}
+            href={`tel:${displayMobile}`}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 py-3 font-semibold text-sm text-white transition-colors"
           >
             <Phone className="h-4 w-4" />
             โทร
           </a>
+          )}
           {lineId && (
             <a
               href={`https://line.me/ti/p/${lineId.startsWith("@") ? lineId : `~${lineId}`}`}

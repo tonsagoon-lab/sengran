@@ -16,11 +16,9 @@ export async function HeroSearch() {
           ค้นหาร้านเซ้ง ร้านให้เช่า ทั่วประเทศไทย
         </h1>
         <p className="text-sm text-neutral-500">
-          รวมร้านค้าทำเลดี กว่า{" "}
-          <span className="font-semibold text-orange-600">
-            {count.toLocaleString("th-TH")}
-          </span>{" "}
-          รายการ ทั่วประเทศ
+          รวมเซ้งร้าน ร้านให้เช่า ทำเลดี มากกว่า{" "}
+          <span className="font-semibold text-orange-600">10,000+</span>{" "}
+          รายการ ทั่วประเทศ กว่า 10 ปี
         </p>
 
         <SearchBox targetPath="/listings" />
