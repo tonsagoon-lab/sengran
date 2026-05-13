@@ -44,14 +44,29 @@ export async function extractCoordsFromGoogleMapsUrl(url: string): Promise<Coord
   if (!trimmed) return null;
 
   if (SHORT_URL_RE.test(trimmed)) {
-    // Follow redirect server-side (CORS blocks client)
     try {
       const res = await fetch(trimmed, {
         redirect: "follow",
-        headers: { "User-Agent": "Mozilla/5.0" },
+        headers: {
+          "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "th-TH,th;q=0.9,en;q=0.8",
+        },
       });
-      const resolved = res.url;
-      return parseFromResolvedUrl(resolved);
+
+      // Try resolved URL first
+      const fromUrl = parseFromResolvedUrl(res.url);
+      if (fromUrl) return fromUrl;
+
+      // Fallback: parse coords from HTML body
+      const html = await res.text();
+      const coordMatch = html.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+                         html.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) ||
+                         html.match(/"(-?\d+\.\d{4,}),(-?\d+\.\d{4,})"/);
+      if (coordMatch) {
+        return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
+      }
+      return null;
     } catch {
       return null;
     }
