@@ -74,6 +74,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !isPrivileged(user.email ?? undefined)) redirect("/");
   const isAdmin = user.email === ADMIN_EMAIL;
+  const isStaffOnly = !isAdmin && STAFF_EMAILS.includes(user.email ?? "");
   const { tab } = await searchParams;
   const activeTab = tab === "settings" ? "settings" : tab === "articles" ? "articles" : "dashboard";
 
@@ -105,6 +106,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <h1 className="text-2xl font-bold text-neutral-900">Admin</h1>
         </div>
 
+        {/* ── Staff view — listings only ───────────────────── */}
+        {isStaffOnly && <ContentManager isAdmin={false} />}
+
+        {/* ── Admin-only below ─────────────────────────────── */}
+        {!isStaffOnly && <>
         {/* Tab bar */}
         <AdminTabs />
 
@@ -214,6 +220,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
         </>)}
+        </>}
       </div>
     </>
   );
