@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
+import { resolveImageUrl } from "@/lib/utils/image-url";
 
 interface ImageGalleryProps {
   images: { storage_path: string; alt_text?: string | null }[];
@@ -21,10 +22,7 @@ export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
     );
   }
 
-  const url = (path: string) =>
-    path.startsWith("http://") || path.startsWith("https://")
-      ? path
-      : `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
+  const url = (path: string) => resolveImageUrl(path);
 
   const prev = () => setActive((a) => (a - 1 + images.length) % images.length);
   const next = () => setActive((a) => (a + 1) % images.length);
