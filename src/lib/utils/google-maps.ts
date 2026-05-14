@@ -62,7 +62,9 @@ export async function extractCoordsFromGoogleMapsUrl(url: string): Promise<Coord
       const html = await res.text();
       const coordMatch = html.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) ||
                          html.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                         html.match(/"(-?\d+\.\d{4,}),(-?\d+\.\d{4,})"/);
+                         html.match(/"(-?\d+\.\d{4,}),(-?\d+\.\d{4,})"/) ||
+                         // unquoted coords — match plausible lat/lng ranges (Thailand: lat 5-22, lng 97-106)
+                         html.match(/\b([1-2]?\d\.\d{5,}),((?:9[7-9]|10[0-6])\.\d{5,})/);
       if (coordMatch) {
         return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
       }
