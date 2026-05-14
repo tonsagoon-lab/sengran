@@ -35,8 +35,10 @@ export function RichTextDisplay({ html, className }: RichTextDisplayProps) {
     <div
       className={[
         "prose prose-sm max-w-none",
-        "prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5",
-        "prose-a:text-orange-600 prose-a:no-underline hover:prose-a:underline",
+        "[&_p]:mb-3 [&_p]:leading-relaxed",
+        "[&_ul]:mb-3 [&_ol]:mb-3 [&_li]:mb-1",
+        "[&_a]:text-orange-600 [&_a]:no-underline hover:[&_a]:underline",
+        "text-neutral-700",
         className ?? "",
       ].join(" ")}
       dangerouslySetInnerHTML={{ __html: clean }}
