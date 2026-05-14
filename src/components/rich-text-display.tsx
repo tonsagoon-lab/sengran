@@ -32,17 +32,11 @@ export function RichTextDisplay({ html, className }: RichTextDisplayProps) {
   }, [html]);
 
   return (
-    <div
-      className={[
-        "prose prose-sm max-w-none",
-        "[&_p]:mb-3 [&_p]:leading-relaxed",
-        "[&_ul]:mb-3 [&_ol]:mb-3 [&_li]:mb-1",
-        "[&_a]:text-orange-600 [&_a]:no-underline hover:[&_a]:underline",
-        "text-neutral-700",
-        className ?? "",
-      ].join(" ")}
-      dangerouslySetInnerHTML={{ __html: clean }}
-    />
+    <div className={["rich-display text-sm text-neutral-700 leading-relaxed", className ?? ""].join(" ")}>
+      {/* eslint-disable-next-line react/no-danger */}
+      <div dangerouslySetInnerHTML={{ __html: clean }} />
+    </div>
+  );
   );
 }
 

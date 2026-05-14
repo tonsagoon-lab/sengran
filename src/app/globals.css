@@ -3,6 +3,26 @@
 @import "shadcn/tailwind.css";
 @plugin "@tailwindcss/typography";
 
+.rich-display p {
+  margin-bottom: 0.875rem;
+  line-height: 1.7;
+}
+.rich-display p:last-child {
+  margin-bottom: 0;
+}
+.rich-display ul,
+.rich-display ol {
+  margin-bottom: 0.875rem;
+  padding-left: 1.5rem;
+}
+.rich-display ul { list-style-type: disc; }
+.rich-display ol { list-style-type: decimal; }
+.rich-display li { margin-bottom: 0.25rem; }
+.rich-display strong { font-weight: 600; }
+.rich-display em { font-style: italic; }
+.rich-display a { color: #ea580c; }
+.rich-display a:hover { text-decoration: underline; }
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
