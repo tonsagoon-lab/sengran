@@ -22,13 +22,15 @@ export function RichTextDisplay({ html, className }: RichTextDisplayProps) {
   const [clean, setClean] = useState("");
 
   useEffect(() => {
-    setClean(
-      DOMPurify.sanitize(toHtml(html), {
-        ALLOWED_TAGS: ["p", "br", "strong", "em", "ul", "ol", "li", "a"],
-        ALLOWED_ATTR: ["href", "target", "rel"],
-        FORCE_BODY: true,
-      })
-    );
+    const converted = toHtml(html);
+    const sanitized = DOMPurify.sanitize(converted, {
+      ALLOWED_TAGS: ["p", "br", "strong", "em", "ul", "ol", "li", "a"],
+      ALLOWED_ATTR: ["href", "target", "rel"],
+      FORCE_BODY: true,
+    });
+    console.log("[RichTextDisplay] raw:", JSON.stringify(html?.slice(0, 200)));
+    console.log("[RichTextDisplay] sanitized:", JSON.stringify(sanitized?.slice(0, 200)));
+    setClean(sanitized);
   }, [html]);
 
   return (
