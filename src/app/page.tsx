@@ -6,7 +6,6 @@ import { NearMeSection } from "@/components/home/near-me-section";
 import { BannerSection } from "@/components/home/banner-section";
 import { CategoryGrid } from "@/components/home/category-grid";
 import { LatestListings } from "@/components/home/latest-listings";
-import { PopularProvinces } from "@/components/home/popular-provinces";
 import { EditorialPicks } from "@/components/home/editorial-picks";
 import { getAllProvinces } from "@/lib/db/listings";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -84,10 +83,6 @@ export default async function HomePage() {
           <LatestListings supabaseUrl={supabaseUrl} />
         </Suspense>
 
-        {/* Popular provinces */}
-        <Suspense fallback={<SectionSkeleton />}>
-          <PopularProvinces />
-        </Suspense>
       </div>
 
       {/* Banner — before footer */}
