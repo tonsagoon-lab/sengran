@@ -37,7 +37,29 @@ function parseFromResolvedUrl(url: string): Coords | null {
   return null;
 }
 
+function parseFromHtml(html: string): Coords | null {
+  // !3d<lat>!4d<lng> in unencoded HTML
+  const d3 = html.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (d3) return { lat: parseFloat(d3[1]), lng: parseFloat(d3[2]) };
+
+  // @lat,lng in unencoded HTML
+  const at = html.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (at) return { lat: parseFloat(at[1]), lng: parseFloat(at[2]) };
+
+  // URL-encoded: %212d<lng>%213d<lat> — place share URLs embed coords this way
+  const enc = html.match(/%212d(-?\d+\.\d+)[^%]*%213d(-?\d+\.\d+)/);
+  if (enc) return { lat: parseFloat(enc[2]), lng: parseFloat(enc[1]) };
+
+  // quoted coordinate pair
+  const quoted = html.match(/"(-?\d+\.\d{4,}),(-?\d+\.\d{4,})"/);
+  if (quoted) return { lat: parseFloat(quoted[1]), lng: parseFloat(quoted[2]) };
+
+  return null;
+}
+
 const SHORT_URL_RE = /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//;
+
+const DESKTOP_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 export async function extractCoordsFromGoogleMapsUrl(url: string): Promise<Coords | null> {
   const trimmed = url.trim();
@@ -48,7 +70,7 @@ export async function extractCoordsFromGoogleMapsUrl(url: string): Promise<Coord
       const res = await fetch(trimmed, {
         redirect: "follow",
         headers: {
-          "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+          "User-Agent": DESKTOP_UA,
           "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "Accept-Language": "th-TH,th;q=0.9,en;q=0.8",
         },
@@ -60,15 +82,7 @@ export async function extractCoordsFromGoogleMapsUrl(url: string): Promise<Coord
 
       // Fallback: parse coords from HTML body
       const html = await res.text();
-      const coordMatch = html.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) ||
-                         html.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                         html.match(/"(-?\d+\.\d{4,}),(-?\d+\.\d{4,})"/) ||
-                         // unquoted coords — match plausible lat/lng ranges (Thailand: lat 5-22, lng 97-106)
-                         html.match(/\b([1-2]?\d\.\d{5,}),((?:9[7-9]|10[0-6])\.\d{5,})/);
-      if (coordMatch) {
-        return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
-      }
-      return null;
+      return parseFromHtml(html);
     } catch {
       return null;
     }
