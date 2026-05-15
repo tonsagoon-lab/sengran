@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Search, Trash2, EyeOff, Eye, AlertTriangle, Pencil, Settings2 } from "lucide-react";
+import { Search, Trash2, EyeOff, Eye, AlertTriangle, Pencil, Settings2, Coins } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -199,6 +199,8 @@ function UsersManager() {
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ id: string; name: string; count: number } | null>(null);
   const [editQuota, setEditQuota] = useState<{ id: string; quota: number | null } | null>(null);
+  const [grantCoin, setGrantCoin] = useState<{ id: string; amount: string; description: string } | null>(null);
+  const [grantBusy, setGrantBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const search = useCallback((q: string) => {
@@ -234,6 +236,25 @@ function UsersManager() {
     });
     setResults((prev) => prev.map((r) => r.id === userId ? { ...r, listing_quota: quota } : r));
     setEditQuota(null);
+  };
+
+  const handleGrantCoin = async () => {
+    if (!grantCoin) return;
+    const amount = Number(grantCoin.amount);
+    if (!amount || amount <= 0) return;
+    setGrantBusy(true);
+    await fetch("/api/admin/wallet/grant", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: grantCoin.id,
+        amount,
+        description: grantCoin.description || `เพิ่ม coin โดย admin (${amount} coins)`,
+      }),
+    });
+    setGrantCoin(null);
+    setGrantBusy(false);
+    alert(`เพิ่ม ${amount} coins สำเร็จ`);
   };
 
   return (
@@ -292,8 +313,42 @@ function UsersManager() {
                     className="rounded p-1 text-xs text-neutral-400 hover:text-neutral-600"
                   >ยกเลิก</button>
                 </div>
+              ) : grantCoin?.id === row.id ? (
+                <div className="flex items-center gap-1 shrink-0">
+                  <input
+                    type="number"
+                    min={1}
+                    value={grantCoin.amount}
+                    placeholder="จำนวน coins"
+                    onChange={(e) => setGrantCoin({ ...grantCoin, amount: e.target.value })}
+                    className="w-20 rounded border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-300"
+                  />
+                  <input
+                    type="text"
+                    value={grantCoin.description}
+                    placeholder="หมายเหตุ"
+                    onChange={(e) => setGrantCoin({ ...grantCoin, description: e.target.value })}
+                    className="w-24 rounded border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-300"
+                  />
+                  <button
+                    onClick={handleGrantCoin}
+                    disabled={grantBusy}
+                    className="rounded p-1 text-xs bg-amber-500 text-white hover:bg-amber-600 px-2 disabled:opacity-50"
+                  >เพิ่ม</button>
+                  <button
+                    onClick={() => setGrantCoin(null)}
+                    className="rounded p-1 text-xs text-neutral-400 hover:text-neutral-600"
+                  >ยกเลิก</button>
+                </div>
               ) : (
                 <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    title="เพิ่ม coins"
+                    onClick={() => setGrantCoin({ id: row.id, amount: "", description: "" })}
+                    className="rounded p-1.5 text-neutral-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
+                  >
+                    <Coins className="h-4 w-4" />
+                  </button>
                   <button
                     title="ตั้งโควต้าประกาศ"
                     onClick={() => setEditQuota({ id: row.id, quota: row.listing_quota })}
