@@ -31,7 +31,8 @@ export default async function EditListingPage({ params }: Props) {
     getAllCategories(),
     getAllProvinces(),
     getAllAmenities(),
-    supabase.from("system_announcement").select("line_package_url, line_faak_url").eq("id", 1).single(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from("system_announcement").select("line_package_url, line_faak_url").eq("id", 1).single() as Promise<{ data: { line_package_url?: string; line_faak_url?: string } | null }>,
   ]);
 
   if (!listing) notFound();
