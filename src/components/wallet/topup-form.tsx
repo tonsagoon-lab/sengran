@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Coins, CreditCard, QrCode, ChevronRight } from "lucide-react";
+import { Coins, CreditCard, QrCode, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,8 @@ declare global {
   }
 }
 
+const OMISE_PUBLIC_KEY = process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY || "pkey_test_67orguspr2347ve5biw";
+
 interface CardInfo {
   number: string;
   name: string;
@@ -45,6 +47,7 @@ export function TopupForm({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [omiseReady, setOmiseReady] = useState(false);
+  const [successCoins, setSuccessCoins] = useState<number | null>(null);
   const scriptLoaded = useRef(false);
 
   // Load Omise.js
@@ -54,7 +57,7 @@ export function TopupForm({ userId }: { userId: string }) {
     const script = document.createElement("script");
     script.src = "https://cdn.omise.co/omise.js";
     script.onload = () => {
-      window.Omise?.setPublicKey(process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY ?? "");
+      window.Omise?.setPublicKey(OMISE_PUBLIC_KEY);
       setOmiseReady(true);
     };
     document.head.appendChild(script);
@@ -137,7 +140,8 @@ export function TopupForm({ userId }: { userId: string }) {
         router.push(`/wallet/topup/${data.chargeId}`);
       } else {
         if (data.status === "successful") {
-          router.push("/wallet?topup=success");
+          setSuccessCoins(data.coins ?? effectiveCoins);
+          setLoading(false);
         } else {
           setError("การชำระเงินไม่สำเร็จ กรุณาลองอีกครั้ง");
           setLoading(false);
@@ -151,6 +155,32 @@ export function TopupForm({ userId }: { userId: string }) {
 
   // Suppress unused userId warning — passed for future use
   void userId;
+
+  if (successCoins !== null) {
+    return (
+      <div className="flex flex-col items-center text-center py-8 space-y-5">
+        <div className="h-24 w-24 rounded-full bg-green-100 flex items-center justify-center">
+          <CheckCircle2 className="h-12 w-12 text-green-500" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-neutral-900">เติม coin สำเร็จ!</h2>
+          <p className="text-neutral-500 mt-1 text-sm">coin ถูกเพิ่มเข้ากระเป๋าของคุณแล้ว</p>
+        </div>
+        <div className="flex items-center gap-2 rounded-full bg-orange-50 border border-orange-200 px-6 py-3">
+          <Coins className="h-5 w-5 text-orange-500" />
+          <span className="text-2xl font-bold text-orange-600">
+            +{successCoins.toLocaleString("th-TH")} coins
+          </span>
+        </div>
+        <Button
+          onClick={() => router.push("/wallet")}
+          className="w-full max-w-xs bg-orange-500 hover:bg-orange-600 text-white h-12 text-base font-semibold"
+        >
+          ดูกระเป๋า coin
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

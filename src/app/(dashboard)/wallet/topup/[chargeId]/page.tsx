@@ -47,6 +47,7 @@ export default function PromptPayQrPage() {
       if (data.status === "successful") {
         setStatus("successful");
         setCoins(data.coins);
+        router.push(`/wallet?topup=success&coins=${data.coins ?? ""}`);
       } else if (data.status === "failed") {
         setStatus("failed");
       }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Coins, Plus, ArrowDownLeft, ArrowUpRight, Gift, ShieldCheck } from "lucide-react";
+import { TopupSuccessModal } from "@/components/wallet/topup-success-modal";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "กระเป๋า coin — เซ้งร้าน.com" };
@@ -35,7 +36,12 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   failed: { label: "ล้มเหลว", cls: "bg-red-100 text-red-600" },
 };
 
-export default async function WalletPage() {
+export default async function WalletPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ topup?: string; coins?: string }>;
+}) {
+  const { topup, coins } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -69,6 +75,10 @@ export default async function WalletPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 space-y-6">
       <h1 className="text-2xl font-bold text-neutral-900">กระเป๋า coin</h1>
+
+      {topup === "success" && (
+        <TopupSuccessModal coins={coins ? Number(coins) : undefined} />
+      )}
 
       {/* Balance card */}
       <div className="rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-6 text-white shadow-lg">

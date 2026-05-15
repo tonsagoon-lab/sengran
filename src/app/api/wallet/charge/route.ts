@@ -32,94 +32,121 @@ function calculateCoins(baht: number): number {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
-  const { paymentMethod, baht, tokenId } = body as {
-    paymentMethod: "promptpay" | "card";
-    baht: number;
-    tokenId?: string;
-  };
+    const body = await req.json();
+    const { paymentMethod, baht, tokenId } = body as {
+      paymentMethod: "promptpay" | "card";
+      baht: number;
+      tokenId?: string;
+    };
 
-  if (!baht || baht < 100) {
-    return NextResponse.json({ error: "จำนวนขั้นต่ำ 100 บาท" }, { status: 400 });
-  }
+    if (!baht || baht < 100) {
+      return NextResponse.json({ error: "จำนวนขั้นต่ำ 100 บาท" }, { status: 400 });
+    }
 
-  if (paymentMethod === "card" && !tokenId) {
-    return NextResponse.json({ error: "tokenId required for card payment" }, { status: 400 });
-  }
+    if (paymentMethod === "card" && !tokenId) {
+      return NextResponse.json({ error: "tokenId required for card payment" }, { status: 400 });
+    }
 
-  const coins = calculateCoins(baht);
-  const satang = baht * 100;
+    if (!OMISE_SECRET_KEY) {
+      return NextResponse.json({ error: "ระบบ payment ยังไม่พร้อม กรุณาติดต่อ admin" }, { status: 500 });
+    }
 
-  // Build form body for Omise
-  let formBody: string;
-  if (paymentMethod === "promptpay") {
-    formBody = new URLSearchParams({
-      amount: String(satang),
-      currency: "thb",
-      "source[type]": "promptpay",
-    }).toString();
-  } else {
-    formBody = new URLSearchParams({
-      amount: String(satang),
-      currency: "thb",
-      card: tokenId!,
-    }).toString();
-  }
+    const coins = calculateCoins(baht);
+    const satang = baht * 100;
 
-  const omiseRes = await omiseFetch("/charges", {
-    method: "POST",
-    body: formBody,
-  });
+    // Build form body for Omise
+    let formBody: string;
+    if (paymentMethod === "promptpay") {
+      formBody = new URLSearchParams({
+        amount: String(satang),
+        currency: "thb",
+        "source[type]": "promptpay",
+      }).toString();
+    } else {
+      formBody = new URLSearchParams({
+        amount: String(satang),
+        currency: "thb",
+        card: tokenId!,
+      }).toString();
+    }
 
-  const charge = await omiseRes.json();
-
-  if (!omiseRes.ok) {
-    return NextResponse.json({ error: charge.message ?? "Omise error" }, { status: 502 });
-  }
-
-  // Insert pending transaction
-  const admin = createAdminClient();
-  const { error: insertError } = await admin.from("wallet_transactions").insert({
-    user_id: user.id,
-    amount: coins,
-    type: "topup",
-    description: `เติม coin ${coins} coins (${baht} บาท)`,
-    omise_charge_id: charge.id,
-    status: "pending",
-  });
-
-  if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
-  }
-
-  const qrImageUrl =
-    paymentMethod === "promptpay"
-      ? charge.source?.scannable_code?.image?.download_uri ?? null
-      : null;
-
-  // If card payment is already successful, update immediately
-  if (paymentMethod === "card" && charge.status === "successful") {
-    await admin
-      .from("wallet_transactions")
-      .update({ status: "success" })
-      .eq("omise_charge_id", charge.id);
-
-    await admin.rpc("increment_wallet_balance", {
-      p_user_id: user.id,
-      p_amount: coins,
+    const omiseRes = await omiseFetch("/charges", {
+      method: "POST",
+      body: formBody,
     });
-  }
 
-  return NextResponse.json({
-    chargeId: charge.id,
-    qrImageUrl,
-    status: charge.status,
-    coins,
-  });
+    const charge = await omiseRes.json();
+
+    if (!omiseRes.ok) {
+      return NextResponse.json(
+        { error: charge.message ?? `Omise error: ${omiseRes.status}` },
+        { status: 502 }
+      );
+    }
+
+    const admin = createAdminClient();
+    const qrImageUrl =
+      paymentMethod === "promptpay"
+        ? charge.source?.scannable_code?.image?.download_uri ?? null
+        : null;
+
+    // For card: charge is already settled — update wallet immediately
+    if (paymentMethod === "card" && charge.status === "successful") {
+      // Increment balance first (most important)
+      const { error: rpcError } = await admin.rpc("increment_wallet_balance", {
+        p_user_id: user.id,
+        p_amount: coins,
+      });
+      if (rpcError) {
+        console.error("[wallet/charge] increment_wallet_balance error:", rpcError);
+        // Still return success to client — charge happened, coins will be reconciled via webhook
+      }
+
+      // Record transaction (best-effort)
+      const { error: insertError } = await admin.from("wallet_transactions").insert({
+        user_id: user.id,
+        amount: coins,
+        type: "topup",
+        description: `เติม coin ${coins} coins (${baht} บาท)`,
+        omise_charge_id: charge.id,
+        status: "success",
+      });
+      if (insertError) {
+        console.error("[wallet/charge] insert transaction error:", insertError);
+      }
+    } else if (paymentMethod === "promptpay") {
+      // PromptPay: record as pending, webhook/poll will update later
+      const { error: insertError } = await admin.from("wallet_transactions").insert({
+        user_id: user.id,
+        amount: coins,
+        type: "topup",
+        description: `เติม coin ${coins} coins (${baht} บาท)`,
+        omise_charge_id: charge.id,
+        status: "pending",
+      });
+      if (insertError) {
+        console.error("[wallet/charge] insert promptpay transaction error:", insertError);
+      }
+    }
+
+    return NextResponse.json({
+      chargeId: charge.id,
+      qrImageUrl,
+      status: charge.status,
+      coins,
+    });
+  } catch (err) {
+    console.error("[wallet/charge] unexpected error:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

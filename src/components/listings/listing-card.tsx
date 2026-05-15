@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DeleteListingButton } from "./delete-listing-button";
 import { ListingStatusButtons } from "./listing-status-buttons";
+import { PromoteButton } from "./promote-button";
 import type { ListingWithImages } from "@/lib/db/listings";
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -28,9 +29,10 @@ function formatPrice(price: number | null) {
 
 interface ListingCardProps {
   listing: ListingWithImages;
+  walletBalance?: number;
 }
 
-export function ListingCard({ listing }: ListingCardProps) {
+export function ListingCard({ listing, walletBalance = 0 }: ListingCardProps) {
   const coverImage = listing.listing_images.sort((a, b) => a.display_order - b.display_order)[0];
   const coverUrl = coverImage
     ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/listings/${coverImage.storage_path}`
@@ -94,6 +96,13 @@ export function ListingCard({ listing }: ListingCardProps) {
           <DeleteListingButton listingId={listing.id} />
         </div>
         <ListingStatusButtons listingId={listing.id} currentStatus={listing.status} />
+        {listing.status === "published" && (
+          <PromoteButton
+            listingId={listing.id}
+            listingTitle={listing.title}
+            walletBalance={walletBalance}
+          />
+        )}
       </div>
     </div>
   );

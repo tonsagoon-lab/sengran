@@ -16,6 +16,13 @@ export default async function MyListingsPage() {
 
   const listings = await getMyListings(user.id);
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("wallet_balance")
+    .eq("id", user.id)
+    .single();
+  const walletBalance = Math.floor(Number(profile?.wallet_balance ?? 0));
+
   const published = listings.filter((l) => l.status === "published");
   const hidden = listings.filter((l) => l.status === "hidden");
   const sold = listings.filter((l) => l.status === "sold");
@@ -70,7 +77,7 @@ export default async function MyListingsPage() {
               </h2>
               <div className="space-y-3">
                 {published.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
+                  <ListingCard key={listing.id} listing={listing} walletBalance={walletBalance} />
                 ))}
               </div>
             </section>
