@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, ChevronUp, ChevronDown, Pencil, Check, X } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown, Pencil, Check, X, Upload, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface Banner {
   id: string;
@@ -19,6 +20,69 @@ interface Banner {
 }
 
 const EMPTY_FORM = { title: "", image_url: "", link_url: "", starts_at: "", ends_at: "" };
+
+function useImageUpload(onUploaded: (url: string) => void) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File) {
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("banners").upload(path, file, { upsert: false });
+      if (error) throw error;
+      const { data } = supabase.storage.from("banners").getPublicUrl(path);
+      onUploaded(data.publicUrl);
+    } catch (e) {
+      alert("อัพโหลดไม่สำเร็จ: " + (e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return { uploading, inputRef, handleFile };
+}
+
+function ImageUploadField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { uploading, inputRef, handleFile } = useImageUpload(onChange);
+
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs">รูปภาพ *</Label>
+      <div className="flex gap-2">
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="URL รูปภาพ หรืออัพโหลด →"
+          className="h-8 text-sm flex-1"
+        />
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="flex items-center gap-1 px-2 h-8 rounded border border-neutral-200 bg-white text-xs text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 shrink-0"
+        >
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          อัพโหลด
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+        />
+      </div>
+      {value && (
+        <div className="relative h-16 w-32 rounded overflow-hidden bg-neutral-100 mt-1">
+          <Image src={value} alt="preview" fill className="object-cover" unoptimized />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function BannersManager() {
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -128,15 +192,12 @@ export function BannersManager() {
       {/* Add form */}
       <div className="rounded-lg border bg-neutral-50 p-4 space-y-3">
         <p className="text-sm font-medium text-neutral-700">เพิ่มแบนเนอร์ใหม่</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">ชื่อ (optional)</Label>
             <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="แบนเนอร์โปรโมชัน" className="h-8 text-sm" />
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">URL รูปภาพ *</Label>
-            <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." className="h-8 text-sm" />
-          </div>
+          <ImageUploadField value={form.image_url} onChange={(v) => setForm({ ...form, image_url: v })} />
           <div className="space-y-1">
             <Label className="text-xs">ลิงก์ปลายทาง</Label>
             <Input value={form.link_url} onChange={(e) => setForm({ ...form, link_url: e.target.value })} placeholder="https://..." className="h-8 text-sm" />
@@ -166,10 +227,16 @@ export function BannersManager() {
             <div key={b.id} className="rounded-lg border bg-white p-3">
               {editId === b.id ? (
                 <div className="space-y-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <Input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} placeholder="ชื่อ" className="h-8 text-sm" />
-                    <Input value={editForm.image_url} onChange={(e) => setEditForm({ ...editForm, image_url: e.target.value })} placeholder="URL รูป" className="h-8 text-sm" />
-                    <Input value={editForm.link_url} onChange={(e) => setEditForm({ ...editForm, link_url: e.target.value })} placeholder="ลิงก์ปลายทาง" className="h-8 text-sm" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">ชื่อ</Label>
+                      <Input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} placeholder="ชื่อ" className="h-8 text-sm" />
+                    </div>
+                    <ImageUploadField value={editForm.image_url} onChange={(v) => setEditForm({ ...editForm, image_url: v })} />
+                    <div className="space-y-1">
+                      <Label className="text-xs">ลิงก์ปลายทาง</Label>
+                      <Input value={editForm.link_url} onChange={(e) => setEditForm({ ...editForm, link_url: e.target.value })} placeholder="https://..." className="h-8 text-sm" />
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                       <Input type="date" value={editForm.starts_at} onChange={(e) => setEditForm({ ...editForm, starts_at: e.target.value })} className="h-8 text-sm" />
                       <Input type="date" value={editForm.ends_at} onChange={(e) => setEditForm({ ...editForm, ends_at: e.target.value })} className="h-8 text-sm" />
@@ -182,18 +249,13 @@ export function BannersManager() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  {/* Reorder */}
                   <div className="flex flex-col gap-0.5 shrink-0">
                     <button onClick={() => move(i, -1)} disabled={i === 0} className="text-neutral-300 hover:text-neutral-600 disabled:opacity-20"><ChevronUp className="h-3.5 w-3.5" /></button>
                     <button onClick={() => move(i, 1)} disabled={i === banners.length - 1} className="text-neutral-300 hover:text-neutral-600 disabled:opacity-20"><ChevronDown className="h-3.5 w-3.5" /></button>
                   </div>
-
-                  {/* Thumb */}
                   <div className="relative h-12 w-20 shrink-0 rounded overflow-hidden bg-neutral-100">
                     <Image src={b.image_url} alt={b.title ?? "banner"} fill className="object-cover" unoptimized />
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-neutral-800 truncate">{b.title || "(ไม่มีชื่อ)"}</p>
                     <p className="text-xs text-neutral-400 truncate">{b.link_url || "ไม่มีลิงก์"}</p>
@@ -203,8 +265,6 @@ export function BannersManager() {
                       </p>
                     )}
                   </div>
-
-                  {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => toggle(b)}
