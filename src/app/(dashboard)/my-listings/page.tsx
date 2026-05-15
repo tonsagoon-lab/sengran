@@ -23,13 +23,33 @@ export default async function MyListingsPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-neutral-900">ประกาศของฉัน</h1>
         <Link href="/listings/new">
           <Button className="bg-orange-500 hover:bg-orange-600 text-white">
             + ลงประกาศใหม่
           </Button>
         </Link>
+      </div>
+
+      {/* CTA banner */}
+      <div className="flex gap-2 mb-6">
+        <a
+          href="https://line.me/R/ti/p/~salebiz"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 py-2.5 text-sm font-semibold text-white transition-colors text-center"
+        >
+          ซื้อโฆษณาเซ้งร้าน
+        </a>
+        <a
+          href="https://line.me/R/ti/p/~salebiz"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-[#06C755] hover:bg-[#05b34c] py-2.5 text-sm font-semibold text-white transition-colors text-center"
+        >
+          ฝากเซ้งร้าน
+        </a>
       </div>
 
       {listings.length === 0 ? (
