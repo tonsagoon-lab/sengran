@@ -138,7 +138,9 @@ const STEPS = [
 const TOTAL_STEPS = STEPS.length; // 3
 
 const LINE_PACKAGE_URL = "https://line.me/R/ti/p/~salebiz";
-const PACKAGE_IMAGE_URL = "https://fexxmtjmrlpitzsjrgbd.supabase.co/storage/v1/object/public/banners/bannerseng.jpg";
+const LINE_FAAK_URL = "https://line.me/R/ti/p/~salebiz";
+const MODAL_PACKAGE_IMAGE_URL = "https://fexxmtjmrlpitzsjrgbd.supabase.co/storage/v1/object/public/banners/modal-package.jpg";
+const MODAL_FAAK_IMAGE_URL = "https://fexxmtjmrlpitzsjrgbd.supabase.co/storage/v1/object/public/banners/modal-faak.jpg";
 
 function ProgressBar({ step }: { step: number }) {
   return (
@@ -763,7 +765,7 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
       {/* ── Success Modal ──────────────────────────────────────── */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-5">
+          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-4">
             <button
               onClick={() => { setShowSuccessModal(false); router.push("/my-listings"); }}
               className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-600"
@@ -772,38 +774,57 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
               <X className="h-5 w-5" />
             </button>
 
-            <div className="flex flex-col items-center text-center space-y-2">
-              <CheckCircle2 className="h-12 w-12 text-green-500" />
+            <div className="flex flex-col items-center text-center space-y-1">
+              <CheckCircle2 className="h-10 w-10 text-green-500" />
               <h2 className="text-lg font-bold text-neutral-900">ประกาศเผยแพร่แล้ว!</h2>
-              <p className="text-sm text-neutral-500">ขณะนี้ประกาศของคุณได้เผยแพร่แล้ว</p>
+              <p className="text-sm text-neutral-500">เลือกขั้นตอนถัดไป</p>
             </div>
 
-            {PACKAGE_IMAGE_URL && (
-              <img
-                src={PACKAGE_IMAGE_URL}
-                alt="แพ็กเกจโปรโมท"
-                className="w-full rounded-xl object-cover"
-              />
-            )}
-
-            <div className="space-y-2">
-              <p className="text-center text-sm font-medium text-neutral-700">
-                ต้องการโปรโมทประกาศให้ขายได้เร็วขึ้น?
-              </p>
+            <div className="space-y-3">
+              {/* Option 1: ซื้อ package */}
               <a
                 href={LINE_PACKAGE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#06C755] hover:bg-[#05b34c] py-3 font-semibold text-sm text-white transition-colors"
+                className="block rounded-xl overflow-hidden border border-neutral-200 hover:border-orange-400 hover:shadow-md transition-all"
               >
-                <MessageCircle className="h-4 w-4" />
-                สั่งซื้อแพ็กเกจผ่าน LINE
+                {MODAL_PACKAGE_IMAGE_URL && (
+                  <img
+                    src={MODAL_PACKAGE_IMAGE_URL}
+                    alt="ซื้อ package เซ้งร้าน"
+                    className="w-full object-cover"
+                  />
+                )}
+                <div className="bg-orange-500 hover:bg-orange-600 py-2.5 text-center font-semibold text-sm text-white">
+                  ซื้อ package เซ้งร้าน
+                </div>
               </a>
+
+              {/* Option 2: ฝากเซ้งร้าน */}
+              <a
+                href={LINE_FAAK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl overflow-hidden border border-neutral-200 hover:border-green-400 hover:shadow-md transition-all"
+              >
+                {MODAL_FAAK_IMAGE_URL && (
+                  <img
+                    src={MODAL_FAAK_IMAGE_URL}
+                    alt="ฝากเซ้งร้าน"
+                    className="w-full object-cover"
+                  />
+                )}
+                <div className="bg-[#06C755] py-2.5 text-center font-semibold text-sm text-white">
+                  ฝากเซ้งร้าน
+                </div>
+              </a>
+
+              {/* Option 3: ดูประกาศที่ลง */}
               <button
                 onClick={() => { setShowSuccessModal(false); router.push("/my-listings"); }}
-                className="w-full rounded-xl border py-3 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors"
+                className="w-full py-2.5 text-sm text-neutral-500 hover:text-neutral-700 hover:underline transition-colors"
               >
-                ดูประกาศของฉัน
+                ดูประกาศที่ลง
               </button>
             </div>
           </div>

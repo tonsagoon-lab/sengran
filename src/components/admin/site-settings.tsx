@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CategoriesManager } from "./categories-manager";
-import { BannersManager } from "./banners-manager";
+import { BannersManager, ModalImagesManager } from "./banners-manager";
 import { ProvincesManager } from "./provinces-manager";
 import { BoostPackagesManager } from "./boost-packages-manager";
 import { AnnouncementManager } from "./announcement-manager";
@@ -14,6 +14,7 @@ const TABS = [
   { key: "provinces", label: "จังหวัด" },
   { key: "boost", label: "แพ็กเกจ Boost" },
   { key: "announcement", label: "ประกาศระบบ" },
+  { key: "modal", label: "รูป popup" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -50,6 +51,7 @@ export function SiteSettings() {
         {tab === "provinces" && <ProvincesManager />}
         {tab === "boost" && <BoostPackagesManager />}
         {tab === "announcement" && <AnnouncementManager />}
+        {tab === "modal" && <ModalImagesManager />}
       </div>
     </div>
   );

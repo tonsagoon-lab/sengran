@@ -21,7 +21,7 @@ interface Banner {
 
 const EMPTY_FORM = { title: "", image_url: "", link_url: "", starts_at: "", ends_at: "" };
 
-function useImageUpload(onUploaded: (url: string) => void) {
+function useImageUpload(onUploaded: (url: string) => void, fixedPath?: string) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -30,8 +30,8 @@ function useImageUpload(onUploaded: (url: string) => void) {
     try {
       const supabase = createClient();
       const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from("banners").upload(path, file, { upsert: false });
+      const path = fixedPath ?? `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("banners").upload(path, file, { upsert: !!fixedPath });
       if (error) throw error;
       const { data } = supabase.storage.from("banners").getPublicUrl(path);
       onUploaded(data.publicUrl);
@@ -289,6 +289,57 @@ export function BannersManager() {
           {banners.length === 0 && <p className="text-sm text-neutral-400 text-center py-4">ยังไม่มีแบนเนอร์</p>}
         </div>
       )}
+    </div>
+  );
+}
+
+const MODAL_IMAGES = [
+  { label: "รูป Option 1 — ซื้อ package เซ้งร้าน", path: "modal-package.jpg" },
+  { label: "รูป Option 2 — ฝากเซ้งร้าน", path: "modal-faak.jpg" },
+];
+
+function ModalImageSlot({ label, path }: { label: string; path: string }) {
+  const [url, setUrl] = useState(`https://fexxmtjmrlpitzsjrgbd.supabase.co/storage/v1/object/public/banners/${path}?t=${Date.now()}`);
+  const { uploading, inputRef, handleFile } = useImageUpload((newUrl) => setUrl(newUrl + `?t=${Date.now()}`), path);
+
+  return (
+    <div className="rounded-lg border bg-white p-4 space-y-2">
+      <p className="text-sm font-medium text-neutral-700">{label}</p>
+      <div className="flex items-center gap-3">
+        <div className="relative h-20 w-36 rounded overflow-hidden bg-neutral-100 shrink-0">
+          <Image src={url} alt={label} fill className="object-cover" unoptimized />
+        </div>
+        <div>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-neutral-200 bg-white text-xs text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
+          >
+            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+            {uploading ? "กำลังอัพโหลด..." : "เปลี่ยนรูป"}
+          </button>
+          <p className="text-xs text-neutral-400 mt-1">ไฟล์จะถูกบันทึกทับรูปเดิมอัตโนมัติ</p>
+        </div>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+      />
+    </div>
+  );
+}
+
+export function ModalImagesManager() {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-neutral-500">รูปภาพเหล่านี้จะแสดงใน popup หลังจากลงประกาศสำเร็จ</p>
+      {MODAL_IMAGES.map((item) => (
+        <ModalImageSlot key={item.path} label={item.label} path={item.path} />
+      ))}
     </div>
   );
 }
