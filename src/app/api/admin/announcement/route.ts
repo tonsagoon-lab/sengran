@@ -24,11 +24,18 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   if (!await checkAuth()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { message, is_active, bg_color } = await req.json();
+  const { message, is_active, bg_color, default_listing_quota } = await req.json();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (createAdminClient() as any)
     .from("system_announcement")
-    .upsert({ id: 1, message, is_active, bg_color, updated_at: new Date().toISOString() });
+    .upsert({
+      id: 1,
+      message,
+      is_active,
+      bg_color,
+      updated_at: new Date().toISOString(),
+      ...(default_listing_quota !== undefined && { default_listing_quota: Number(default_listing_quota) }),
+    });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

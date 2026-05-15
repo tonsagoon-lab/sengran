@@ -10,6 +10,7 @@ interface Announcement {
   message: string;
   is_active: boolean;
   bg_color: string;
+  default_listing_quota: number;
 }
 
 const COLOR_OPTIONS = [
@@ -21,7 +22,7 @@ const COLOR_OPTIONS = [
 ];
 
 export function AnnouncementManager() {
-  const [data, setData] = useState<Announcement>({ message: "", is_active: false, bg_color: "orange" });
+  const [data, setData] = useState<Announcement>({ message: "", is_active: false, bg_color: "orange", default_listing_quota: 5 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -94,6 +95,21 @@ export function AnnouncementManager() {
             />
             <span className="text-sm text-neutral-700">เปิดแสดงบนเว็บ</span>
           </label>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">จำนวนประกาศสูงสุด (ค่าเริ่มต้นทุก user)</Label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={999}
+              value={data.default_listing_quota}
+              onChange={(e) => setData({ ...data, default_listing_quota: Number(e.target.value) })}
+              className="w-24 rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+            />
+            <span className="text-sm text-neutral-500">ประกาศ / user</span>
+          </div>
         </div>
 
         <Button onClick={save} disabled={saving} className="bg-orange-500 hover:bg-orange-600 gap-1.5">

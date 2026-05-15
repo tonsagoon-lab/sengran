@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { listingSchema } from "@/lib/schemas/listing";
 import { stripHtmlTags } from "@/lib/utils/html";
@@ -92,8 +93,8 @@ export async function getNearMeListings(
 }
 
 export type ListingActionResult =
-  | { error: string; success?: never }
-  | { success: true; listingId: string; error?: never }
+  | { error: string; quotaExceeded?: true; quota?: number; current?: number; success?: never }
+  | { success: true; listingId: string; error?: never; quotaExceeded?: never }
   | undefined;
 
 async function getProfileContact(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
@@ -118,6 +119,20 @@ export async function createListingAction(
   // 5 listings per hour per user
   const { allowed } = await rateLimit(`listing:${user.id}`, 5, 3600);
   if (!allowed) return { error: "ลงประกาศถี่เกินไป กรุณารอสักครู่" };
+
+  // Quota check
+  const adminClient = createAdminClient();
+  const [{ data: profileQuota }, { data: sysConfig }, { count: listingCount }] = await Promise.all([
+    adminClient.from("profiles").select("listing_quota").eq("id", user.id).single(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (adminClient as any).from("system_announcement").select("default_listing_quota").eq("id", 1).single(),
+    adminClient.from("listings").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+  ]);
+  const quota = ((profileQuota as { listing_quota: number | null } | null)?.listing_quota ?? (sysConfig as { default_listing_quota: number } | null)?.default_listing_quota ?? 5) as number;
+  const current = listingCount ?? 0;
+  if (current >= quota) {
+    return { error: "QUOTA_EXCEEDED", quotaExceeded: true, quota, current };
+  }
 
   const profile = await getProfileContact(supabase, user.id);
   if (!profile?.display_name || !profile?.mobile) {

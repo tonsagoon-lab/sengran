@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Search, Trash2, EyeOff, Eye, AlertTriangle, Pencil } from "lucide-react";
+import { Search, Trash2, EyeOff, Eye, AlertTriangle, Pencil, Settings2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +22,7 @@ type UserRow = {
   email: string | null;
   created_at: string;
   listingCount: number;
+  listing_quota: number | null;
 };
 
 // ─── Confirm dialog ───────────────────────────────────────────────────────────
@@ -197,6 +198,7 @@ function UsersManager() {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ id: string; name: string; count: number } | null>(null);
+  const [editQuota, setEditQuota] = useState<{ id: string; quota: number | null } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const search = useCallback((q: string) => {
@@ -222,6 +224,16 @@ function UsersManager() {
       alert(err.error ?? "เกิดข้อผิดพลาด");
     }
     setBusy(null);
+  };
+
+  const handleSaveQuota = async (userId: string, quota: number | null) => {
+    await fetch("/api/admin/manage/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, listing_quota: quota }),
+    });
+    setResults((prev) => prev.map((r) => r.id === userId ? { ...r, listing_quota: quota } : r));
+    setEditQuota(null);
   };
 
   return (
@@ -257,17 +269,48 @@ function UsersManager() {
                   {row.display_name ?? "—"}
                 </p>
                 <p className="text-[10px] text-neutral-400 truncate">
-                  {row.email} · {row.listingCount} ประกาศ · สมัคร {new Date(row.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}
+                  {row.email} · {row.listingCount} ประกาศ · โควต้า: {row.listing_quota ?? "ค่าเริ่มต้น"} · สมัคร {new Date(row.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}
                 </p>
               </div>
-              <button
-                title="ลบผู้ใช้และประกาศทั้งหมด"
-                disabled={busy === row.id}
-                onClick={() => setConfirm({ id: row.id, name: row.display_name ?? row.email ?? row.id, count: row.listingCount })}
-                className="shrink-0 rounded p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-40 transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {editQuota?.id === row.id ? (
+                <div className="flex items-center gap-1 shrink-0">
+                  <input
+                    type="number"
+                    min={1}
+                    max={9999}
+                    value={editQuota.quota ?? ""}
+                    placeholder="ค่าเริ่มต้น"
+                    onChange={(e) => setEditQuota({ id: row.id, quota: e.target.value ? Number(e.target.value) : null })}
+                    className="w-20 rounded border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-300"
+                  />
+                  <button
+                    onClick={() => handleSaveQuota(row.id, editQuota.quota)}
+                    className="rounded p-1 text-xs bg-orange-500 text-white hover:bg-orange-600 px-2"
+                  >บันทึก</button>
+                  <button
+                    onClick={() => setEditQuota(null)}
+                    className="rounded p-1 text-xs text-neutral-400 hover:text-neutral-600"
+                  >ยกเลิก</button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    title="ตั้งโควต้าประกาศ"
+                    onClick={() => setEditQuota({ id: row.id, quota: row.listing_quota })}
+                    className="rounded p-1.5 text-neutral-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    title="ลบผู้ใช้และประกาศทั้งหมด"
+                    disabled={busy === row.id}
+                    onClick={() => setConfirm({ id: row.id, name: row.display_name ?? row.email ?? row.id, count: row.listingCount })}
+                    className="rounded p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-40 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

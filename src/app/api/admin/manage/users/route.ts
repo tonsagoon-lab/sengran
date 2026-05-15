@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, display_name, email, created_at")
+    .select("id, display_name, email, created_at, listing_quota")
     .or(`display_name.ilike.%${q}%,email.ilike.%${q}%`)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(
-    profiles.map((p: { id: string; display_name: string | null; email: string | null; created_at: string }) => ({
+    profiles.map((p: { id: string; display_name: string | null; email: string | null; created_at: string; listing_quota: number | null }) => ({
       ...p,
       listingCount: countMap[p.id] ?? 0,
     }))
@@ -77,5 +77,23 @@ export async function DELETE(req: NextRequest) {
   const { error } = await supabase.auth.admin.deleteUser(userId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  return NextResponse.json({ ok: true });
+}
+
+// PATCH /api/admin/manage/users  — update per-user listing quota
+export async function PATCH(req: NextRequest) {
+  const caller = await checkAuth();
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { userId, listing_quota } = await req.json();
+  if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ listing_quota: listing_quota === null ? null : Number(listing_quota) })
+    .eq("id", userId);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

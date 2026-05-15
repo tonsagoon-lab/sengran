@@ -390,6 +390,8 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
   const [isPending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const [quotaInfo, setQuotaInfo] = useState<{ quota: number; current: number } | null>(null);
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -422,6 +424,11 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
       const fd = buildFormData(status);
       const action = isEdit ? updateListingAction : createListingAction;
       const result = await action(undefined, fd);
+      if (result?.quotaExceeded) {
+        setQuotaInfo({ quota: result.quota ?? 5, current: result.current ?? 0 });
+        setShowQuotaModal(true);
+        return;
+      }
       if (result?.error) { setSubmitError(result.error); return; }
       try { sessionStorage.removeItem(storageKey); } catch {}
       if (status === "published" && !isEdit) {
@@ -759,6 +766,52 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* ── Quota Modal ────────────────────────────────────────── */}
+      {showQuotaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-4">
+            <button
+              onClick={() => setShowQuotaModal(false)}
+              className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="flex flex-col items-center text-center space-y-1">
+              <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
+                <Store className="h-6 w-6 text-orange-500" />
+              </div>
+              <h2 className="text-lg font-bold text-neutral-900">ถึงขีดจำกัดประกาศแล้ว</h2>
+              <p className="text-sm text-neutral-500">คุณมีประกาศครบ {quotaInfo?.quota ?? 5} รายการแล้ว<br />ซื้อเพิ่มได้จาก admin ผ่าน LINE</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">แพ็กเกจเพิ่มโควต้า (ราคาต่อปี)</p>
+              {[
+                { posts: 20, price: 300 },
+                { posts: 50, price: 100 },
+                { posts: 100, price: 1000 },
+              ].map(({ posts, price }) => (
+                <a
+                  key={posts}
+                  href="https://line.me/R/ti/p/~salebiz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-xl border px-4 py-3 hover:bg-orange-50 hover:border-orange-300 transition-colors"
+                >
+                  <span className="text-sm font-medium text-neutral-800">เพิ่ม {posts} โพส / ปี</span>
+                  <span className="text-sm font-bold text-orange-500">{price.toLocaleString()} ฿</span>
+                </a>
+              ))}
+              <button
+                onClick={() => setShowQuotaModal(false)}
+                className="w-full py-2 text-sm text-neutral-400 hover:text-neutral-600"
+              >
+                ปิด
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
