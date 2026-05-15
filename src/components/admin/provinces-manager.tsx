@@ -29,7 +29,7 @@ export function ProvincesManager() {
   useEffect(() => {
     fetch("/api/admin/provinces")
       .then((r) => r.json())
-      .then(setProvinces)
+      .then((d) => { if (Array.isArray(d)) setProvinces(d); })
       .finally(() => setLoading(false));
   }, []);
 
