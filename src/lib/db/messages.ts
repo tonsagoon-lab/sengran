@@ -10,7 +10,7 @@ export interface Conversation {
   seller_id: string;
   updated_at: string;
   created_at: string;
-  listings: { title: string; slug: string } | null;
+  listings: { title: string; slug: string; contact_mobile: string | null; contact_line: string | null; contact_name: string | null } | null;
   buyer: { display_name: string; avatar_url: string | null } | null;
   seller: { display_name: string; avatar_url: string | null } | null;
   unread_count?: number;
@@ -34,7 +34,7 @@ export async function getMyConversations(): Promise<Conversation[]> {
     .from("conversations")
     .select(`
       id, listing_id, buyer_id, seller_id, updated_at, created_at,
-      listings(title, slug),
+      listings(title, slug, contact_mobile, contact_line, contact_name),
       buyer:profiles!conversations_buyer_id_fkey(display_name, avatar_url),
       seller:profiles!conversations_seller_id_fkey(display_name, avatar_url)
     `)
@@ -78,7 +78,7 @@ export async function getConversationWithMessages(
     .from("conversations")
     .select(`
       id, listing_id, buyer_id, seller_id, updated_at, created_at,
-      listings(title, slug),
+      listings(title, slug, contact_mobile, contact_line, contact_name),
       buyer:profiles!conversations_buyer_id_fkey(display_name, avatar_url),
       seller:profiles!conversations_seller_id_fkey(display_name, avatar_url)
     `)

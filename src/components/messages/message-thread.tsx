@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Phone, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { sendMessageAction } from "@/lib/actions/messages";
 import type { Conversation, Message } from "@/lib/db/messages";
@@ -116,6 +116,36 @@ export function MessageThread({ conversation, initialMessages, currentUserId }: 
           )}
         </div>
       </div>
+
+      {/* Contact strip */}
+      {conversation.listings && (conversation.listings.contact_mobile || conversation.listings.contact_line) && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-orange-50 border-b shrink-0">
+          <span className="text-xs text-neutral-500 mr-1">ติดต่อผู้ประกาศ:</span>
+          {conversation.listings.contact_mobile && (
+            <a
+              href={`tel:${conversation.listings.contact_mobile}`}
+              className="flex items-center gap-1 rounded-full bg-white border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-colors"
+            >
+              <Phone className="h-3 w-3" />
+              โทร
+            </a>
+          )}
+          {conversation.listings.contact_line && (
+            <a
+              href={`https://line.me/ti/p/~${conversation.listings.contact_line}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 rounded-full bg-white border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-[#06C755] hover:text-white hover:border-[#06C755] transition-colors"
+            >
+              <MessageCircle className="h-3 w-3" />
+              LINE
+            </a>
+          )}
+          {conversation.listings.contact_mobile && (
+            <span className="text-xs text-neutral-400 ml-1">{conversation.listings.contact_mobile}</span>
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-neutral-50">
