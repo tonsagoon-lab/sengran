@@ -23,10 +23,11 @@ export default async function NewListingPage() {
     redirect("/profile?redirect=/listings/new&reason=missing_contact");
   }
 
-  const [categories, provinces, amenities] = await Promise.all([
+  const [categories, provinces, amenities, config] = await Promise.all([
     getAllCategories(),
     getAllProvinces(),
     getAllAmenities(),
+    supabase.from("system_announcement").select("line_package_url, line_faak_url").eq("id", 1).single(),
   ]);
 
   return (
@@ -37,6 +38,8 @@ export default async function NewListingPage() {
         categories={categories}
         provinces={provinces}
         amenities={amenities}
+        linePackageUrl={config.data?.line_package_url ?? undefined}
+        lineFaakUrl={config.data?.line_faak_url ?? undefined}
       />
     </main>
   );

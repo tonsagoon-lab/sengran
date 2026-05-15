@@ -11,6 +11,8 @@ interface Announcement {
   is_active: boolean;
   bg_color: string;
   default_listing_quota: number;
+  line_package_url: string;
+  line_faak_url: string;
 }
 
 const COLOR_OPTIONS = [
@@ -22,7 +24,7 @@ const COLOR_OPTIONS = [
 ];
 
 export function AnnouncementManager() {
-  const [data, setData] = useState<Announcement>({ message: "", is_active: false, bg_color: "orange", default_listing_quota: 5 });
+  const [data, setData] = useState<Announcement>({ message: "", is_active: false, bg_color: "orange", default_listing_quota: 5, line_package_url: "", line_faak_url: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -110,6 +112,28 @@ export function AnnouncementManager() {
             />
             <span className="text-sm text-neutral-500">ประกาศ / user</span>
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">LINE ลิงก์ — ซื้อ package เซ้งร้าน</Label>
+          <input
+            type="url"
+            value={data.line_package_url}
+            onChange={(e) => setData({ ...data, line_package_url: e.target.value })}
+            placeholder="https://line.me/R/ti/p/~..."
+            className="w-full rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">LINE ลิงก์ — ฝากเซ้งร้าน</Label>
+          <input
+            type="url"
+            value={data.line_faak_url}
+            onChange={(e) => setData({ ...data, line_faak_url: e.target.value })}
+            placeholder="https://line.me/R/ti/p/~..."
+            className="w-full rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+          />
         </div>
 
         <Button onClick={save} disabled={saving} className="bg-orange-500 hover:bg-orange-600 gap-1.5">

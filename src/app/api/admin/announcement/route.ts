@@ -24,7 +24,7 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   if (!await checkAuth()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { message, is_active, bg_color, default_listing_quota } = await req.json();
+  const { message, is_active, bg_color, default_listing_quota, line_package_url, line_faak_url } = await req.json();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (createAdminClient() as any)
     .from("system_announcement")
@@ -35,6 +35,8 @@ export async function PUT(req: NextRequest) {
       bg_color,
       updated_at: new Date().toISOString(),
       ...(default_listing_quota !== undefined && { default_listing_quota: Number(default_listing_quota) }),
+      ...(line_package_url !== undefined && { line_package_url }),
+      ...(line_faak_url !== undefined && { line_faak_url }),
     });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });

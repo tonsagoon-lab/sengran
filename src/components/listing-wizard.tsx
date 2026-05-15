@@ -59,6 +59,8 @@ interface WizardProps {
   categories: Category[];
   provinces: Province[];
   amenities: Amenity[];
+  linePackageUrl?: string;
+  lineFaakUrl?: string;
   listing?: ListingWithImages & {
     categories?: { name_th: string; slug: string } | null;
     provinces?: { name_th: string; slug: string } | null;
@@ -137,8 +139,7 @@ const STEPS = [
 ];
 const TOTAL_STEPS = STEPS.length; // 3
 
-const LINE_PACKAGE_URL = "https://line.me/R/ti/p/~salebiz";
-const LINE_FAAK_URL = "https://line.me/R/ti/p/~salebiz";
+const DEFAULT_LINE_URL = "https://line.me/R/ti/p/~salebiz";
 const MODAL_PACKAGE_IMAGE_URL = "https://fexxmtjmrlpitzsjrgbd.supabase.co/storage/v1/object/public/banners/modal-package.jpg";
 const MODAL_FAAK_IMAGE_URL = "https://fexxmtjmrlpitzsjrgbd.supabase.co/storage/v1/object/public/banners/modal-faak.jpg";
 
@@ -264,7 +265,9 @@ function migrateState(raw: string, listingId?: string): WizardState | null {
 
 // ── Main wizard ────────────────────────────────────────────────
 
-export function ListingWizard({ userId, categories, provinces, amenities, listing }: WizardProps) {
+export function ListingWizard({ userId, categories, provinces, amenities, listing, linePackageUrl, lineFaakUrl }: WizardProps) {
+  const pkgUrl = linePackageUrl || DEFAULT_LINE_URL;
+  const faakUrl = lineFaakUrl || DEFAULT_LINE_URL;
   const router = useRouter();
   const isEdit = !!listing;
   const storageKey = isEdit ? `${STORAGE_KEY}_${listing?.id}` : STORAGE_KEY;
@@ -795,7 +798,7 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
               ].map(({ posts, price }) => (
                 <a
                   key={posts}
-                  href="https://line.me/R/ti/p/~salebiz"
+                  href={pkgUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-between rounded-xl border px-4 py-3 hover:bg-orange-50 hover:border-orange-300 transition-colors"
@@ -836,7 +839,7 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
             <div className="space-y-3">
               {/* Option 1: ซื้อ package */}
               <a
-                href={LINE_PACKAGE_URL}
+                href={pkgUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block rounded-xl overflow-hidden border border-neutral-200 hover:border-orange-400 hover:shadow-md transition-all"
@@ -855,7 +858,7 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
 
               {/* Option 2: ฝากเซ้งร้าน */}
               <a
-                href={LINE_FAAK_URL}
+                href={faakUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block rounded-xl overflow-hidden border border-neutral-200 hover:border-green-400 hover:shadow-md transition-all"

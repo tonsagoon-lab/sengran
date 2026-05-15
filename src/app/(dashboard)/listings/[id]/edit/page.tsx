@@ -26,11 +26,12 @@ export default async function EditListingPage({ params }: Props) {
 
   const privileged = isPrivileged(user.email ?? undefined);
 
-  const [listing, categories, provinces, amenities] = await Promise.all([
+  const [listing, categories, provinces, amenities, config] = await Promise.all([
     privileged ? getListingForEditAdmin(id) : getListingForEdit(id, user.id),
     getAllCategories(),
     getAllProvinces(),
     getAllAmenities(),
+    supabase.from("system_announcement").select("line_package_url, line_faak_url").eq("id", 1).single(),
   ]);
 
   if (!listing) notFound();
@@ -44,6 +45,8 @@ export default async function EditListingPage({ params }: Props) {
         provinces={provinces}
         amenities={amenities}
         listing={listing}
+        linePackageUrl={config.data?.line_package_url ?? undefined}
+        lineFaakUrl={config.data?.line_faak_url ?? undefined}
       />
     </main>
   );
