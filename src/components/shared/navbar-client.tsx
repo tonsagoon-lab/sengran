@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
-import { Menu, X, ChevronDown, LogOut, User as UserIcon, FileText, MessageCircle, Heart, Bell } from "lucide-react";
+import { Menu, X, ChevronDown, LogOut, User as UserIcon, FileText, MessageCircle, Heart, Bell, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -22,9 +22,10 @@ interface NavbarClientProps {
     display_name: string | null;
     avatar_url: string | null;
   } | null;
+  walletBalance?: number;
 }
 
-export function NavbarClient({ user, profile }: NavbarClientProps) {
+export function NavbarClient({ user, profile, walletBalance = 0 }: NavbarClientProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const displayName = profile?.display_name ?? user?.email ?? "ผู้ใช้";
@@ -40,6 +41,12 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
               <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
                 + ลงประกาศ
               </Button>
+            </Link>
+
+            {/* Coin balance pill */}
+            <Link href="/wallet" className="flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-100 transition-colors">
+              <Coins className="h-3.5 w-3.5" />
+              {Math.floor(walletBalance).toLocaleString("th-TH")}
             </Link>
 
             <DropdownMenu>
@@ -58,6 +65,10 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                 <DropdownMenuLabel className="font-normal">
                   <p className="text-sm font-medium">{displayName}</p>
                   <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                  <div className="flex items-center gap-1 mt-1 text-orange-600">
+                    <Coins className="h-3 w-3" />
+                    <span className="text-xs font-semibold">{Math.floor(walletBalance).toLocaleString("th-TH")} coin</span>
+                  </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -88,6 +99,12 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   <Link href="/alerts" className="cursor-pointer">
                     <Bell className="mr-2 h-4 w-4" />
                     แจ้งเตือนร้านเซ้ง
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/wallet" className="cursor-pointer">
+                    <Coins className="mr-2 h-4 w-4" />
+                    กระเป๋าเงิน
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -143,6 +160,10 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   <div>
                     <p className="font-medium text-sm">{displayName}</p>
                     <p className="text-xs text-neutral-500">{user.email}</p>
+                    <div className="flex items-center gap-1 mt-0.5 text-orange-600">
+                      <Coins className="h-3 w-3" />
+                      <span className="text-xs font-semibold">{Math.floor(walletBalance).toLocaleString("th-TH")} coin</span>
+                    </div>
                   </div>
                 </div>
                 <Link href="/listings/new" onClick={() => setMobileOpen(false)}>
@@ -184,6 +205,13 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   onClick={() => setMobileOpen(false)}
                 >
                   <Bell className="h-4 w-4" /> แจ้งเตือนร้านเซ้ง
+                </Link>
+                <Link
+                  href="/wallet"
+                  className="flex items-center gap-2 py-2 text-sm"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <Coins className="h-4 w-4" /> กระเป๋าเงิน
                 </Link>
                 <form action={logoutAction}>
                   <button

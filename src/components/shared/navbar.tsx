@@ -13,7 +13,7 @@ export async function Navbar() {
   if (user) {
     const { data } = await supabase
       .from("profiles")
-      .select("display_name, avatar_url")
+      .select("display_name, avatar_url, wallet_balance")
       .eq("id", user.id)
       .single();
     profile = data;
@@ -30,7 +30,7 @@ export async function Navbar() {
         {/* Desktop nav */}
         <div className="flex items-center gap-1">
           {user && <NotificationBell />}
-          <NavbarClient user={user} profile={profile} />
+          <NavbarClient user={user} profile={profile} walletBalance={profile?.wallet_balance ?? 0} />
         </div>
       </div>
     </header>
