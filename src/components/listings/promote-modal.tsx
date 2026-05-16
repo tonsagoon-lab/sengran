@@ -21,7 +21,7 @@ const PACKAGES = [
     color: "text-orange-600",
     selectedBorder: "border-orange-500",
     selectedBg: "bg-orange-50",
-    label: "ประกาศ Premium",
+    label: "ประกาศ Premium หน้าแรก",
     desc: "ติดป้าย Premium โดดเด่น อยู่ใน section แนะนำบนหน้าแรก",
     options: [
       { key: "premium_10", label: "10 วัน", coins: 300 },
@@ -34,7 +34,7 @@ const PACKAGES = [
     color: "text-indigo-600",
     selectedBorder: "border-indigo-500",
     selectedBg: "bg-indigo-50",
-    label: "โฆษณา Facebook",
+    label: "ยิงโฆษณา Facebook บนเพจ",
     desc: "ยิงโฆษณาบนเพจ facebook.com/selloutthailand",
     options: [
       { key: "facebook_7", label: "7 วัน", coins: 1500 },

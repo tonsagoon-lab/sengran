@@ -12,13 +12,13 @@ interface PromoteButtonsProps {
 
 const BTNS = [
   {
-    label: "Premium",
+    label: "Premium หน้าแรก",
     sublabel: "300+ coins",
     icon: <Star className="h-3.5 w-3.5" />,
     color: "text-orange-600 border-orange-200 hover:bg-orange-50 hover:border-orange-400",
   },
   {
-    label: "Facebook",
+    label: "ยิงโฆษณา Facebook",
     sublabel: "1,500 coins",
     icon: <Megaphone className="h-3.5 w-3.5" />,
     color: "text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-400",
