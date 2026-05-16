@@ -24,7 +24,7 @@ export async function EditorialPicks({ supabaseUrl }: EditorialPicksProps) {
     <section className="space-y-4">
       <div className="flex items-center gap-2">
         <span className="text-lg">⭐</span>
-        <h2 className="font-semibold text-neutral-800 text-lg">โพสแนะนำ</h2>
+        <h2 className="font-semibold text-neutral-800 text-lg">ประกาศเซ้งด่วน !!</h2>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4">
         {picks.map((pick) => {
