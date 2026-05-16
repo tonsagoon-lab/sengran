@@ -6,11 +6,10 @@ const OMISE_SECRET_KEY = process.env.OMISE_SECRET_KEY!;
 const OMISE_BASE = "https://api.omise.co";
 
 const PACKAGES = [
+  { baht: 300, coins: 330 },
   { baht: 500, coins: 550 },
-  { baht: 1000, coins: 1100 },
   { baht: 1500, coins: 1650 },
-  { baht: 2000, coins: 2200 },
-  { baht: 5000, coins: 5500 },
+  { baht: 3000, coins: 3300 },
   { baht: 10000, coins: 11000 },
 ];
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Rocket, Star, Megaphone } from "lucide-react";
+import { Star, Megaphone } from "lucide-react";
 import { PromoteModal } from "./promote-modal";
 
 interface PromoteButtonsProps {
@@ -11,12 +11,6 @@ interface PromoteButtonsProps {
 }
 
 const BTNS = [
-  {
-    label: "ดันหน้าแรก",
-    sublabel: "20 coins/ครั้ง",
-    icon: <Rocket className="h-3.5 w-3.5" />,
-    color: "text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-400",
-  },
   {
     label: "Premium",
     sublabel: "300+ coins",

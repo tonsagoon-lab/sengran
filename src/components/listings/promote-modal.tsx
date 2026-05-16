@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Coins, Rocket, Star, Megaphone, X, CheckCircle2, ChevronRight, ExternalLink } from "lucide-react";
+import { Coins, Star, Megaphone, X, CheckCircle2, ChevronRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,16 +15,6 @@ interface PromoteModalProps {
 }
 
 const PACKAGES = [
-  {
-    key: "homepage",
-    icon: <Rocket className="h-5 w-5" />,
-    color: "text-blue-600",
-    selectedBorder: "border-blue-500",
-    selectedBg: "bg-blue-50",
-    label: "ดันโพสหน้าแรก",
-    desc: "ดันประกาศขึ้นด้านบนสุดของหน้าค้นหา 1 ครั้ง",
-    options: [{ key: "homepage", label: "ดัน 1 ครั้ง", coins: 20 }],
-  },
   {
     key: "premium",
     icon: <Star className="h-5 w-5" />,
@@ -54,7 +44,8 @@ const PACKAGES = [
 ];
 
 const FACEBOOK_PAGE = "https://www.facebook.com/selloutthailand/";
-const ADMIN_LINE = "salesbiz";
+const ADMIN_LINE_ID = "salesbiz";
+const ADMIN_LINE_URL = "https://line.me/R/ti/p/~salebiz";
 
 export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }: PromoteModalProps) {
   const router = useRouter();
@@ -140,7 +131,9 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
               </a>
               <div className="rounded-lg bg-neutral-50 border px-4 py-3 text-sm text-neutral-600 w-full text-left">
                 <p className="font-medium mb-1">มีข้อสงสัย? ติดต่อ admin</p>
-                <p>LINE: <span className="font-semibold text-[#06C755]">@{ADMIN_LINE}</span></p>
+                <a href={ADMIN_LINE_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#06C755] underline underline-offset-2">
+                  LINE: {ADMIN_LINE_ID}
+                </a>
               </div>
               <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={() => { onClose(); router.refresh(); }}>
                 ปิด
@@ -224,7 +217,9 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
                   </div>
                   <p className="text-[11px] text-indigo-600">
                     หรือแอด LINE admin ได้เลยที่{" "}
-                    <span className="font-semibold">@{ADMIN_LINE}</span>
+                    <a href={ADMIN_LINE_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
+                      {ADMIN_LINE_ID}
+                    </a>
                   </p>
                 </div>
               )}

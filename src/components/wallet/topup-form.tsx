@@ -14,11 +14,10 @@ interface Package {
 }
 
 const PACKAGES: Package[] = [
+  { baht: 300, coins: 330, bonus: 30 },
   { baht: 500, coins: 550, bonus: 50 },
-  { baht: 1000, coins: 1100, bonus: 100 },
   { baht: 1500, coins: 1650, bonus: 150 },
-  { baht: 2000, coins: 2200, bonus: 200 },
-  { baht: 5000, coins: 5500, bonus: 500 },
+  { baht: 3000, coins: 3300, bonus: 300 },
   { baht: 10000, coins: 11000, bonus: 1000 },
 ];
 
