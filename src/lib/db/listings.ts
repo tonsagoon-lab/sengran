@@ -32,7 +32,7 @@ export async function getPublishedListings(options?: {
       { count: "exact" }
     )
     .eq("status", "published")
-    .order("boost_until", { ascending: false, nullsFirst: false })
+    .order("boost_rank", { ascending: false })
     .order("published_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -351,7 +351,7 @@ export async function searchListings(params: SearchParams): Promise<{
   if (params.location === "1") query = query.not("latitude", "is", null);
 
   // Sort
-  query = query.order("boost_until", { ascending: false, nullsFirst: false });
+  query = query.order("boost_rank", { ascending: false });
   const sort = params.sort ?? "latest";
   if (sort === "latest") {
     query = query.order("published_at", { ascending: false });

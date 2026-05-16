@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const BOOST_PACKAGES = {
-  homepage: { label: "ดันโพสหน้าแรก", type: "homepage", coins: 20, days: 7 },
+  homepage: { label: "ดันโพสหน้าแรก", type: "homepage", coins: 20, days: 0 },
   premium_10: { label: "Premium 10 วัน", type: "premium", coins: 300, days: 10 },
   premium_20: { label: "Premium 20 วัน", type: "premium", coins: 500, days: 20 },
   facebook_7: { label: "โฆษณา Facebook 7 วัน", type: "facebook", coins: 1500, days: 7 },
@@ -22,7 +22,7 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { packageKey } = await req.json() as { packageKey: PackageKey };
+    const { packageKey, contactInfo } = await req.json() as { packageKey: PackageKey; contactInfo?: string };
     const pkg = BOOST_PACKAGES[packageKey];
     if (!pkg) return NextResponse.json({ error: "Invalid package" }, { status: 400 });
 
@@ -52,14 +52,10 @@ export async function POST(
 
     // Update listing based on type
     if (pkg.type === "homepage") {
-      // Extend boost_until from now or current expiry (whichever is later)
-      const currentBoostUntil = listing.boost_until ? new Date(listing.boost_until) : now;
-      const baseDate = currentBoostUntil > now ? currentBoostUntil : now;
-      const newBoostUntil = new Date(baseDate.getTime() + pkg.days * 24 * 60 * 60 * 1000);
-
+      // ดัน 1 ครั้ง — เพิ่ม boost_rank และ reset boost_until เป็นปัจจุบัน
       await admin
         .from("listings")
-        .update({ boost_rank: (listing.boost_rank ?? 0) + 1, boost_until: newBoostUntil.toISOString() })
+        .update({ boost_rank: (listing.boost_rank ?? 0) + 1, boost_until: now.toISOString() })
         .eq("id", listingId);
     } else if (pkg.type === "premium") {
       // Extend featured_until from now or current expiry (whichever is later)
@@ -99,6 +95,7 @@ export async function POST(
       duration_days: pkg.days,
       expires_at: pkg.type !== "homepage" ? expiresAt.toISOString() : null,
       status: pkg.type === "facebook" ? "pending" : "active",
+      contact_info: contactInfo ?? null,
     });
 
     return NextResponse.json({ success: true, coinsSpent: pkg.coins });
