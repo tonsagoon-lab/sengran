@@ -90,7 +90,7 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none min-h-[280px] max-h-[500px] overflow-y-auto px-3 py-2 focus:outline-none",
+          "prose prose-sm max-w-none min-h-[280px] max-h-[500px] overflow-y-auto px-3 py-2 focus:outline-none prose-p:my-0.5 prose-p:leading-relaxed prose-ul:my-1 prose-ol:my-1 prose-li:my-0",
       },
     },
     onUpdate({ editor }) {
