@@ -7,6 +7,7 @@ import { BannerSection } from "@/components/home/banner-section";
 import { CategoryGrid } from "@/components/home/category-grid";
 import { LatestListings } from "@/components/home/latest-listings";
 import { EditorialPicks } from "@/components/home/editorial-picks";
+import { PremiumListings } from "@/components/home/premium-listings";
 import { getAllProvinces } from "@/lib/db/listings";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -76,6 +77,11 @@ export default async function HomePage() {
         {/* Editorial picks */}
         <Suspense fallback={null}>
           <EditorialPicks supabaseUrl={supabaseUrl} />
+        </Suspense>
+
+        {/* Premium listings */}
+        <Suspense fallback={null}>
+          <PremiumListings supabaseUrl={supabaseUrl} />
         </Suspense>
 
         {/* Latest listings */}
