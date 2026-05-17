@@ -68,10 +68,40 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   // On mount: check localStorage
   useEffect(() => {
     try {
-      localStorage.removeItem(DENIED_KEY); // clear old denied flag
+      localStorage.removeItem(DENIED_KEY);
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as LocationState;
+        // Province mode — use cached directly
+        if (parsed.type === "province") {
+          setLocation(parsed);
+          fetchListings(parsed);
+          return;
+        }
+        // GPS mode — always re-request to get current position
+        if (parsed.type === "gps" && navigator.geolocation) {
+          setStatus("gps-loading");
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const loc: LocationState = {
+                type: "gps",
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                radiusKm: parsed.radiusKm,
+              };
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(loc));
+              setLocation(loc);
+              fetchListings(loc);
+            },
+            () => {
+              // GPS denied/failed — fall back to cached coords
+              setLocation(parsed);
+              fetchListings(parsed);
+            },
+            { timeout: 10000 }
+          );
+          return;
+        }
         setLocation(parsed);
         fetchListings(parsed);
         return;
