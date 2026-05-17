@@ -699,39 +699,39 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
           {/* Summary card */}
           <Card>
             <CardHeader><CardTitle className="text-base">สรุปประกาศ</CardTitle></CardHeader>
-            <CardContent className="space-y-4 text-sm">
+            <CardContent className="space-y-4 text-sm overflow-hidden">
               {/* Identity group */}
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+              <div className="grid grid-cols-[6rem_1fr] gap-y-2 gap-x-4">
                 <span className="text-neutral-500">ประเภท</span>
-                <span className="font-medium">{TYPE_LABELS[data.listing_type]}</span>
+                <span className="font-medium break-words min-w-0">{TYPE_LABELS[data.listing_type]}</span>
 
                 <span className="text-neutral-500">ชื่อประกาศ</span>
-                <span className="font-medium line-clamp-2">{data.title}</span>
+                <span className="font-medium break-words min-w-0 line-clamp-2">{data.title}</span>
 
                 <span className="text-neutral-500">ประเภทกิจการ</span>
-                <span className="font-medium">{categoryName}</span>
+                <span className="font-medium break-words min-w-0">{categoryName}</span>
               </div>
 
               <Separator />
 
               {/* Price group */}
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+              <div className="grid grid-cols-[6rem_1fr] gap-y-2 gap-x-4">
                 {(data.listing_type === "sale" || data.listing_type === "both") && (
                   <>
                     <span className="text-neutral-500">ราคาเซ้ง</span>
-                    <span className="font-medium">฿{data.sale_price} บาท</span>
+                    <span className="font-medium break-words min-w-0">฿{data.sale_price} บาท</span>
                   </>
                 )}
                 {(data.listing_type === "rent" || data.listing_type === "both") && (
                   <>
                     <span className="text-neutral-500">ค่าเช่า/เดือน</span>
-                    <span className="font-medium">฿{data.rent_price} บาท</span>
+                    <span className="font-medium break-words min-w-0">฿{data.rent_price} บาท</span>
                   </>
                 )}
                 {(data.listing_type === "rent" || data.listing_type === "both") && data.deposit_months && (
                   <>
                     <span className="text-neutral-500">มัดจำ</span>
-                    <span className="font-medium">{data.deposit_months} เดือน</span>
+                    <span className="font-medium break-words min-w-0">{data.deposit_months} เดือน</span>
                   </>
                 )}
               </div>
@@ -739,14 +739,14 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
               <Separator />
 
               {/* Location group */}
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+              <div className="grid grid-cols-[6rem_1fr] gap-y-2 gap-x-4">
                 <span className="text-neutral-500">จังหวัด</span>
-                <span className="font-medium">{provinceName}</span>
+                <span className="font-medium break-words min-w-0">{provinceName}</span>
 
                 {data.district && (
                   <>
                     <span className="text-neutral-500">เขต/อำเภอ</span>
-                    <span className="font-medium">{data.district}</span>
+                    <span className="font-medium break-words min-w-0">{data.district}</span>
                   </>
                 )}
               </div>

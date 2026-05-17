@@ -37,7 +37,8 @@ export function RichTextDisplay({ html, className }: RichTextDisplayProps) {
 
   return (
     <div
-      className={["text-sm leading-relaxed text-neutral-700", className ?? ""].join(" ")}
+      className={["text-sm leading-relaxed text-neutral-700 break-words overflow-wrap-anywhere", className ?? ""].join(" ")}
+      style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}
       dangerouslySetInnerHTML={{ __html: clean }}
     />
   );

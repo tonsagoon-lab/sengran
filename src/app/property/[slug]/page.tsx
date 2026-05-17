@@ -166,7 +166,7 @@ export default async function ListingDetailPage({ params }: Props) {
         <div className="flex gap-8 items-start">
 
           {/* ── Main content ── */}
-          <main className="min-w-0 flex-1 space-y-6">
+          <main className="min-w-0 flex-1 space-y-6 overflow-hidden">
         {/* Gallery */}
         <ImageGallery images={sortedImages} supabaseUrl={supabaseUrl} />
 
