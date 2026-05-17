@@ -32,7 +32,10 @@ export default async function MyListingsPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-neutral-900">ประกาศของฉัน</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">ประกาศของฉัน</h1>
+          <p className="text-xs text-neutral-400 mt-0.5">สิทธิ์ประกาศ: {published.length} / {listingQuota} ประกาศ/ปี</p>
+        </div>
         <Link href="/listings/new">
           <Button className="bg-orange-500 hover:bg-orange-600 text-white">
             + ลงประกาศใหม่
