@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendTelegramNotification } from "@/lib/telegram";
 
 const OMISE_SECRET_KEY = process.env.OMISE_SECRET_KEY!;
 
@@ -78,6 +79,17 @@ export async function executeChargeAction(charge: any): Promise<boolean> {
       });
     }
 
+    const { data: lst } = await admin.from("listings").select("title").eq("id", listing_id).single();
+    const typeLabel = pkgType === "facebook" ? "📣 ยิงโฆษณา Facebook" : "⭐ Premium หน้าแรก";
+    await sendTelegramNotification(
+      `💰 <b>คำสั่งซื้อใหม่</b>\n` +
+      `${typeLabel}\n` +
+      `📋 ประกาศ: ${lst?.title ?? listing_id}\n` +
+      `⏱ ระยะเวลา: ${metadata.days} วัน\n` +
+      `💵 ยอด: ${amountBaht.toLocaleString("th-TH")} บาท\n` +
+      `🔖 Charge: ${chargeId}`
+    );
+
     return true;
   }
 
@@ -101,6 +113,14 @@ export async function executeChargeAction(charge: any): Promise<boolean> {
         status: "success",
       });
     }
+
+    await sendTelegramNotification(
+      `💰 <b>คำสั่งซื้อใหม่</b>\n` +
+      `📦 เพิ่มโควต้าประกาศ\n` +
+      `➕ จำนวน: ${listings_to_add} ประกาศ\n` +
+      `💵 ยอด: ${amountBaht.toLocaleString("th-TH")} บาท\n` +
+      `🔖 Charge: ${chargeId}`
+    );
 
     return true;
   }
