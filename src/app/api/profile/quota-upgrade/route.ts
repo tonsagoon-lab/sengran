@@ -6,7 +6,7 @@ import { omiseFetch } from "@/lib/omise/execute-action";
 const QUOTA_PACKAGES = {
   quota_20: { label: "เพิ่ม 20 ประกาศ/ปี", baht: 300, listings: 20 },
   quota_50: { label: "เพิ่ม 50 ประกาศ/ปี", baht: 500, listings: 50 },
-  quota_1200: { label: "เพิ่ม 1,200 ประกาศ/ปี", baht: 1000, listings: 1200 },
+  quota_1200: { label: "เพิ่ม 120 ประกาศ/ปี", baht: 1000, listings: 120 },
 } as const;
 
 type PackageKey = keyof typeof QUOTA_PACKAGES;

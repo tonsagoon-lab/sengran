@@ -16,7 +16,7 @@ interface QuotaUpgradeModalProps {
 const PACKAGES = [
   { key: "quota_20", label: "20 ประกาศ", baht: 300, listings: 20 },
   { key: "quota_50", label: "50 ประกาศ", baht: 500, listings: 50 },
-  { key: "quota_1200", label: "1,200 ประกาศ", baht: 1000, listings: 1200 },
+  { key: "quota_1200", label: "120 ประกาศ", baht: 1000, listings: 120 },
 ];
 
 const OMISE_PUBLIC_KEY = process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY || "pkey_test_67orguspr2347ve5biw";
