@@ -49,8 +49,8 @@ export async function getNearMeListings(
 
     const gpsMatches = (nearIds ?? []) as unknown as { id: string; distance_km: number }[];
 
-    if (gpsMatches.length >= 4) {
-      const ids = gpsMatches.slice(0, 4).map((r) => r.id);
+    if (gpsMatches.length > 0) {
+      const ids = gpsMatches.slice(0, 8).map((r) => r.id);
       const { data: rawData } = await supabase
         .from("listings")
         .select(NEAR_ME_SELECT)

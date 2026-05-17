@@ -245,7 +245,14 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
   return (
     <section className="py-4 space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="font-semibold text-neutral-800">{title}</h2>
+        <div>
+          <h2 className="font-semibold text-neutral-800">{title}</h2>
+          {total > 0 && (
+            <p className="text-xs text-neutral-400 mt-0.5">
+              พบ {total.toLocaleString("th-TH")} ประกาศ{location?.type === "gps" ? ` ในรัศมี ${location.radiusKm} กม.` : ""}
+            </p>
+          )}
+        </div>
         <button onClick={reset} className="text-xs text-neutral-400 hover:text-neutral-600 flex items-center gap-1">
           <X className="h-3 w-3" /> เปลี่ยนตำแหน่ง
         </button>
@@ -302,7 +309,7 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
       {/* Listing grid */}
       {status === "loaded" && listings.length > 0 && (
         <>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {listings.map((listing) => (
               <BrowseCard key={listing.id} listing={listing} supabaseUrl={supabaseUrl} />
             ))}
