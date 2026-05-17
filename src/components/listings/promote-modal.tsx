@@ -109,7 +109,7 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
   const selectedOption = group.options.find((o) => o.key === selectedKey);
   const isFacebook = type === "facebook";
   const cardFilled = cardInfo.number.replace(/\s/g, "").length === 16 && cardInfo.name.trim() && cardInfo.expiry.length === 5 && cardInfo.cvv.length >= 3;
-  const canSubmit = selectedKey && (!isFacebook || contactInfo.trim().length > 0) && (payMethod === "promptpay" || cardFilled);
+  const canSubmit = selectedKey && (payMethod === "promptpay" || cardFilled);
 
   function formatCardNumber(v: string) { return v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim(); }
   function formatExpiry(v: string) { const d = v.replace(/\D/g, "").slice(0, 4); return d.length >= 3 ? d.slice(0, 2) + "/" + d.slice(2) : d; }
@@ -132,7 +132,6 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
 
   async function handleConfirm() {
     if (!selectedKey || !selectedOption) return;
-    if (isFacebook && !contactInfo.trim()) { setError("กรุณาระบุ LINE ID หรือเบอร์โทรศัพท์"); return; }
     if (payMethod === "card" && !omiseReady) { setError("ระบบบัตรยังไม่พร้อม"); return; }
     setError(null);
     setLoading(true);
@@ -264,19 +263,25 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
                 </div>
               </div>
 
-              {/* Facebook contact */}
+              {/* Facebook info */}
               {isFacebook && (
-                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
-                  <p className="text-xs font-medium text-indigo-700">ระบุช่องทางติดต่อกลับ เพื่อให้ admin ประสานงานโฆษณา</p>
-                  <div>
-                    <Label className="text-xs text-neutral-600">LINE ID หรือเบอร์โทรศัพท์ *</Label>
-                    <Input className="mt-1" placeholder="เช่น @mylineid หรือ 08X-XXX-XXXX"
-                      value={contactInfo} onChange={(e) => setContactInfo(e.target.value)} />
-                  </div>
-                  <p className="text-[11px] text-indigo-600">
-                    หรือแอด LINE admin ได้เลยที่{" "}
-                    <a href={ADMIN_LINE_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">{ADMIN_LINE_ID}</a>
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-2.5">
+                  <p className="text-sm text-indigo-800 leading-relaxed">
+                    ท่านจะเห็นโฆษณาประกาศนี้บน Facebook ภายใน <span className="font-semibold">1-2 วัน</span> ดูได้ที่เพจ{" "}
+                    <a href={FACEBOOK_PAGE} target="_blank" rel="noopener noreferrer"
+                      className="font-semibold text-[#1877F2] underline underline-offset-2 inline-flex items-center gap-0.5">
+                      เซ้งร้าน.com
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
                   </p>
+                  <div className="flex items-center gap-2 pt-1 border-t border-indigo-200">
+                    <span className="text-xs text-indigo-700">ติดต่อ Admin:</span>
+                    <a href={ADMIN_LINE_URL} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-[#06C755] px-3 py-1 text-xs font-semibold text-white hover:bg-[#05a847] transition-colors">
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-white"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+                      add Line: {ADMIN_LINE_ID}
+                    </a>
+                  </div>
                 </div>
               )}
 
