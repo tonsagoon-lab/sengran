@@ -60,7 +60,7 @@ export async function getNearMeListings(
       const byId = new Map(data.map((l) => [l.id, l]));
       const ordered = ids
         .map((id) => byId.get(id))
-        .filter((x): x is SearchListing => !!x && Array.isArray(x.listing_images) && x.listing_images.length > 0)
+        .filter((x): x is SearchListing => !!x && Array.isArray(x.listing_images) && x.listing_images.some((img) => !!img.storage_path))
         .slice(0, 4);
       return { listings: ordered, total: gpsMatches.length };
     }
@@ -93,7 +93,7 @@ export async function getNearMeListings(
         .order("published_at", { ascending: false })
         .limit(20);
       const filtered = ((data ?? []) as unknown as SearchListing[])
-        .filter((l) => Array.isArray(l.listing_images) && l.listing_images.length > 0)
+        .filter((l) => Array.isArray(l.listing_images) && l.listing_images.some((img) => !!img.storage_path))
         .slice(0, 4);
       return { listings: filtered, total: count ?? 0 };
     }
@@ -106,7 +106,7 @@ export async function getNearMeListings(
       .order("published_at", { ascending: false })
       .limit(20);
     const filteredLatest = ((latest ?? []) as unknown as SearchListing[])
-      .filter((l) => Array.isArray(l.listing_images) && l.listing_images.length > 0)
+      .filter((l) => Array.isArray(l.listing_images) && l.listing_images.some((img) => !!img.storage_path))
       .slice(0, 4);
     return { listings: filteredLatest, total: latestCount ?? 0 };
   } else {
@@ -119,7 +119,7 @@ export async function getNearMeListings(
       .limit(20);
 
     const filtered = ((data ?? []) as unknown as SearchListing[])
-      .filter((l) => Array.isArray(l.listing_images) && l.listing_images.length > 0)
+      .filter((l) => Array.isArray(l.listing_images) && l.listing_images.some((img) => !!img.storage_path))
       .slice(0, 4);
     return {
       listings: filtered,
