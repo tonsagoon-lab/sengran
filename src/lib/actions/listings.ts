@@ -45,32 +45,73 @@ export async function getNearMeListings(
       radius_km: radiusKm,
     });
 
-    if (!nearIds || nearIds.length === 0) {
-      return { listings: [], total: 0 };
+    const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+
+    const gpsMatches = (nearIds ?? []) as unknown as { id: string; distance_km: number }[];
+
+    if (gpsMatches.length >= 4) {
+      const ids = gpsMatches.slice(0, 4).map((r) => r.id);
+      const { data: rawData } = await supabase
+        .from("listings")
+        .select(NEAR_ME_SELECT)
+        .in("id", ids)
+        .eq("status", "published");
+
+      const data = ((rawData ?? []) as unknown as SearchListing[]).filter(
+        (l) => l.published_at && new Date(l.published_at).getTime() > oneYearAgo
+      );
+      const byId = new Map(data.map((l) => [l.id, l]));
+      const ordered = ids.map((id) => byId.get(id)).filter((x): x is SearchListing => !!x);
+      return { listings: ordered, total: gpsMatches.length };
     }
 
-    const ids = (nearIds as unknown as { id: string; distance_km: number }[])
-      .slice(0, 4)
-      .map((r) => r.id);
+    // Fallback: not enough GPS-tagged listings → find nearest province via wide radius search
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: wideIds } = await (supabase as any).rpc("listings_within_distance", {
+      center_lat: lat,
+      center_lng: lng,
+      radius_km: 200,
+    });
 
-    const { data: rawData } = await supabase
+    let provinceId: number | null = null;
+    if (wideIds && (wideIds as unknown as { id: string }[]).length > 0) {
+      const nearestId = (wideIds as unknown as { id: string }[])[0].id;
+      const { data: nearest } = await supabase
+        .from("listings")
+        .select("province_id")
+        .eq("id", nearestId)
+        .single();
+      provinceId = nearest?.province_id ?? null;
+    }
+
+    if (provinceId) {
+      const { data, count } = await supabase
+        .from("listings")
+        .select(NEAR_ME_SELECT, { count: "exact" })
+        .eq("province_id", provinceId)
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .limit(4);
+
+      const filtered = ((data ?? []) as unknown as SearchListing[]).filter(
+        (l) => l.published_at && new Date(l.published_at).getTime() > oneYearAgo
+      );
+      return { listings: filtered, total: count ?? 0 };
+    }
+
+    // Last resort: latest listings
+    const { data: latest, count: latestCount } = await supabase
       .from("listings")
-      .select(NEAR_ME_SELECT)
-      .in("id", ids)
-      .eq("status", "published");
-
-    const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
-    const data = ((rawData ?? []) as unknown as SearchListing[]).filter(
-      (l) => l.published_at && new Date(l.published_at).getTime() > oneYearAgo
-    );
-
-    // Preserve distance order
-    const byId = new Map(data.map((l) => [l.id, l]));
-    const ordered = ids.map((id) => byId.get(id)).filter((x): x is SearchListing => !!x);
+      .select(NEAR_ME_SELECT, { count: "exact" })
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(4);
 
     return {
-      listings: ordered,
-      total: (nearIds as unknown[]).length,
+      listings: ((latest ?? []) as unknown as SearchListing[]).filter(
+        (l) => l.published_at && new Date(l.published_at).getTime() > oneYearAgo
+      ),
+      total: latestCount ?? 0,
     };
   } else {
     const { data, count } = await supabase
