@@ -254,7 +254,25 @@ export function FilterBar({ categories, provinces }: FilterBarProps) {
         </div>
 
         {/* Mobile filter row */}
-        <div className="flex md:hidden items-center gap-2 py-2">
+        <div className="flex md:hidden flex-col gap-2 py-2">
+          {/* Type tabs on mobile */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            {TYPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => updateURL({ type: opt.value || null })}
+                className={cn(
+                  "shrink-0 rounded-full border px-3 py-1 text-sm transition-colors",
+                  currentType === opt.value
+                    ? "bg-orange-500 text-white border-orange-500 font-medium"
+                    : "border-neutral-300 text-neutral-600 bg-white"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="gap-1.5">
@@ -301,6 +319,7 @@ export function FilterBar({ categories, provinces }: FilterBarProps) {
           {activeFilterCount > 0 && (
             <button onClick={clearAll} className="text-sm text-orange-600 shrink-0">ล้าง</button>
           )}
+          </div>
         </div>
       </div>
     </div>

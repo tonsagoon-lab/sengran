@@ -130,6 +130,10 @@
   }
 }
 
+/* Hide scrollbar for horizontal scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* TipTap placeholder */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
