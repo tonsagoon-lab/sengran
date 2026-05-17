@@ -48,7 +48,8 @@ export async function getNearMeListings(
     const gpsMatches = (nearIds ?? []) as unknown as { id: string; distance_km: number }[];
 
     if (gpsMatches.length > 0) {
-      const ids = gpsMatches.slice(0, 8).map((r) => r.id);
+      // Fetch more than needed to account for no-image filtering
+      const ids = gpsMatches.slice(0, 20).map((r) => r.id);
       const { data: rawData } = await supabase
         .from("listings")
         .select(NEAR_ME_SELECT)
@@ -57,7 +58,10 @@ export async function getNearMeListings(
 
       const data = (rawData ?? []) as unknown as SearchListing[];
       const byId = new Map(data.map((l) => [l.id, l]));
-      const ordered = ids.map((id) => byId.get(id)).filter((x): x is SearchListing => !!x);
+      const ordered = ids
+        .map((id) => byId.get(id))
+        .filter((x): x is SearchListing => !!x && Array.isArray(x.listing_images) && x.listing_images.length > 0)
+        .slice(0, 4);
       return { listings: ordered, total: gpsMatches.length };
     }
 
@@ -87,8 +91,11 @@ export async function getNearMeListings(
         .eq("province_id", provinceId)
         .eq("status", "published")
         .order("published_at", { ascending: false })
-        .limit(8);
-      return { listings: (data ?? []) as unknown as SearchListing[], total: count ?? 0 };
+        .limit(20);
+      const filtered = ((data ?? []) as unknown as SearchListing[])
+        .filter((l) => Array.isArray(l.listing_images) && l.listing_images.length > 0)
+        .slice(0, 4);
+      return { listings: filtered, total: count ?? 0 };
     }
 
     // Last resort: latest listings
@@ -97,8 +104,11 @@ export async function getNearMeListings(
       .select(NEAR_ME_SELECT, { count: "exact" })
       .eq("status", "published")
       .order("published_at", { ascending: false })
-      .limit(8);
-    return { listings: (latest ?? []) as unknown as SearchListing[], total: latestCount ?? 0 };
+      .limit(20);
+    const filteredLatest = ((latest ?? []) as unknown as SearchListing[])
+      .filter((l) => Array.isArray(l.listing_images) && l.listing_images.length > 0)
+      .slice(0, 4);
+    return { listings: filteredLatest, total: latestCount ?? 0 };
   } else {
     const { data, count } = await supabase
       .from("listings")
@@ -106,10 +116,13 @@ export async function getNearMeListings(
       .eq("province_id", params.provinceId)
       .eq("status", "published")
       .order("published_at", { ascending: false })
-      .limit(4);
+      .limit(20);
 
+    const filtered = ((data ?? []) as unknown as SearchListing[])
+      .filter((l) => Array.isArray(l.listing_images) && l.listing_images.length > 0)
+      .slice(0, 4);
     return {
-      listings: (data ?? []) as unknown as SearchListing[],
+      listings: filtered,
       total: count ?? 0,
     };
   }
