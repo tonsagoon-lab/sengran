@@ -22,8 +22,7 @@ const PACKAGES: Package[] = [
 
 declare global {
   interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Omise: any;
+    Omise: { setPublicKey: (k: string) => void; createToken: (...a: unknown[]) => void };
   }
 }
 
