@@ -215,7 +215,7 @@ function buildInitialState(listing?: WizardProps["listing"]): WizardState {
     category_id: listing?.category_id != null ? String(listing.category_id) : "",
     sale_price: listing?.sale_price != null ? String(listing.sale_price) : "",
     rent_price: listing?.rent_price != null ? String(listing.rent_price) : "",
-    deposit_months: listing?.deposit_months != null ? String(listing.deposit_months) : "2",
+    deposit_months: listing?.deposit_months != null ? String(listing.deposit_months) : "",
     description: listing?.description ?? "",
     province_id: listing?.province_id != null ? String(listing.province_id) : "",
     district: listing?.district ?? "",
@@ -247,7 +247,7 @@ function migrateState(raw: string, listingId?: string): WizardState | null {
       category_id: parsed.category_id ?? "",
       sale_price: parsed.sale_price ?? "",
       rent_price: parsed.rent_price ?? "",
-      deposit_months: parsed.deposit_months ?? "2",
+      deposit_months: parsed.deposit_months ?? "",
       description: parsed.description ?? "",
       province_id: parsed.province_id ?? "",
       district: parsed.district ?? "",
@@ -381,7 +381,7 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
     // Clear inapplicable price fields when type changed
     if (step === 1) {
       if (data.listing_type === "rent") setData({ sale_price: "" });
-      if (data.listing_type === "sale") setData({ rent_price: "", deposit_months: "2" });
+      if (data.listing_type === "sale") setData({ rent_price: "", deposit_months: "" });
     }
     setStep(step + 1);
   }

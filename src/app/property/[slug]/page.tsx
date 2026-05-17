@@ -213,7 +213,7 @@ export default async function ListingDetailPage({ params }: Props) {
               </span>
             </div>
           )}
-          {listing.deposit_months != null && (
+          {listing.deposit_months != null && (listing.listing_type === "rent" || listing.listing_type === "both") && (
             <p className="text-sm text-neutral-600">มัดจำ {listing.deposit_months} เดือน</p>
           )}
         </div>
