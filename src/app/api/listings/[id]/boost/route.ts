@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { omiseFetch } from "@/lib/omise/execute-action";
 
 export const BOOST_PACKAGES = {
   premium_15: { label: "Premium หน้าแรก 15 วัน", type: "premium", baht: 300, days: 15 },
@@ -10,20 +11,6 @@ export const BOOST_PACKAGES = {
 } as const;
 
 export type PackageKey = keyof typeof BOOST_PACKAGES;
-
-const OMISE_SECRET_KEY = process.env.OMISE_SECRET_KEY!;
-
-function omiseFetch(path: string, options?: RequestInit) {
-  const auth = Buffer.from(`${OMISE_SECRET_KEY}:`).toString("base64");
-  return fetch(`https://api.omise.co${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Basic ${auth}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-      ...(options?.headers ?? {}),
-    },
-  });
-}
 
 export async function POST(
   req: NextRequest,
@@ -35,62 +22,77 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { packageKey, contactInfo, tokenId } = await req.json() as {
+    const { packageKey, contactInfo, paymentMethod, tokenId } = await req.json() as {
       packageKey: PackageKey;
       contactInfo?: string;
-      tokenId: string;
+      paymentMethod: "card" | "promptpay";
+      tokenId?: string;
     };
 
     const pkg = BOOST_PACKAGES[packageKey];
     if (!pkg) return NextResponse.json({ error: "Invalid package" }, { status: 400 });
-    if (!tokenId) return NextResponse.json({ error: "tokenId required" }, { status: 400 });
-    if (!OMISE_SECRET_KEY) return NextResponse.json({ error: "ระบบ payment ยังไม่พร้อม" }, { status: 500 });
 
-    // Verify listing belongs to user
     const { data: listing } = await supabase
-      .from("listings")
-      .select("id, boost_rank, is_featured, featured_until")
-      .eq("id", listingId)
-      .eq("user_id", user.id)
-      .single();
+      .from("listings").select("id").eq("id", listingId).eq("user_id", user.id).single();
     if (!listing) return NextResponse.json({ error: "Listing not found" }, { status: 404 });
 
-    // Charge via Omise
-    const omiseRes = await omiseFetch("/charges", {
-      method: "POST",
-      body: new URLSearchParams({
+    if (!process.env.OMISE_SECRET_KEY) return NextResponse.json({ error: "ระบบ payment ยังไม่พร้อม" }, { status: 500 });
+
+    const admin = createAdminClient();
+
+    if (paymentMethod === "promptpay") {
+      const params = new URLSearchParams({
         amount: String(pkg.baht * 100),
         currency: "thb",
-        card: tokenId,
-      }).toString(),
+        "source[type]": "promptpay",
+        "metadata[action]": "boost",
+        "metadata[pkg_type]": pkg.type,
+        "metadata[listing_id]": listingId,
+        "metadata[package_key]": packageKey,
+        "metadata[user_id]": user.id,
+        "metadata[days]": String(pkg.days),
+        "metadata[label]": pkg.label,
+        "metadata[contact_info]": contactInfo ?? "",
+      });
+      const omiseRes = await omiseFetch("/charges", { method: "POST", body: params.toString() });
+      const charge = await omiseRes.json();
+      if (!omiseRes.ok) return NextResponse.json({ error: charge.message ?? "Omise error" }, { status: 502 });
+
+      // Record pending transaction
+      await admin.from("wallet_transactions").insert({
+        user_id: user.id,
+        amount: pkg.baht,
+        type: "spend",
+        description: pkg.label,
+        omise_charge_id: charge.id,
+        status: "pending",
+      });
+
+      const qrImageUrl: string | null = charge.source?.scannable_code?.image?.download_uri ?? null;
+      return NextResponse.json({ chargeId: charge.id, qrImageUrl });
+    }
+
+    // Card payment
+    if (!tokenId) return NextResponse.json({ error: "tokenId required" }, { status: 400 });
+    const omiseRes = await omiseFetch("/charges", {
+      method: "POST",
+      body: new URLSearchParams({ amount: String(pkg.baht * 100), currency: "thb", card: tokenId }).toString(),
     });
     const charge = await omiseRes.json();
     if (!omiseRes.ok || charge.status !== "successful") {
       return NextResponse.json({ error: charge.message ?? "การชำระเงินไม่สำเร็จ" }, { status: 502 });
     }
 
-    const admin = createAdminClient();
-
-    // Record purchase
-    await admin.from("wallet_transactions").insert({
-      user_id: user.id,
-      amount: pkg.baht,
-      type: "spend",
-      description: `${pkg.label}`,
-      omise_charge_id: charge.id,
-      status: "success",
-    });
-
-    // Execute boost action
+    // Execute boost action immediately
     const now = new Date();
     if (pkg.type === "premium") {
-      const currentFeaturedUntil = listing.featured_until ? new Date(listing.featured_until) : now;
-      const baseDate = currentFeaturedUntil > now ? currentFeaturedUntil : now;
-      const newFeaturedUntil = new Date(baseDate.getTime() + pkg.days * 24 * 60 * 60 * 1000);
-      await admin.from("listings").update({ is_featured: true, featured_until: newFeaturedUntil.toISOString() }).eq("id", listingId);
+      const { data: lst } = await supabase.from("listings").select("is_featured, featured_until").eq("id", listingId).single();
+      const currentUntil = lst?.featured_until ? new Date(lst.featured_until) : now;
+      const base = currentUntil > now ? currentUntil : now;
+      const newUntil = new Date(base.getTime() + pkg.days * 86400000);
+      await admin.from("listings").update({ is_featured: true, featured_until: newUntil.toISOString() }).eq("id", listingId);
     }
 
-    const expiresAt = new Date(now.getTime() + pkg.days * 24 * 60 * 60 * 1000);
     await admin.from("listing_boosts").insert({
       listing_id: listingId,
       user_id: user.id,
@@ -98,9 +100,18 @@ export async function POST(
       package_key: packageKey,
       coins_spent: pkg.baht,
       duration_days: pkg.days,
-      expires_at: expiresAt.toISOString(),
+      expires_at: new Date(now.getTime() + pkg.days * 86400000).toISOString(),
       status: pkg.type === "facebook" ? "pending" : "active",
       contact_info: contactInfo ?? null,
+    });
+
+    await admin.from("wallet_transactions").insert({
+      user_id: user.id,
+      amount: pkg.baht,
+      type: "spend",
+      description: pkg.label,
+      omise_charge_id: charge.id,
+      status: "success",
     });
 
     return NextResponse.json({ success: true });
