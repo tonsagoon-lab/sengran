@@ -6,6 +6,7 @@ import { BannersManager, ModalImagesManager } from "./banners-manager";
 import { ProvincesManager } from "./provinces-manager";
 import { BoostPackagesManager } from "./boost-packages-manager";
 import { AnnouncementManager } from "./announcement-manager";
+import { FaviconManager } from "./favicon-manager";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { key: "boost", label: "แพ็กเกจ Boost" },
   { key: "announcement", label: "ประกาศระบบ" },
   { key: "modal", label: "รูป popup" },
+  { key: "favicon", label: "Favicon" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -52,6 +54,7 @@ export function SiteSettings() {
         {tab === "boost" && <BoostPackagesManager />}
         {tab === "announcement" && <AnnouncementManager />}
         {tab === "modal" && <ModalImagesManager />}
+        {tab === "favicon" && <FaviconManager />}
       </div>
     </div>
   );

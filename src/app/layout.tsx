@@ -6,6 +6,7 @@ import { HomeFooter } from "@/components/home/home-footer";
 import { SystemAnnouncementBar } from "@/components/system-announcement-bar";
 import { CookieConsent } from "@/components/cookie-consent";
 import { Analytics } from "@vercel/analytics/react";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const sarabun = Sarabun({
   variable: "--font-sarabun",
@@ -15,16 +16,30 @@ const sarabun = Sarabun({
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xn--12c1bik6bbd8af5l3d.com";
 
-export const metadata: Metadata = {
-  title: "เซ้งร้าน.com — ซื้อ ขาย เซ้งร้าน ทำเลดี",
-  description: "ตลาดซื้อขายเซ้งร้านค้าและพื้นที่เชิงพาณิชย์ออนไลน์",
-  metadataBase: new URL(BASE_URL),
-  openGraph: {
-    siteName: "เซ้งร้าน.com",
-    locale: "th_TH",
-    type: "website",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = createAdminClient() as any;
+  const { data } = await admin.from("site_settings").select("value").eq("key", "favicon_url").single();
+  const faviconUrl: string | undefined = data?.value ?? undefined;
+
+  return {
+    title: "เซ้งร้าน.com — ซื้อ ขาย เซ้งร้าน ทำเลดี",
+    description: "ตลาดซื้อขายเซ้งร้านค้าและพื้นที่เชิงพาณิชย์ออนไลน์",
+    metadataBase: new URL(BASE_URL),
+    openGraph: {
+      siteName: "เซ้งร้าน.com",
+      locale: "th_TH",
+      type: "website",
+    },
+    ...(faviconUrl && {
+      icons: {
+        icon: faviconUrl,
+        shortcut: faviconUrl,
+        apple: faviconUrl,
+      },
+    }),
+  };
+}
 
 export default function RootLayout({
   children,
