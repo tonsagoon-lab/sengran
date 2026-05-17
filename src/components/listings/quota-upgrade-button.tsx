@@ -5,11 +5,10 @@ import { Plus } from "lucide-react";
 import { QuotaUpgradeModal } from "./quota-upgrade-modal";
 
 interface QuotaUpgradeButtonProps {
-  walletBalance: number;
   currentQuota: number;
 }
 
-export function QuotaUpgradeButton({ walletBalance, currentQuota }: QuotaUpgradeButtonProps) {
+export function QuotaUpgradeButton({ currentQuota }: QuotaUpgradeButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -24,7 +23,6 @@ export function QuotaUpgradeButton({ walletBalance, currentQuota }: QuotaUpgrade
 
       {open && (
         <QuotaUpgradeModal
-          walletBalance={walletBalance}
           currentQuota={currentQuota}
           onClose={() => setOpen(false)}
         />

@@ -19,10 +19,9 @@ export default async function MyListingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("wallet_balance, listing_quota")
+    .select("listing_quota")
     .eq("id", user.id)
     .single();
-  const walletBalance = Math.floor(Number(profile?.wallet_balance ?? 0));
   const listingQuota = Number(profile?.listing_quota ?? 0);
 
   const published = listings.filter((l) => l.status === "published");
@@ -43,7 +42,7 @@ export default async function MyListingsPage() {
 
       {/* CTA banner */}
       <div className="flex gap-2 mb-4">
-        <QuotaUpgradeButton walletBalance={walletBalance} currentQuota={listingQuota} />
+        <QuotaUpgradeButton currentQuota={listingQuota} />
       </div>
 
       <div className="flex gap-2 mb-6">
@@ -83,7 +82,7 @@ export default async function MyListingsPage() {
               </h2>
               <div className="space-y-3">
                 {published.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} walletBalance={walletBalance} />
+                  <ListingCard key={listing.id} listing={listing} />
                 ))}
               </div>
             </section>

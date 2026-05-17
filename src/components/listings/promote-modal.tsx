@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Coins, Star, Megaphone, X, CheckCircle2, ChevronRight, ExternalLink, CreditCard } from "lucide-react";
+import { Star, Megaphone, X, CheckCircle2, ChevronRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 interface PromoteModalProps {
   listingId: string;
   listingTitle: string;
-  walletBalance: number;
   onClose: () => void;
 }
 
@@ -24,8 +23,8 @@ const PACKAGES = [
     label: "ประกาศ Premium หน้าแรก",
     desc: "ติดป้าย Premium โดดเด่น อยู่ใน section แนะนำบนหน้าแรก",
     options: [
-      { key: "premium_10", label: "10 วัน", coins: 300 },
-      { key: "premium_20", label: "20 วัน", coins: 500 },
+      { key: "premium_10", label: "10 วัน", baht: 300 },
+      { key: "premium_20", label: "20 วัน", baht: 500 },
     ],
   },
   {
@@ -37,8 +36,8 @@ const PACKAGES = [
     label: "ยิงโฆษณา Facebook บนเพจ",
     desc: "ยิงโฆษณาบนเพจ facebook.com/selloutthailand",
     options: [
-      { key: "facebook_7", label: "7 วัน", coins: 1500 },
-      { key: "facebook_15", label: "15 วัน", coins: 3000 },
+      { key: "facebook_7", label: "7 วัน", baht: 1500 },
+      { key: "facebook_15", label: "15 วัน", baht: 3000 },
     ],
   },
 ];
@@ -54,11 +53,10 @@ declare global {
 
 interface CardInfo { number: string; name: string; expiry: string; cvv: string; }
 
-export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }: PromoteModalProps) {
+export function PromoteModal({ listingId, listingTitle, onClose }: PromoteModalProps) {
   const router = useRouter();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [contactInfo, setContactInfo] = useState("");
-  const [payMethod, setPayMethod] = useState<"coins" | "card">("coins");
   const [cardInfo, setCardInfo] = useState<CardInfo>({ number: "", name: "", expiry: "", cvv: "" });
   const [omiseReady, setOmiseReady] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,11 +75,8 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
 
   const selectedOption = PACKAGES.flatMap((p) => p.options).find((o) => o.key === selectedKey);
   const isFacebook = selectedKey?.startsWith("facebook");
-  const hasEnoughCoins = selectedOption ? walletBalance >= selectedOption.coins : false;
-
   const cardFilled = cardInfo.number.replace(/\s/g, "").length === 16 && cardInfo.name.trim() && cardInfo.expiry.length === 5 && cardInfo.cvv.length >= 3;
-  const canSubmit = selectedKey && (!isFacebook || contactInfo.trim().length > 0) &&
-    (payMethod === "coins" ? hasEnoughCoins : cardFilled);
+  const canSubmit = selectedKey && (!isFacebook || contactInfo.trim().length > 0) && cardFilled;
 
   function formatCardNumber(v: string) { return v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim(); }
   function formatExpiry(v: string) { const d = v.replace(/\D/g, "").slice(0, 4); return d.length >= 3 ? d.slice(0, 2) + "/" + d.slice(2) : d; }
@@ -105,19 +100,15 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
   async function handleConfirm() {
     if (!selectedKey || !selectedOption) return;
     if (isFacebook && !contactInfo.trim()) { setError("กรุณาระบุ LINE ID หรือเบอร์โทรศัพท์"); return; }
+    if (!omiseReady) { setError("ระบบบัตรยังไม่พร้อม กรุณารอสักครู่"); return; }
     setError(null);
     setLoading(true);
     try {
-      let tokenId: string | undefined;
-      if (payMethod === "card") {
-        if (!omiseReady) { setError("ระบบบัตรยังไม่พร้อม"); setLoading(false); return; }
-        tokenId = await tokenizeCard();
-      }
-
+      const tokenId = await tokenizeCard();
       const res = await fetch(`/api/listings/${listingId}/boost`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageKey: selectedKey, contactInfo: contactInfo.trim(), paymentMethod: payMethod, tokenId }),
+        body: JSON.stringify({ packageKey: selectedKey, contactInfo: contactInfo.trim(), paymentMethod: "card", tokenId }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "เกิดข้อผิดพลาด"); setLoading(false); return; }
@@ -136,18 +127,14 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
       <div className="fixed inset-0 z-[101] flex items-center justify-center px-4 pointer-events-none">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md pointer-events-auto max-h-[90vh] overflow-y-auto">
 
-          {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b">
             <div>
               <h2 className="text-base font-bold text-neutral-900">โปรโมทประกาศ</h2>
               <p className="text-xs text-neutral-500 mt-0.5 line-clamp-1">{listingTitle}</p>
             </div>
-            <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 p-1">
-              <X className="h-5 w-5" />
-            </button>
+            <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 p-1"><X className="h-5 w-5" /></button>
           </div>
 
-          {/* Success: Facebook */}
           {successType === "facebook" && (
             <div className="flex flex-col items-center py-8 px-6 text-center gap-4">
               <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
@@ -165,15 +152,12 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
               </a>
               <div className="rounded-lg bg-neutral-50 border px-4 py-3 text-sm text-neutral-600 w-full text-left">
                 <p className="font-medium mb-1">มีข้อสงสัย? ติดต่อ admin</p>
-                <a href={ADMIN_LINE_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#06C755] underline underline-offset-2">
-                  LINE: {ADMIN_LINE_ID}
-                </a>
+                <a href={ADMIN_LINE_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#06C755] underline underline-offset-2">LINE: {ADMIN_LINE_ID}</a>
               </div>
               <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={() => { onClose(); router.refresh(); }}>ปิด</Button>
             </div>
           )}
 
-          {/* Success: other */}
           {successType === "other" && (
             <div className="flex flex-col items-center py-10 px-5 text-center gap-3">
               <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
@@ -184,10 +168,8 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
             </div>
           )}
 
-          {/* Form */}
           {!successType && (
             <div className="p-5 space-y-4">
-              {/* Package groups */}
               {PACKAGES.map((group) => (
                 <div key={group.key}>
                   <div className={`flex items-center gap-2 mb-1.5 ${group.color}`}>
@@ -199,16 +181,13 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
                     {group.options.map((opt) => {
                       const isSelected = selectedKey === opt.key;
                       return (
-                        <button key={opt.key}
-                          onClick={() => { setSelectedKey(opt.key); setError(null); }}
+                        <button key={opt.key} onClick={() => { setSelectedKey(opt.key); setError(null); }}
                           className={`flex-1 rounded-xl border-2 py-3 px-3 text-center transition-all ${
                             isSelected ? `${group.selectedBorder} ${group.selectedBg}` : "border-neutral-200 hover:border-neutral-300"
                           }`}
                         >
                           <p className="text-xs text-neutral-500">{opt.label}</p>
-                          <p className={`text-sm font-bold mt-0.5 ${group.color}`}>
-                            {opt.coins.toLocaleString("th-TH")} บาท
-                          </p>
+                          <p className={`text-sm font-bold mt-0.5 ${group.color}`}>{opt.baht.toLocaleString("th-TH")} บาท</p>
                         </button>
                       );
                     })}
@@ -216,7 +195,6 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
                 </div>
               ))}
 
-              {/* Contact info for Facebook */}
               {isFacebook && (
                 <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
                   <p className="text-xs font-medium text-indigo-700">ระบุช่องทางติดต่อกลับ เพื่อให้ admin ประสานงานโฆษณา</p>
@@ -232,84 +210,42 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
                 </div>
               )}
 
-              {/* Payment method */}
               {selectedOption && (
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-neutral-700">วิธีชำระเงิน</p>
-                  <div className="flex gap-2">
-                    <button onClick={() => setPayMethod("coins")}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-medium transition-all ${
-                        payMethod === "coins" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-neutral-200 text-neutral-600 hover:border-orange-300"
-                      }`}
-                    >
-                      <Coins className="h-4 w-4" />
-                      ใช้ coin
-                    </button>
-                    <button onClick={() => setPayMethod("card")}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-medium transition-all ${
-                        payMethod === "card" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-neutral-200 text-neutral-600 hover:border-orange-300"
-                      }`}
-                    >
-                      <CreditCard className="h-4 w-4" />
-                      บัตรเครดิต
-                    </button>
+                <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                  <p className="text-xs text-neutral-500 font-medium">ชำระ {selectedOption.baht.toLocaleString("th-TH")} บาท ด้วยบัตรเครดิต/เดบิต</p>
+                  <div>
+                    <Label className="text-xs text-neutral-600">หมายเลขบัตร</Label>
+                    <Input placeholder="0000 0000 0000 0000" value={cardInfo.number}
+                      onChange={(e) => setCardInfo((p) => ({ ...p, number: formatCardNumber(e.target.value) }))}
+                      maxLength={19} inputMode="numeric" className="mt-1 font-mono" />
                   </div>
-
-                  {payMethod === "coins" && (
-                    <div className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${hasEnoughCoins ? "bg-orange-50 border-orange-200" : "bg-red-50 border-red-200"}`}>
-                      <Coins className={`h-4 w-4 ${hasEnoughCoins ? "text-orange-500" : "text-red-400"}`} />
-                      <span className={`text-sm ${hasEnoughCoins ? "text-orange-700" : "text-red-600"}`}>
-                        coin ในกระเป๋า: <span className="font-bold">{walletBalance.toLocaleString("th-TH")}</span>
-                        {!hasEnoughCoins && <span className="ml-2 text-xs">— ไม่พอ</span>}
-                      </span>
-                      {!hasEnoughCoins && (
-                        <a href="/wallet/topup" className="ml-auto text-xs font-semibold text-orange-600 underline underline-offset-2">เติม coin</a>
-                      )}
+                  <div>
+                    <Label className="text-xs text-neutral-600">ชื่อบนบัตร</Label>
+                    <Input placeholder="SOMCHAI JAIDEE" value={cardInfo.name}
+                      onChange={(e) => setCardInfo((p) => ({ ...p, name: e.target.value.toUpperCase() }))} className="mt-1" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-neutral-600">วันหมดอายุ</Label>
+                      <Input placeholder="MM/YY" value={cardInfo.expiry}
+                        onChange={(e) => setCardInfo((p) => ({ ...p, expiry: formatExpiry(e.target.value) }))}
+                        maxLength={5} inputMode="numeric" className="mt-1" />
                     </div>
-                  )}
-
-                  {payMethod === "card" && (
-                    <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                      <p className="text-xs text-neutral-500 font-medium">ชำระ {selectedOption.coins.toLocaleString("th-TH")} บาท</p>
-                      <div>
-                        <Label className="text-xs text-neutral-600">หมายเลขบัตร</Label>
-                        <Input placeholder="0000 0000 0000 0000" value={cardInfo.number}
-                          onChange={(e) => setCardInfo((p) => ({ ...p, number: formatCardNumber(e.target.value) }))}
-                          maxLength={19} inputMode="numeric" className="mt-1 font-mono" />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-neutral-600">ชื่อบนบัตร</Label>
-                        <Input placeholder="SOMCHAI JAIDEE" value={cardInfo.name}
-                          onChange={(e) => setCardInfo((p) => ({ ...p, name: e.target.value.toUpperCase() }))}
-                          className="mt-1" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-xs text-neutral-600">วันหมดอายุ</Label>
-                          <Input placeholder="MM/YY" value={cardInfo.expiry}
-                            onChange={(e) => setCardInfo((p) => ({ ...p, expiry: formatExpiry(e.target.value) }))}
-                            maxLength={5} inputMode="numeric" className="mt-1" />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-neutral-600">CVV</Label>
-                          <Input placeholder="123" value={cardInfo.cvv}
-                            onChange={(e) => setCardInfo((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
-                            maxLength={4} inputMode="numeric" type="password" className="mt-1" />
-                        </div>
-                      </div>
+                    <div>
+                      <Label className="text-xs text-neutral-600">CVV</Label>
+                      <Input placeholder="123" value={cardInfo.cvv}
+                        onChange={(e) => setCardInfo((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                        maxLength={4} inputMode="numeric" type="password" className="mt-1" />
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 
-              {error && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>
-              )}
+              {error && <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
 
               <div className="flex gap-2 pt-1">
                 <Button variant="outline" className="flex-1" onClick={onClose}>ยกเลิก</Button>
-                <Button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-                  disabled={!canSubmit || loading} onClick={handleConfirm}>
+                <Button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" disabled={!canSubmit || loading} onClick={handleConfirm}>
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -317,17 +253,13 @@ export function PromoteModal({ listingId, listingTitle, walletBalance, onClose }
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      ยืนยัน
-                      {selectedOption && <span className="text-white/80">({selectedOption.coins.toLocaleString("th-TH")} {payMethod === "card" ? "บาท" : "coins"})</span>}
+                      ชำระเงิน {selectedOption && `${selectedOption.baht.toLocaleString("th-TH")} บาท`}
                       <ChevronRight className="h-4 w-4" />
                     </span>
                   )}
                 </Button>
               </div>
-
-              <p className="text-center text-xs text-neutral-400">
-                ชำระเงินปลอดภัยโดย Omise
-              </p>
+              <p className="text-center text-xs text-neutral-400">ชำระเงินปลอดภัยโดย Omise</p>
             </div>
           )}
         </div>

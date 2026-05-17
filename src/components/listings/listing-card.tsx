@@ -29,10 +29,9 @@ function formatPrice(price: number | null) {
 
 interface ListingCardProps {
   listing: ListingWithImages;
-  walletBalance?: number;
 }
 
-export function ListingCard({ listing, walletBalance = 0 }: ListingCardProps) {
+export function ListingCard({ listing }: ListingCardProps) {
   const coverImage = listing.listing_images.sort((a, b) => a.display_order - b.display_order)[0];
   const coverUrl = coverImage
     ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/listings/${coverImage.storage_path}`
@@ -111,7 +110,6 @@ export function ListingCard({ listing, walletBalance = 0 }: ListingCardProps) {
           <PromoteButtons
             listingId={listing.id}
             listingTitle={listing.title}
-            walletBalance={walletBalance}
           />
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
-import { Menu, X, ChevronDown, LogOut, User as UserIcon, FileText, MessageCircle, Heart, Bell, Coins } from "lucide-react";
+import { Menu, X, ChevronDown, LogOut, User as UserIcon, FileText, MessageCircle, Heart, Bell, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -22,10 +22,9 @@ interface NavbarClientProps {
     display_name: string | null;
     avatar_url: string | null;
   } | null;
-  walletBalance?: number;
 }
 
-export function NavbarClient({ user, profile, walletBalance = 0 }: NavbarClientProps) {
+export function NavbarClient({ user, profile }: NavbarClientProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const displayName = profile?.display_name ?? user?.email ?? "ผู้ใช้";
@@ -41,12 +40,6 @@ export function NavbarClient({ user, profile, walletBalance = 0 }: NavbarClientP
               <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
                 + ลงประกาศ
               </Button>
-            </Link>
-
-            {/* Coin balance pill */}
-            <Link href="/wallet" className="flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-100 transition-colors">
-              <Coins className="h-3.5 w-3.5" />
-              {Math.floor(walletBalance).toLocaleString("th-TH")}
             </Link>
 
             <DropdownMenu>
@@ -65,54 +58,43 @@ export function NavbarClient({ user, profile, walletBalance = 0 }: NavbarClientP
                 <DropdownMenuLabel className="font-normal">
                   <p className="text-sm font-medium">{displayName}</p>
                   <p className="text-xs text-neutral-500 truncate">{user.email}</p>
-                  <div className="flex items-center gap-1 mt-1 text-orange-600">
-                    <Coins className="h-3 w-3" />
-                    <span className="text-xs font-semibold">{Math.floor(walletBalance).toLocaleString("th-TH")} coin</span>
-                  </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/profile" className="cursor-pointer">
-                    <UserIcon className="mr-2 h-4 w-4" />
-                    โปรไฟล์
+                    <UserIcon className="mr-2 h-4 w-4" />โปรไฟล์
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/my-listings" className="cursor-pointer">
-                    <FileText className="mr-2 h-4 w-4" />
-                    ประกาศของฉัน
+                    <FileText className="mr-2 h-4 w-4" />ประกาศของฉัน
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/favorites" className="cursor-pointer">
-                    <Heart className="mr-2 h-4 w-4" />
-                    ประกาศที่บันทึกไว้
+                    <Heart className="mr-2 h-4 w-4" />ประกาศที่บันทึกไว้
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/messages" className="cursor-pointer">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    ข้อความ
+                    <MessageCircle className="mr-2 h-4 w-4" />ข้อความ
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/alerts" className="cursor-pointer">
-                    <Bell className="mr-2 h-4 w-4" />
-                    แจ้งเตือนร้านเซ้ง
+                    <Bell className="mr-2 h-4 w-4" />แจ้งเตือนร้านเซ้ง
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/wallet" className="cursor-pointer">
-                    <Coins className="mr-2 h-4 w-4" />
-                    กระเป๋าเงิน
+                  <Link href="/orders" className="cursor-pointer">
+                    <ShoppingBag className="mr-2 h-4 w-4" />ประวัติการสั่งซื้อ
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <form action={logoutAction}>
                     <button type="submit" className="flex w-full items-center text-red-600">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      ออกจากระบบ
+                      <LogOut className="mr-2 h-4 w-4" />ออกจากระบบ
                     </button>
                   </form>
                 </DropdownMenuItem>
@@ -122,25 +104,17 @@ export function NavbarClient({ user, profile, walletBalance = 0 }: NavbarClientP
         ) : (
           <>
             <Link href="/login">
-              <Button variant="ghost" size="sm">
-                เข้าสู่ระบบ
-              </Button>
+              <Button variant="ghost" size="sm">เข้าสู่ระบบ</Button>
             </Link>
             <Link href="/register">
-              <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-                สมัครสมาชิก
-              </Button>
+              <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">สมัครสมาชิก</Button>
             </Link>
           </>
         )}
       </nav>
 
       {/* Mobile hamburger */}
-      <button
-        className="md:hidden p-2 rounded-md text-neutral-600"
-        onClick={() => setMobileOpen((v) => !v)}
-        aria-label="เปิด/ปิดเมนู"
-      >
+      <button className="md:hidden p-2 rounded-md text-neutral-600" onClick={() => setMobileOpen((v) => !v)} aria-label="เปิด/ปิดเมนู">
         {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
@@ -153,71 +127,36 @@ export function NavbarClient({ user, profile, walletBalance = 0 }: NavbarClientP
                 <div className="flex items-center gap-3 pb-3 border-b">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={profile?.avatar_url ?? undefined} />
-                    <AvatarFallback className="bg-orange-100 text-orange-700">
-                      {initials}
-                    </AvatarFallback>
+                    <AvatarFallback className="bg-orange-100 text-orange-700">{initials}</AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-medium text-sm">{displayName}</p>
                     <p className="text-xs text-neutral-500">{user.email}</p>
-                    <div className="flex items-center gap-1 mt-0.5 text-orange-600">
-                      <Coins className="h-3 w-3" />
-                      <span className="text-xs font-semibold">{Math.floor(walletBalance).toLocaleString("th-TH")} coin</span>
-                    </div>
                   </div>
                 </div>
                 <Link href="/listings/new" onClick={() => setMobileOpen(false)}>
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-                    + ลงประกาศ
-                  </Button>
+                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">+ ลงประกาศ</Button>
                 </Link>
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 py-2 text-sm"
-                  onClick={() => setMobileOpen(false)}
-                >
+                <Link href="/profile" className="flex items-center gap-2 py-2 text-sm" onClick={() => setMobileOpen(false)}>
                   <UserIcon className="h-4 w-4" /> โปรไฟล์
                 </Link>
-                <Link
-                  href="/my-listings"
-                  className="flex items-center gap-2 py-2 text-sm"
-                  onClick={() => setMobileOpen(false)}
-                >
+                <Link href="/my-listings" className="flex items-center gap-2 py-2 text-sm" onClick={() => setMobileOpen(false)}>
                   <FileText className="h-4 w-4" /> ประกาศของฉัน
                 </Link>
-                <Link
-                  href="/favorites"
-                  className="flex items-center gap-2 py-2 text-sm"
-                  onClick={() => setMobileOpen(false)}
-                >
+                <Link href="/favorites" className="flex items-center gap-2 py-2 text-sm" onClick={() => setMobileOpen(false)}>
                   <Heart className="h-4 w-4" /> ประกาศที่บันทึกไว้
                 </Link>
-                <Link
-                  href="/messages"
-                  className="flex items-center gap-2 py-2 text-sm"
-                  onClick={() => setMobileOpen(false)}
-                >
+                <Link href="/messages" className="flex items-center gap-2 py-2 text-sm" onClick={() => setMobileOpen(false)}>
                   <MessageCircle className="h-4 w-4" /> ข้อความ
                 </Link>
-                <Link
-                  href="/alerts"
-                  className="flex items-center gap-2 py-2 text-sm"
-                  onClick={() => setMobileOpen(false)}
-                >
+                <Link href="/alerts" className="flex items-center gap-2 py-2 text-sm" onClick={() => setMobileOpen(false)}>
                   <Bell className="h-4 w-4" /> แจ้งเตือนร้านเซ้ง
                 </Link>
-                <Link
-                  href="/wallet"
-                  className="flex items-center gap-2 py-2 text-sm"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <Coins className="h-4 w-4" /> กระเป๋าเงิน
+                <Link href="/orders" className="flex items-center gap-2 py-2 text-sm" onClick={() => setMobileOpen(false)}>
+                  <ShoppingBag className="h-4 w-4" /> ประวัติการสั่งซื้อ
                 </Link>
                 <form action={logoutAction}>
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 py-2 text-sm text-red-600 w-full"
-                  >
+                  <button type="submit" className="flex items-center gap-2 py-2 text-sm text-red-600 w-full">
                     <LogOut className="h-4 w-4" /> ออกจากระบบ
                   </button>
                 </form>
@@ -225,14 +164,10 @@ export function NavbarClient({ user, profile, walletBalance = 0 }: NavbarClientP
             ) : (
               <>
                 <Link href="/login" onClick={() => setMobileOpen(false)}>
-                  <Button variant="outline" className="w-full">
-                    เข้าสู่ระบบ
-                  </Button>
+                  <Button variant="outline" className="w-full">เข้าสู่ระบบ</Button>
                 </Link>
                 <Link href="/register" onClick={() => setMobileOpen(false)}>
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-                    สมัครสมาชิก
-                  </Button>
+                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">สมัครสมาชิก</Button>
                 </Link>
               </>
             )}

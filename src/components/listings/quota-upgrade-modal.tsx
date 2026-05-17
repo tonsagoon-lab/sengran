@@ -2,21 +2,20 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Coins, FileText, X, CheckCircle2, ChevronRight, CreditCard } from "lucide-react";
+import { FileText, X, CheckCircle2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface QuotaUpgradeModalProps {
-  walletBalance: number;
   currentQuota: number;
   onClose: () => void;
 }
 
 const PACKAGES = [
-  { key: "quota_20", label: "20 ประกาศ", coins: 300, listings: 20 },
-  { key: "quota_50", label: "50 ประกาศ", coins: 500, listings: 50 },
-  { key: "quota_1200", label: "1,200 ประกาศ", coins: 1000, listings: 1200 },
+  { key: "quota_20", label: "20 ประกาศ", baht: 300, listings: 20 },
+  { key: "quota_50", label: "50 ประกาศ", baht: 500, listings: 50 },
+  { key: "quota_1200", label: "1,200 ประกาศ", baht: 1000, listings: 1200 },
 ];
 
 const OMISE_PUBLIC_KEY = process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY || "pkey_test_67orguspr2347ve5biw";
@@ -27,10 +26,9 @@ declare global {
 
 interface CardInfo { number: string; name: string; expiry: string; cvv: string; }
 
-export function QuotaUpgradeModal({ walletBalance, currentQuota, onClose }: QuotaUpgradeModalProps) {
+export function QuotaUpgradeModal({ currentQuota, onClose }: QuotaUpgradeModalProps) {
   const router = useRouter();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [payMethod, setPayMethod] = useState<"coins" | "card">("coins");
   const [cardInfo, setCardInfo] = useState<CardInfo>({ number: "", name: "", expiry: "", cvv: "" });
   const [omiseReady, setOmiseReady] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -48,9 +46,8 @@ export function QuotaUpgradeModal({ walletBalance, currentQuota, onClose }: Quot
   }, []);
 
   const selectedPkg = PACKAGES.find((p) => p.key === selectedKey);
-  const hasEnoughCoins = selectedPkg ? walletBalance >= selectedPkg.coins : false;
   const cardFilled = cardInfo.number.replace(/\s/g, "").length === 16 && cardInfo.name.trim() && cardInfo.expiry.length === 5 && cardInfo.cvv.length >= 3;
-  const canConfirm = selectedKey && (payMethod === "coins" ? hasEnoughCoins : cardFilled);
+  const canConfirm = selectedKey && cardFilled;
 
   function formatCardNumber(v: string) { return v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim(); }
   function formatExpiry(v: string) { const d = v.replace(/\D/g, "").slice(0, 4); return d.length >= 3 ? d.slice(0, 2) + "/" + d.slice(2) : d; }
@@ -73,19 +70,15 @@ export function QuotaUpgradeModal({ walletBalance, currentQuota, onClose }: Quot
 
   async function handleConfirm() {
     if (!selectedPkg) return;
+    if (!omiseReady) { setError("ระบบบัตรยังไม่พร้อม กรุณารอสักครู่"); return; }
     setError(null);
     setLoading(true);
     try {
-      let tokenId: string | undefined;
-      if (payMethod === "card") {
-        if (!omiseReady) { setError("ระบบบัตรยังไม่พร้อม"); setLoading(false); return; }
-        tokenId = await tokenizeCard();
-      }
-
+      const tokenId = await tokenizeCard();
       const res = await fetch("/api/profile/quota-upgrade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageKey: selectedKey, paymentMethod: payMethod, tokenId }),
+        body: JSON.stringify({ packageKey: selectedKey, paymentMethod: "card", tokenId }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "เกิดข้อผิดพลาด"); setLoading(false); return; }
@@ -104,15 +97,12 @@ export function QuotaUpgradeModal({ walletBalance, currentQuota, onClose }: Quot
       <div className="fixed inset-0 z-[101] flex items-center justify-center px-4 pointer-events-none">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm pointer-events-auto max-h-[90vh] overflow-y-auto">
 
-          {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b">
             <div>
               <h2 className="text-base font-bold text-neutral-900">เพิ่มจำนวนประกาศ</h2>
               <p className="text-xs text-neutral-500 mt-0.5">ปัจจุบันมีสิทธิ์ {currentQuota} ประกาศ/ปี</p>
             </div>
-            <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 p-1">
-              <X className="h-5 w-5" />
-            </button>
+            <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 p-1"><X className="h-5 w-5" /></button>
           </div>
 
           {success ? (
@@ -125,7 +115,6 @@ export function QuotaUpgradeModal({ walletBalance, currentQuota, onClose }: Quot
             </div>
           ) : (
             <div className="p-5 space-y-4">
-              {/* Packages */}
               <div className="space-y-2">
                 {PACKAGES.map((pkg) => {
                   const isSelected = selectedKey === pkg.key;
@@ -144,88 +133,48 @@ export function QuotaUpgradeModal({ walletBalance, currentQuota, onClose }: Quot
                           <p className="text-xs text-neutral-500">ราคาต่อปี</p>
                         </div>
                       </div>
-                      <p className="text-sm font-bold text-orange-600">{pkg.coins.toLocaleString("th-TH")} บาท</p>
+                      <p className="text-sm font-bold text-orange-600">{pkg.baht.toLocaleString("th-TH")} บาท</p>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Payment method */}
               {selectedPkg && (
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-neutral-700">วิธีชำระเงิน</p>
-                  <div className="flex gap-2">
-                    <button onClick={() => setPayMethod("coins")}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-medium transition-all ${
-                        payMethod === "coins" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-neutral-200 text-neutral-600 hover:border-orange-300"
-                      }`}
-                    >
-                      <Coins className="h-4 w-4" />ใช้ coin
-                    </button>
-                    <button onClick={() => setPayMethod("card")}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-medium transition-all ${
-                        payMethod === "card" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-neutral-200 text-neutral-600 hover:border-orange-300"
-                      }`}
-                    >
-                      <CreditCard className="h-4 w-4" />บัตรเครดิต
-                    </button>
+                <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                  <p className="text-xs text-neutral-500 font-medium">ชำระ {selectedPkg.baht.toLocaleString("th-TH")} บาท ด้วยบัตรเครดิต/เดบิต</p>
+                  <div>
+                    <Label className="text-xs text-neutral-600">หมายเลขบัตร</Label>
+                    <Input placeholder="0000 0000 0000 0000" value={cardInfo.number}
+                      onChange={(e) => setCardInfo((p) => ({ ...p, number: formatCardNumber(e.target.value) }))}
+                      maxLength={19} inputMode="numeric" className="mt-1 font-mono" />
                   </div>
-
-                  {payMethod === "coins" && (
-                    <div className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${hasEnoughCoins ? "bg-orange-50 border-orange-200" : "bg-red-50 border-red-200"}`}>
-                      <Coins className={`h-4 w-4 ${hasEnoughCoins ? "text-orange-500" : "text-red-400"}`} />
-                      <span className={`text-sm ${hasEnoughCoins ? "text-orange-700" : "text-red-600"}`}>
-                        coin ในกระเป๋า: <span className="font-bold">{walletBalance.toLocaleString("th-TH")}</span>
-                        {!hasEnoughCoins && <span className="ml-2 text-xs">— ไม่พอ</span>}
-                      </span>
-                      {!hasEnoughCoins && (
-                        <a href="/wallet/topup" className="ml-auto text-xs font-semibold text-orange-600 underline underline-offset-2">เติม coin</a>
-                      )}
+                  <div>
+                    <Label className="text-xs text-neutral-600">ชื่อบนบัตร</Label>
+                    <Input placeholder="SOMCHAI JAIDEE" value={cardInfo.name}
+                      onChange={(e) => setCardInfo((p) => ({ ...p, name: e.target.value.toUpperCase() }))} className="mt-1" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-neutral-600">วันหมดอายุ</Label>
+                      <Input placeholder="MM/YY" value={cardInfo.expiry}
+                        onChange={(e) => setCardInfo((p) => ({ ...p, expiry: formatExpiry(e.target.value) }))}
+                        maxLength={5} inputMode="numeric" className="mt-1" />
                     </div>
-                  )}
-
-                  {payMethod === "card" && (
-                    <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                      <p className="text-xs text-neutral-500 font-medium">ชำระ {selectedPkg.coins.toLocaleString("th-TH")} บาท</p>
-                      <div>
-                        <Label className="text-xs text-neutral-600">หมายเลขบัตร</Label>
-                        <Input placeholder="0000 0000 0000 0000" value={cardInfo.number}
-                          onChange={(e) => setCardInfo((p) => ({ ...p, number: formatCardNumber(e.target.value) }))}
-                          maxLength={19} inputMode="numeric" className="mt-1 font-mono" />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-neutral-600">ชื่อบนบัตร</Label>
-                        <Input placeholder="SOMCHAI JAIDEE" value={cardInfo.name}
-                          onChange={(e) => setCardInfo((p) => ({ ...p, name: e.target.value.toUpperCase() }))}
-                          className="mt-1" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-xs text-neutral-600">วันหมดอายุ</Label>
-                          <Input placeholder="MM/YY" value={cardInfo.expiry}
-                            onChange={(e) => setCardInfo((p) => ({ ...p, expiry: formatExpiry(e.target.value) }))}
-                            maxLength={5} inputMode="numeric" className="mt-1" />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-neutral-600">CVV</Label>
-                          <Input placeholder="123" value={cardInfo.cvv}
-                            onChange={(e) => setCardInfo((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
-                            maxLength={4} inputMode="numeric" type="password" className="mt-1" />
-                        </div>
-                      </div>
+                    <div>
+                      <Label className="text-xs text-neutral-600">CVV</Label>
+                      <Input placeholder="123" value={cardInfo.cvv}
+                        onChange={(e) => setCardInfo((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                        maxLength={4} inputMode="numeric" type="password" className="mt-1" />
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 
-              {error && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>
-              )}
+              {error && <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
 
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={onClose}>ยกเลิก</Button>
-                <Button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-                  disabled={!canConfirm || loading} onClick={handleConfirm}>
+                <Button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" disabled={!canConfirm || loading} onClick={handleConfirm}>
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -233,14 +182,12 @@ export function QuotaUpgradeModal({ walletBalance, currentQuota, onClose }: Quot
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      ยืนยัน
-                      {selectedPkg && <span className="text-white/80">({selectedPkg.coins.toLocaleString("th-TH")} {payMethod === "card" ? "บาท" : "coins"})</span>}
+                      ชำระเงิน {selectedPkg && `${selectedPkg.baht.toLocaleString("th-TH")} บาท`}
                       <ChevronRight className="h-4 w-4" />
                     </span>
                   )}
                 </Button>
               </div>
-
               <p className="text-center text-xs text-neutral-400">ชำระเงินปลอดภัยโดย Omise</p>
             </div>
           )}
