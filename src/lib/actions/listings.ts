@@ -45,8 +45,6 @@ export async function getNearMeListings(
       radius_km: radiusKm,
     });
 
-    const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
-
     const gpsMatches = (nearIds ?? []) as unknown as { id: string; distance_km: number }[];
 
     if (gpsMatches.length > 0) {
@@ -57,15 +55,13 @@ export async function getNearMeListings(
         .in("id", ids)
         .eq("status", "published");
 
-      const data = ((rawData ?? []) as unknown as SearchListing[]).filter(
-        (l) => l.published_at && new Date(l.published_at).getTime() > oneYearAgo
-      );
+      const data = (rawData ?? []) as unknown as SearchListing[];
       const byId = new Map(data.map((l) => [l.id, l]));
       const ordered = ids.map((id) => byId.get(id)).filter((x): x is SearchListing => !!x);
       return { listings: ordered, total: gpsMatches.length };
     }
 
-    // Fallback: not enough GPS-tagged listings → find nearest province via wide radius search
+    // Fallback: no GPS-tagged listings nearby → find nearest province via wide radius search
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: wideIds } = await (supabase as any).rpc("listings_within_distance", {
       center_lat: lat,
@@ -91,12 +87,8 @@ export async function getNearMeListings(
         .eq("province_id", provinceId)
         .eq("status", "published")
         .order("published_at", { ascending: false })
-        .limit(4);
-
-      const filtered = ((data ?? []) as unknown as SearchListing[]).filter(
-        (l) => l.published_at && new Date(l.published_at).getTime() > oneYearAgo
-      );
-      return { listings: filtered, total: count ?? 0 };
+        .limit(8);
+      return { listings: (data ?? []) as unknown as SearchListing[], total: count ?? 0 };
     }
 
     // Last resort: latest listings
@@ -105,14 +97,8 @@ export async function getNearMeListings(
       .select(NEAR_ME_SELECT, { count: "exact" })
       .eq("status", "published")
       .order("published_at", { ascending: false })
-      .limit(4);
-
-    return {
-      listings: ((latest ?? []) as unknown as SearchListing[]).filter(
-        (l) => l.published_at && new Date(l.published_at).getTime() > oneYearAgo
-      ),
-      total: latestCount ?? 0,
-    };
+      .limit(8);
+    return { listings: (latest ?? []) as unknown as SearchListing[], total: latestCount ?? 0 };
   } else {
     const { data, count } = await supabase
       .from("listings")
@@ -122,12 +108,8 @@ export async function getNearMeListings(
       .order("published_at", { ascending: false })
       .limit(4);
 
-    const oneYearAgo2 = Date.now() - 365 * 24 * 60 * 60 * 1000;
-    const filtered = ((data ?? []) as unknown as SearchListing[]).filter(
-      (l) => l.published_at && new Date(l.published_at).getTime() > oneYearAgo2
-    );
     return {
-      listings: filtered,
+      listings: (data ?? []) as unknown as SearchListing[],
       total: count ?? 0,
     };
   }
