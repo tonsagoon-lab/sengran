@@ -21,9 +21,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cat = categories.find((c) => c.slug === slug);
   if (!cat) return { title: "ไม่พบหมวดหมู่" };
 
-  const displayName = cat.name_th.startsWith("ร้าน") ? cat.name_th : `ร้าน${cat.name_th}`;
-  const title = `${displayName} เซ้งและให้เช่า — เซ้งร้าน.com`;
-  const description = `ค้นหา${displayName} เซ้งและให้เช่าทั่วประเทศไทย ราคาโดนใจ ติดต่อได้ทันที`;
+  const title = `${cat.name_th} เซ้งและให้เช่า — เซ้งร้าน.com`;
+  const description = `ค้นหา${cat.name_th} เซ้งและให้เช่าทั่วประเทศไทย ราคาโดนใจ ติดต่อได้ทันที`;
 
   return {
     title,
@@ -47,16 +46,14 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     else if (Array.isArray(v) && v[0]) flat[k] = v[0];
   }
 
-  const displayName = cat.name_th.startsWith("ร้าน") ? cat.name_th : `ร้าน${cat.name_th}`;
-
   return (
     <>
       <TopMenuBar />
       <BrowsePage
         searchParams={flat}
         lockedCategory={slug}
-        heroTitle={`${displayName} เซ้งและให้เช่า`}
-        heroSubtitle={`เซ้ง${displayName} และให้เช่า ทั่วประเทศไทย`}
+        heroTitle={`${cat.name_th} เซ้งและให้เช่า`}
+        heroSubtitle={`เซ้ง${cat.name_th} และให้เช่า ทั่วประเทศไทย`}
       />
     </>
   );
