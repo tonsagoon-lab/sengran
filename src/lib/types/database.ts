@@ -12,6 +12,7 @@ export type Database = {
           avatar_url: string | null;
           role: "user" | "admin";
           wallet_balance: number;
+          listing_quota: number;
           legacy_wp_user_id: number | null;
           created_at: string;
           updated_at: string;
@@ -24,6 +25,7 @@ export type Database = {
           avatar_url?: string | null;
           role?: "user" | "admin";
           wallet_balance?: number;
+          listing_quota?: number;
           legacy_wp_user_id?: number | null;
           created_at?: string;
           updated_at?: string;
@@ -35,6 +37,7 @@ export type Database = {
           avatar_url?: string | null;
           role?: "user" | "admin";
           wallet_balance?: number;
+          listing_quota?: number;
           legacy_wp_user_id?: number | null;
           updated_at?: string;
         };
