@@ -80,8 +80,8 @@ export async function BrowsePage({
       <FilterBar categories={categories} provinces={provinces} amenities={amenities} />
 
       <main className="mx-auto max-w-7xl px-4 py-6 space-y-8">
-        {/* Featured strip — only on default homepage (no locked filters, no search) */}
-        {!lockedProvince && !lockedCategory && !searchParams.q && (
+        {/* Featured strip — only on page 1, no locked filters, no search */}
+        {!lockedProvince && !lockedCategory && !searchParams.q && (!searchParams.page || searchParams.page === "1") && (
           <Suspense fallback={null}>
             <FeaturedStrip supabaseUrl={supabaseUrl} />
           </Suspense>
