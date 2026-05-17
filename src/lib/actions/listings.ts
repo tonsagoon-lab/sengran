@@ -13,12 +13,7 @@ import type { SearchListing } from "@/lib/db/listings";
 const IMAGE_EXT_RE = /\.(jpe?g|png|webp|gif|avif)(\?|$)/i;
 function hasValidImage(l: SearchListing): boolean {
   return Array.isArray(l.listing_images) &&
-    l.listing_images.some((img) => {
-      if (!img.storage_path) return false;
-      // exclude old absolute WP URLs — they're broken after migration
-      if (img.storage_path.startsWith("http://") || img.storage_path.startsWith("https://")) return false;
-      return IMAGE_EXT_RE.test(img.storage_path);
-    });
+    l.listing_images.some((img) => !!img.storage_path && IMAGE_EXT_RE.test(img.storage_path));
 }
 
 const NEAR_ME_SELECT = `
