@@ -77,7 +77,7 @@ export async function BrowsePage({
       </section>
 
       {/* Filter bar */}
-      <FilterBar categories={categories} provinces={provinces} amenities={amenities} />
+      <FilterBar categories={categories} provinces={provinces} amenities={amenities} lockedCategory={lockedCategory} lockedProvince={lockedProvince} />
 
       <main className="mx-auto max-w-7xl px-4 py-6 space-y-8">
         {/* Featured strip — only on page 1, no locked filters, no search */}

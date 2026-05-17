@@ -36,6 +36,8 @@ interface FilterBarProps {
   categories: Category[];
   provinces: Province[];
   amenities: unknown[];
+  lockedCategory?: string;
+  lockedProvince?: string;
 }
 
 const TYPE_OPTIONS = [
@@ -54,14 +56,14 @@ const SORT_OPTIONS = [
 
 const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50, 100];
 
-export function FilterBar({ categories, provinces }: FilterBarProps) {
+export function FilterBar({ categories, provinces, lockedCategory, lockedProvince }: FilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const currentType = searchParams.get("type") ?? "";
-  const currentCat = searchParams.get("cat") ?? "";
-  const currentProvince = searchParams.get("province") ?? "";
+  const currentCat = lockedCategory ?? (searchParams.get("cat") ?? "");
+  const currentProvince = lockedProvince ?? (searchParams.get("province") ?? "");
   const currentSort = searchParams.get("sort") ?? "latest";
   const currentMinPrice = searchParams.get("min_price") ?? "";
   const currentMaxPrice = searchParams.get("max_price") ?? "";
@@ -131,6 +133,16 @@ export function FilterBar({ categories, provinces }: FilterBarProps) {
     setSheetOpen(false);
   };
 
+  const handleCategoryChange = useCallback((slug: string) => {
+    if (lockedCategory) {
+      // on a locked category page → navigate to that category page (or /listings if cleared)
+      if (!slug) router.push("/listings");
+      else router.push(`/property-type/${slug}`);
+    } else {
+      updateURL({ cat: slug || null });
+    }
+  }, [lockedCategory, router, updateURL]);
+
   const selectedProvince = provinces.find((p) => p.slug === currentProvince);
 
   return (
@@ -157,7 +169,7 @@ export function FilterBar({ categories, provinces }: FilterBarProps) {
 
           <select
             value={currentCat}
-            onChange={(e) => updateURL({ cat: e.target.value || null })}
+            onChange={(e) => handleCategoryChange(e.target.value)}
             className="h-9 rounded-lg border bg-white px-3 text-sm text-neutral-700 hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
           >
             <option value="">ทุกหมวดหมู่</option>
@@ -301,6 +313,7 @@ export function FilterBar({ categories, provinces }: FilterBarProps) {
                 setSheetLocation={setSheetLocation}
                 setSheetRadius={setSheetRadius}
                 onUpdate={updateURL}
+                onCategoryChange={handleCategoryChange}
                 onClose={() => setSheetOpen(false)}
               />
             </SheetContent>
@@ -433,6 +446,7 @@ interface MobileFiltersProps {
   setSheetLocation: (v: boolean) => void;
   setSheetRadius: (v: string) => void;
   onUpdate: (updates: Record<string, string | null>) => void;
+  onCategoryChange: (slug: string) => void;
   onClose: () => void;
 }
 
@@ -442,7 +456,7 @@ function MobileFilters({
   minPrice, maxPrice,
   sheetVideo, sheetLocation, sheetRadius,
   setMinPrice, setMaxPrice, setSheetVideo, setSheetLocation, setSheetRadius,
-  onUpdate, onClose,
+  onUpdate, onCategoryChange, onClose,
 }: MobileFiltersProps) {
   const apply = () => {
     onUpdate({
@@ -473,7 +487,7 @@ function MobileFilters({
 
       <div>
         <p className="mb-2 text-sm font-medium">หมวดหมู่</p>
-        <select value={currentCat} onChange={(e) => onUpdate({ cat: e.target.value || null })}
+        <select value={currentCat} onChange={(e) => { onCategoryChange(e.target.value); onClose(); }}
           className="w-full rounded-lg border px-3 py-2 text-sm">
           <option value="">ทุกหมวดหมู่</option>
           {categories.map((c) => <option key={c.id} value={c.slug}>{c.name_th}</option>)}
