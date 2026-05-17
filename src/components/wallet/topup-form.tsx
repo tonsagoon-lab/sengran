@@ -13,11 +13,11 @@ interface Package {
 }
 
 const PACKAGES: Package[] = [
-  { baht: 300, coins: 300, bonus: 0 },
-  { baht: 500, coins: 500, bonus: 0 },
-  { baht: 1500, coins: 1500, bonus: 0 },
-  { baht: 3000, coins: 3000, bonus: 0 },
-  { baht: 10000, coins: 10000, bonus: 0 },
+  { baht: 300, coins: 300 },
+  { baht: 500, coins: 500 },
+  { baht: 1500, coins: 1500 },
+  { baht: 3000, coins: 3000 },
+  { baht: 10000, coins: 10000 },
 ];
 
 declare global {
