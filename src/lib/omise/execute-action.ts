@@ -79,12 +79,15 @@ export async function executeChargeAction(charge: any): Promise<boolean> {
       });
     }
 
-    const { data: lst } = await admin.from("listings").select("title").eq("id", listing_id).single();
+    const { data: lst } = await admin.from("listings").select("title, slug").eq("id", listing_id).single();
     const typeLabel = pkgType === "facebook" ? "📣 ยิงโฆษณา Facebook" : "⭐ Premium หน้าแรก";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xn--12c1bik6bbd8af5l3d.com";
+    const listingUrl = lst?.slug ? `${siteUrl}/property/${lst.slug}` : null;
     await sendTelegramNotification(
       `💰 <b>คำสั่งซื้อใหม่</b>\n` +
       `${typeLabel}\n` +
       `📋 ประกาศ: ${lst?.title ?? listing_id}\n` +
+      (listingUrl ? `🔗 <a href="${listingUrl}">${listingUrl}</a>\n` : "") +
       `⏱ ระยะเวลา: ${metadata.days} วัน\n` +
       `💵 ยอด: ${amountBaht.toLocaleString("th-TH")} บาท\n` +
       `🔖 Charge: ${chargeId}`
