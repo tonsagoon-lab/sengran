@@ -3,10 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const BOOST_PACKAGES = {
-  premium_10: { label: "Premium หน้าแรก 10 วัน", type: "premium", baht: 300, days: 10 },
-  premium_20: { label: "Premium หน้าแรก 20 วัน", type: "premium", baht: 500, days: 20 },
-  facebook_7: { label: "โฆษณา Facebook 7 วัน", type: "facebook", baht: 1500, days: 7 },
-  facebook_15: { label: "โฆษณา Facebook 15 วัน", type: "facebook", baht: 3000, days: 15 },
+  premium_15: { label: "Premium หน้าแรก 15 วัน", type: "premium", baht: 300, days: 15 },
+  premium_30: { label: "Premium หน้าแรก 30 วัน", type: "premium", baht: 500, days: 30 },
+  facebook_10: { label: "โฆษณา Facebook 10 วัน", type: "facebook", baht: 1500, days: 10 },
+  facebook_20: { label: "โฆษณา Facebook 20 วัน", type: "facebook", baht: 2990, days: 20 },
 } as const;
 
 export type PackageKey = keyof typeof BOOST_PACKAGES;

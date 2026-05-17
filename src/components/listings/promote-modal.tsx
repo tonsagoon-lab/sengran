@@ -10,12 +10,12 @@ import { Label } from "@/components/ui/label";
 interface PromoteModalProps {
   listingId: string;
   listingTitle: string;
+  type: "premium" | "facebook";
   onClose: () => void;
 }
 
-const PACKAGES = [
-  {
-    key: "premium",
+const PACKAGES = {
+  premium: {
     icon: <Star className="h-5 w-5" />,
     color: "text-orange-600",
     selectedBorder: "border-orange-500",
@@ -23,12 +23,11 @@ const PACKAGES = [
     label: "ประกาศ Premium หน้าแรก",
     desc: "ติดป้าย Premium โดดเด่น อยู่ใน section แนะนำบนหน้าแรก",
     options: [
-      { key: "premium_10", label: "10 วัน", baht: 300 },
-      { key: "premium_20", label: "20 วัน", baht: 500 },
+      { key: "premium_15", label: "15 วัน", baht: 300 },
+      { key: "premium_30", label: "30 วัน", baht: 500 },
     ],
   },
-  {
-    key: "facebook",
+  facebook: {
     icon: <Megaphone className="h-5 w-5" />,
     color: "text-indigo-600",
     selectedBorder: "border-indigo-500",
@@ -36,11 +35,11 @@ const PACKAGES = [
     label: "ยิงโฆษณา Facebook บนเพจ",
     desc: "ยิงโฆษณาบนเพจ facebook.com/selloutthailand",
     options: [
-      { key: "facebook_7", label: "7 วัน", baht: 1500 },
-      { key: "facebook_15", label: "15 วัน", baht: 3000 },
+      { key: "facebook_10", label: "10 วัน", baht: 1500 },
+      { key: "facebook_20", label: "20 วัน", baht: 2990 },
     ],
   },
-];
+};
 
 const FACEBOOK_PAGE = "https://www.facebook.com/selloutthailand/";
 const ADMIN_LINE_URL = "https://line.me/R/ti/p/~salebiz";
@@ -53,8 +52,9 @@ declare global {
 
 interface CardInfo { number: string; name: string; expiry: string; cvv: string; }
 
-export function PromoteModal({ listingId, listingTitle, onClose }: PromoteModalProps) {
+export function PromoteModal({ listingId, listingTitle, type, onClose }: PromoteModalProps) {
   const router = useRouter();
+  const group = PACKAGES[type];
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [contactInfo, setContactInfo] = useState("");
   const [cardInfo, setCardInfo] = useState<CardInfo>({ number: "", name: "", expiry: "", cvv: "" });
@@ -73,8 +73,8 @@ export function PromoteModal({ listingId, listingTitle, onClose }: PromoteModalP
     document.head.appendChild(s);
   }, []);
 
-  const selectedOption = PACKAGES.flatMap((p) => p.options).find((o) => o.key === selectedKey);
-  const isFacebook = selectedKey?.startsWith("facebook");
+  const selectedOption = group.options.find((o) => o.key === selectedKey);
+  const isFacebook = type === "facebook";
   const cardFilled = cardInfo.number.replace(/\s/g, "").length === 16 && cardInfo.name.trim() && cardInfo.expiry.length === 5 && cardInfo.cvv.length >= 3;
   const canSubmit = selectedKey && (!isFacebook || contactInfo.trim().length > 0) && cardFilled;
 
@@ -170,30 +170,28 @@ export function PromoteModal({ listingId, listingTitle, onClose }: PromoteModalP
 
           {!successType && (
             <div className="p-5 space-y-4">
-              {PACKAGES.map((group) => (
-                <div key={group.key}>
-                  <div className={`flex items-center gap-2 mb-1.5 ${group.color}`}>
-                    {group.icon}
-                    <span className="text-sm font-semibold">{group.label}</span>
-                  </div>
-                  <p className="text-xs text-neutral-500 mb-2">{group.desc}</p>
-                  <div className="flex gap-2">
-                    {group.options.map((opt) => {
-                      const isSelected = selectedKey === opt.key;
-                      return (
-                        <button key={opt.key} onClick={() => { setSelectedKey(opt.key); setError(null); }}
-                          className={`flex-1 rounded-xl border-2 py-3 px-3 text-center transition-all ${
-                            isSelected ? `${group.selectedBorder} ${group.selectedBg}` : "border-neutral-200 hover:border-neutral-300"
-                          }`}
-                        >
-                          <p className="text-xs text-neutral-500">{opt.label}</p>
-                          <p className={`text-sm font-bold mt-0.5 ${group.color}`}>{opt.baht.toLocaleString("th-TH")} บาท</p>
-                        </button>
-                      );
-                    })}
-                  </div>
+              <div>
+                <div className={`flex items-center gap-2 mb-1.5 ${group.color}`}>
+                  {group.icon}
+                  <span className="text-sm font-semibold">{group.label}</span>
                 </div>
-              ))}
+                <p className="text-xs text-neutral-500 mb-2">{group.desc}</p>
+                <div className="flex gap-2">
+                  {group.options.map((opt) => {
+                    const isSelected = selectedKey === opt.key;
+                    return (
+                      <button key={opt.key} onClick={() => { setSelectedKey(opt.key); setError(null); }}
+                        className={`flex-1 rounded-xl border-2 py-3 px-3 text-center transition-all ${
+                          isSelected ? `${group.selectedBorder} ${group.selectedBg}` : "border-neutral-200 hover:border-neutral-300"
+                        }`}
+                      >
+                        <p className="text-xs text-neutral-500">{opt.label}</p>
+                        <p className={`text-sm font-bold mt-0.5 ${group.color}`}>{opt.baht.toLocaleString("th-TH")} บาท</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               {isFacebook && (
                 <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
