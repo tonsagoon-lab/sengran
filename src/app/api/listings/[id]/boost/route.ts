@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { omiseFetch } from "@/lib/omise/execute-action";
+import { sendTelegramNotification } from "@/lib/telegram";
 
 export const BOOST_PACKAGES = {
   premium_15: { label: "Premium หน้าแรก 15 วัน", type: "premium", baht: 300, days: 15 },
@@ -113,6 +114,20 @@ export async function POST(
       omise_charge_id: charge.id,
       status: "success",
     });
+
+    const { data: lst } = await admin.from("listings").select("title, slug").eq("id", listingId).single();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xn--12c1bik6bbd8af5l3d.com";
+    const listingUrl = lst?.slug ? `${siteUrl}/property/${lst.slug}` : null;
+    const typeLabel = pkg.type === "facebook" ? "📣 ยิงโฆษณา Facebook" : "⭐ Premium หน้าแรก";
+    await sendTelegramNotification(
+      `💰 <b>คำสั่งซื้อใหม่</b> (บัตรเครดิต)\n` +
+      `${typeLabel}\n` +
+      `📋 ประกาศ: ${lst?.title ?? listingId}\n` +
+      (listingUrl ? `🔗 <a href="${listingUrl}">${listingUrl}</a>\n` : "") +
+      `⏱ ระยะเวลา: ${pkg.days} วัน\n` +
+      `💵 ยอด: ${pkg.baht.toLocaleString("th-TH")} บาท\n` +
+      `🔖 Charge: ${charge.id}`
+    );
 
     return NextResponse.json({ success: true });
   } catch (err) {

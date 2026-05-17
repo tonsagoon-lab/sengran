@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { omiseFetch } from "@/lib/omise/execute-action";
+import { sendTelegramNotification } from "@/lib/telegram";
 
 const QUOTA_PACKAGES = {
   quota_20: { label: "เพิ่ม 20 ประกาศ/ปี", baht: 300, listings: 20 },
@@ -78,6 +79,14 @@ export async function POST(req: NextRequest) {
       omise_charge_id: charge.id,
       status: "success",
     });
+
+    await sendTelegramNotification(
+      `💰 <b>คำสั่งซื้อใหม่</b>\n` +
+      `📦 เพิ่มโควต้าประกาศ (บัตรเครดิต)\n` +
+      `➕ จำนวน: ${pkg.listings} ประกาศ\n` +
+      `💵 ยอด: ${pkg.baht.toLocaleString("th-TH")} บาท\n` +
+      `🔖 Charge: ${charge.id}`
+    );
 
     return NextResponse.json({ success: true, newQuota: currentQuota + pkg.listings });
   } catch (err) {
