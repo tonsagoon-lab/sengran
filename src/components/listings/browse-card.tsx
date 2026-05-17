@@ -56,6 +56,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
   const router = useRouter();
   const [favorited, setFavorited] = useState(isFavorited);
   const [pending, setPending] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   async function handleFavorite(e: React.MouseEvent) {
     e.preventDefault();
@@ -83,7 +84,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
     >
       {/* Image */}
       <div className="relative aspect-[4/3] bg-neutral-100 shrink-0">
-        {coverUrl ? (
+        {coverUrl && !imgError ? (
           <Image
             src={coverUrl}
             alt={listing.title}
@@ -91,6 +92,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
             className="object-cover"
             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
             priority={priority}
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-neutral-300 text-sm">
