@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMyListings } from "@/lib/db/listings";
 import { Button } from "@/components/ui/button";
 import { ListingCard } from "@/components/listings/listing-card";
+import { QuotaUpgradeButton } from "@/components/listings/quota-upgrade-button";
 
 export const metadata = { title: "ประกาศของฉัน — เซ้งร้าน.com" };
 
@@ -18,10 +19,11 @@ export default async function MyListingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("wallet_balance")
+    .select("wallet_balance, listing_quota")
     .eq("id", user.id)
     .single();
   const walletBalance = Math.floor(Number(profile?.wallet_balance ?? 0));
+  const listingQuota = Number(profile?.listing_quota ?? 0);
 
   const published = listings.filter((l) => l.status === "published");
   const hidden = listings.filter((l) => l.status === "hidden");
@@ -40,6 +42,10 @@ export default async function MyListingsPage() {
       </div>
 
       {/* CTA banner */}
+      <div className="flex gap-2 mb-4">
+        <QuotaUpgradeButton walletBalance={walletBalance} currentQuota={listingQuota} />
+      </div>
+
       <div className="flex gap-2 mb-6">
         <a
           href="https://line.me/R/ti/p/~salebiz"

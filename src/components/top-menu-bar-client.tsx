@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MapPin, Megaphone, MessageCircle, ShieldCheck, BookOpen, Bell } from "lucide-react";
+import { Home, MapPin, Megaphone, MessageCircle, ShieldCheck, Bell } from "lucide-react";
 
 interface TopMenuBarClientProps {
   unreadCount: number;
@@ -54,10 +54,12 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLog
           <span className="hidden sm:inline">เซ้งร้านใกล้ฉัน</span>
         </a>
 
-        {/* บทความ */}
-        <Link href="/blog" className={linkClass(pathname.startsWith("/blog"))} aria-label="บทความ">
-          <BookOpen className="h-4 w-4 shrink-0" />
-          <span className="hidden sm:inline">บทความ</span>
+        {/* ลงประกาศฟรี */}
+        <Link
+          href={isLoggedIn ? "/listings/new" : "/login"}
+          className="flex shrink-0 items-center gap-1.5 rounded-full bg-green-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-600 transition-colors whitespace-nowrap"
+        >
+          ลงประกาศฟรี!
         </Link>
 
         {/* แจ้งเตือนร้านเซ้ง — shown to everyone */}

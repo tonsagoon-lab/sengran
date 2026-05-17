@@ -10,15 +10,14 @@ import { Label } from "@/components/ui/label";
 interface Package {
   baht: number;
   coins: number;
-  bonus: number;
 }
 
 const PACKAGES: Package[] = [
-  { baht: 300, coins: 330, bonus: 30 },
-  { baht: 500, coins: 550, bonus: 50 },
-  { baht: 1500, coins: 1650, bonus: 150 },
-  { baht: 3000, coins: 3300, bonus: 300 },
-  { baht: 10000, coins: 11000, bonus: 1000 },
+  { baht: 300, coins: 300, bonus: 0 },
+  { baht: 500, coins: 500, bonus: 0 },
+  { baht: 1500, coins: 1500, bonus: 0 },
+  { baht: 3000, coins: 3000, bonus: 0 },
+  { baht: 10000, coins: 10000, bonus: 0 },
 ];
 
 declare global {
@@ -65,7 +64,6 @@ export function TopupForm({ userId }: { userId: string }) {
   const effectiveBaht = selectedBaht ?? (customBaht ? Number(customBaht) : 0);
   const selectedPkg = PACKAGES.find((p) => p.baht === effectiveBaht);
   const effectiveCoins = selectedPkg ? selectedPkg.coins : effectiveBaht;
-  const bonus = selectedPkg ? selectedPkg.bonus : 0;
 
   function formatCardNumber(val: string) {
     return val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
@@ -199,17 +197,12 @@ export function TopupForm({ userId }: { userId: string }) {
                 setSelectedBaht(pkg.baht);
                 setCustomBaht("");
               }}
-              className={`relative rounded-xl border-2 p-4 text-left transition-all ${
+              className={`rounded-xl border-2 p-4 text-left transition-all ${
                 selectedBaht === pkg.baht && !customBaht
                   ? "border-orange-500 bg-orange-50"
                   : "border-neutral-200 hover:border-orange-300 hover:bg-orange-50/50"
               }`}
             >
-              <div className="absolute -top-2.5 -right-2.5">
-                <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
-                  +{pkg.bonus} ฟรี
-                </span>
-              </div>
               <p className="text-lg font-bold text-neutral-900">
                 {pkg.baht.toLocaleString("th-TH")}
                 <span className="text-xs font-normal text-neutral-500 ml-1">บาท</span>
@@ -263,9 +256,6 @@ export function TopupForm({ userId }: { userId: string }) {
             </p>
             <p className="text-xs text-neutral-500">
               รับ {effectiveCoins.toLocaleString("th-TH")} coins
-              {bonus > 0 && (
-                <span className="ml-1 font-semibold text-orange-600">(รวมโบนัส +{bonus})</span>
-              )}
             </p>
           </div>
           <Coins className="h-5 w-5 text-orange-400" />

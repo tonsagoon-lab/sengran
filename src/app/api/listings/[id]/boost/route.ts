@@ -12,6 +12,20 @@ export const BOOST_PACKAGES = {
 
 export type PackageKey = keyof typeof BOOST_PACKAGES;
 
+const OMISE_SECRET_KEY = process.env.OMISE_SECRET_KEY!;
+
+function omiseFetch(path: string, options?: RequestInit) {
+  const auth = Buffer.from(`${OMISE_SECRET_KEY}:`).toString("base64");
+  return fetch(`https://api.omise.co${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      ...(options?.headers ?? {}),
+    },
+  });
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -22,9 +36,17 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { packageKey, contactInfo } = await req.json() as { packageKey: PackageKey; contactInfo?: string };
+    const { packageKey, contactInfo, paymentMethod, tokenId } = await req.json() as {
+      packageKey: PackageKey;
+      contactInfo?: string;
+      paymentMethod?: "coins" | "card";
+      tokenId?: string;
+    };
+
     const pkg = BOOST_PACKAGES[packageKey];
     if (!pkg) return NextResponse.json({ error: "Invalid package" }, { status: 400 });
+
+    const method = paymentMethod ?? "coins";
 
     // Verify listing belongs to user
     const { data: listing } = await supabase
@@ -35,57 +57,76 @@ export async function POST(
       .single();
     if (!listing) return NextResponse.json({ error: "Listing not found" }, { status: 404 });
 
-    // Check coin balance
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("wallet_balance")
-      .eq("id", user.id)
-      .single();
-    const balance = Math.floor(Number(profile?.wallet_balance ?? 0));
-    if (balance < pkg.coins) {
-      return NextResponse.json({ error: "coin ไม่พอ", balance }, { status: 400 });
+    const admin = createAdminClient();
+
+    if (method === "card") {
+      // Direct card payment via Omise (1 coin = 1 baht)
+      if (!tokenId) return NextResponse.json({ error: "tokenId required" }, { status: 400 });
+      if (!OMISE_SECRET_KEY) return NextResponse.json({ error: "ระบบ payment ยังไม่พร้อม" }, { status: 500 });
+
+      const omiseRes = await omiseFetch("/charges", {
+        method: "POST",
+        body: new URLSearchParams({
+          amount: String(pkg.coins * 100), // satang, 1 coin = 1 baht
+          currency: "thb",
+          card: tokenId,
+        }).toString(),
+      });
+      const charge = await omiseRes.json();
+      if (!omiseRes.ok || charge.status !== "successful") {
+        return NextResponse.json({ error: charge.message ?? "การชำระเงินไม่สำเร็จ" }, { status: 502 });
+      }
+
+      // Record payment transaction
+      await admin.from("wallet_transactions").insert({
+        user_id: user.id,
+        amount: pkg.coins,
+        type: "spend",
+        description: `${pkg.label} — ชำระด้วยบัตร`,
+        omise_charge_id: charge.id,
+        status: "success",
+      });
+    } else {
+      // Coin payment — check balance
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("wallet_balance")
+        .eq("id", user.id)
+        .single();
+      const balance = Math.floor(Number(profile?.wallet_balance ?? 0));
+      if (balance < pkg.coins) {
+        return NextResponse.json({ error: "coin ไม่พอ", balance }, { status: 400 });
+      }
+
+      await admin.rpc("increment_wallet_balance", { p_user_id: user.id, p_amount: -pkg.coins });
+      await admin.from("wallet_transactions").insert({
+        user_id: user.id,
+        amount: pkg.coins,
+        type: "spend",
+        description: `${pkg.label} — ประกาศ ${listingId.slice(0, 8)}...`,
+        status: "success",
+      });
     }
 
-    const admin = createAdminClient();
+    // Execute boost action
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + pkg.days * 24 * 60 * 60 * 1000);
-
-    // Update listing based on type
     if (pkg.type === "homepage") {
-      // ดัน 1 ครั้ง — เพิ่ม boost_rank และ reset boost_until เป็นปัจจุบัน
       await admin
         .from("listings")
         .update({ boost_rank: (listing.boost_rank ?? 0) + 1, boost_until: now.toISOString() })
         .eq("id", listingId);
     } else if (pkg.type === "premium") {
-      // Extend featured_until from now or current expiry (whichever is later)
       const currentFeaturedUntil = listing.featured_until ? new Date(listing.featured_until) : now;
       const baseDate = currentFeaturedUntil > now ? currentFeaturedUntil : now;
       const newFeaturedUntil = new Date(baseDate.getTime() + pkg.days * 24 * 60 * 60 * 1000);
-
       await admin
         .from("listings")
         .update({ is_featured: true, featured_until: newFeaturedUntil.toISOString() })
         .eq("id", listingId);
     }
-    // facebook type: just record the order, admin handles manually
-
-    // Deduct coins
-    await admin.rpc("increment_wallet_balance", {
-      p_user_id: user.id,
-      p_amount: -pkg.coins,
-    });
-
-    // Record transaction
-    await admin.from("wallet_transactions").insert({
-      user_id: user.id,
-      amount: pkg.coins,
-      type: "spend",
-      description: `${pkg.label} — ประกาศ ${listingId.slice(0, 8)}...`,
-      status: "success",
-    });
 
     // Record boost
+    const expiresAt = new Date(now.getTime() + pkg.days * 24 * 60 * 60 * 1000);
     await admin.from("listing_boosts").insert({
       listing_id: listingId,
       user_id: user.id,

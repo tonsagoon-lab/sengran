@@ -5,14 +5,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const OMISE_SECRET_KEY = process.env.OMISE_SECRET_KEY!;
 const OMISE_BASE = "https://api.omise.co";
 
-const PACKAGES = [
-  { baht: 300, coins: 330 },
-  { baht: 500, coins: 550 },
-  { baht: 1500, coins: 1650 },
-  { baht: 3000, coins: 3300 },
-  { baht: 10000, coins: 11000 },
-];
-
 function omiseFetch(path: string, options?: RequestInit) {
   const auth = Buffer.from(`${OMISE_SECRET_KEY}:`).toString("base64");
   return fetch(`${OMISE_BASE}${path}`, {
@@ -26,8 +18,7 @@ function omiseFetch(path: string, options?: RequestInit) {
 }
 
 function calculateCoins(baht: number): number {
-  const pkg = PACKAGES.find((p) => p.baht === baht);
-  return pkg ? pkg.coins : baht; // no bonus for custom amount
+  return baht; // 1 coin = 1 baht
 }
 
 export async function POST(req: NextRequest) {

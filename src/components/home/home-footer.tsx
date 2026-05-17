@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BookOpen } from "lucide-react";
 
 const LINE_URL = "https://line.me/ti/p/~salebiz";
 
@@ -6,7 +7,7 @@ export function HomeFooter() {
   return (
     <footer className="mt-auto border-t bg-neutral-900 text-neutral-300">
       <div className="mx-auto max-w-7xl px-4 py-10">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-4">
           {/* Brand */}
           <div className="space-y-3">
             <Link href="/" className="text-xl font-bold text-white">
@@ -42,6 +43,25 @@ export function HomeFooter() {
                 title="เซ้งร้าน.com Facebook"
               />
             </div>
+          </div>
+
+          {/* เมนู */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-white">เมนู</h3>
+            <ul className="space-y-2 text-sm text-neutral-400">
+              <li>
+                <Link href="/" className="hover:text-orange-400 transition-colors">หน้าแรก</Link>
+              </li>
+              <li>
+                <Link href="/listings" className="hover:text-orange-400 transition-colors">ประกาศทั้งหมด</Link>
+              </li>
+              <li>
+                <Link href="/blog" className="inline-flex items-center gap-1.5 hover:text-orange-400 transition-colors">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  บทความ
+                </Link>
+              </li>
+            </ul>
           </div>
 
           {/* Contact */}
