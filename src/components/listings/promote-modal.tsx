@@ -36,8 +36,8 @@ const PACKAGES = {
     label: "ยิงโฆษณา Facebook บนเพจ",
     desc: "ยิงโฆษณาบนเพจ facebook.com/selloutthailand",
     options: [
-      { key: "facebook_10", label: "10 วัน", baht: 1500 },
-      { key: "facebook_20", label: "20 วัน", baht: 2990 },
+      { key: "facebook_10", label: "10 วัน", reach: "คนเห็น 20,000+ คน", baht: 1500 },
+      { key: "facebook_20", label: "20 วัน", reach: "คนเห็น 45,000+ คน", baht: 2990 },
     ],
   },
 };
@@ -58,7 +58,7 @@ interface QrData { chargeId: string; qrImageUrl: string | null; }
 export function PromoteModal({ listingId, listingTitle, type, onClose }: PromoteModalProps) {
   const router = useRouter();
   const group = PACKAGES[type];
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(type === "facebook" ? "facebook_10" : null);
   const [contactInfo, setContactInfo] = useState("");
   const [payMethod, setPayMethod] = useState<"promptpay" | "card">("promptpay");
   const [cardInfo, setCardInfo] = useState<CardInfo>({ number: "", name: "", expiry: "", cvv: "" });
@@ -249,14 +249,16 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
                 <div className="flex gap-2">
                   {group.options.map((opt) => {
                     const isSelected = selectedKey === opt.key;
+                    const reach = "reach" in opt ? opt.reach : undefined;
                     return (
                       <button key={opt.key} onClick={() => { setSelectedKey(opt.key); setError(null); }}
                         className={`flex-1 rounded-xl border-2 py-3 px-3 text-center transition-all ${
                           isSelected ? `${group.selectedBorder} ${group.selectedBg}` : "border-neutral-200 hover:border-neutral-300"
                         }`}
                       >
-                        <p className="text-xs text-neutral-500">{opt.label}</p>
-                        <p className={`text-sm font-bold mt-0.5 ${group.color}`}>{opt.baht.toLocaleString("th-TH")} บาท</p>
+                        <p className="text-xs font-medium text-neutral-700">{opt.label}</p>
+                        {reach && <p className="text-[10px] text-indigo-500 mt-0.5">{reach}</p>}
+                        <p className={`text-sm font-bold mt-1 ${group.color}`}>{opt.baht.toLocaleString("th-TH")} บาท</p>
                       </button>
                     );
                   })}
