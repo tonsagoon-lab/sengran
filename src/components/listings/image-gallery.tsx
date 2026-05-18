@@ -13,8 +13,20 @@ interface ImageGalleryProps {
 export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
   const [active, setActive] = useState(0);
   const [lightbox, setLightbox] = useState(false);
+  const [failedPaths, setFailedPaths] = useState<Set<string>>(new Set());
 
-  if (images.length === 0) {
+  const validImages = images.filter((img) => !failedPaths.has(img.storage_path));
+  const safeActive = Math.min(active, Math.max(0, validImages.length - 1));
+
+  const handleError = (path: string) => {
+    setFailedPaths((prev) => {
+      const next = new Set(prev);
+      next.add(path);
+      return next;
+    });
+  };
+
+  if (validImages.length === 0) {
     return (
       <div className="w-full aspect-[4/3] rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-400">
         ไม่มีรูปภาพ
@@ -24,24 +36,25 @@ export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
 
   const url = (path: string) => resolveImageUrl(path);
 
-  const prev = () => setActive((a) => (a - 1 + images.length) % images.length);
-  const next = () => setActive((a) => (a + 1) % images.length);
+  const prev = () => setActive((a) => (a - 1 + validImages.length) % validImages.length);
+  const next = () => setActive((a) => (a + 1) % validImages.length);
 
   return (
     <div className="space-y-2">
       {/* Main image */}
       <div className="relative w-full aspect-[16/9] max-h-96 rounded-xl overflow-hidden bg-neutral-100 group">
         <Image
-          src={url(images[active].storage_path)}
-          alt={images[active].alt_text ?? `รูปที่ ${active + 1}`}
+          src={url(validImages[safeActive].storage_path)}
+          alt={validImages[safeActive].alt_text ?? `รูปที่ ${safeActive + 1}`}
           fill
           className="object-contain"
           sizes="(max-width: 768px) 100vw, 800px"
           priority
+          onError={() => handleError(validImages[safeActive].storage_path)}
         />
 
         {/* Prev / Next buttons */}
-        {images.length > 1 && (
+        {validImages.length > 1 && (
           <>
             <button
               onClick={prev}
@@ -58,7 +71,7 @@ export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
               <ChevronRight className="h-5 w-5" />
             </button>
             <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs rounded-full px-2 py-0.5">
-              {active + 1}/{images.length}
+              {safeActive + 1}/{validImages.length}
             </div>
           </>
         )}
@@ -127,14 +140,14 @@ export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
       )}
 
       {/* Thumbnails */}
-      {images.length > 1 && (
+      {validImages.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {images.map((img, idx) => (
+          {validImages.map((img, idx) => (
             <button
-              key={idx}
+              key={img.storage_path}
               onClick={() => setActive(idx)}
               className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                idx === active
+                idx === safeActive
                   ? "border-orange-500"
                   : "border-transparent opacity-60 hover:opacity-100"
               }`}
@@ -145,6 +158,7 @@ export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
                 fill
                 className="object-cover"
                 sizes="64px"
+                onError={() => handleError(img.storage_path)}
               />
             </button>
           ))}
