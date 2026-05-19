@@ -186,27 +186,21 @@ export default function HomeScreen() {
         setCategories((catsRes.data ?? []) as Category[]);
       }
 
-      // Step 1: bare-minimum query to confirm data exists
+      // Debug: simplest possible query — no joins, no filters
       const listingsRes = await supabase
         .from("listings")
-        .select(
-          `id, slug, title, listing_type, sale_price, rent_price, district,
-           published_at,
-           listing_images(id, storage_path, display_order),
-           categories(name_th, slug), provinces(name_th, slug)`
-        )
-        .eq("status", "published")
-        .order("published_at", { ascending: false })
-        .limit(20);
+        .select("id, slug, title, listing_type, sale_price, rent_price, district, published_at, status")
+        .limit(5);
 
       if (listingsRes.error) {
-        console.error("listings error:", listingsRes.error.message);
-        setErrorMsg("listings: " + listingsRes.error.message);
+        setErrorMsg("listings error: " + listingsRes.error.message);
       } else {
-        const listings = (listingsRes.data ?? []) as unknown as Listing[];
-        if (listings.length === 0) setErrorMsg("listings returned 0 rows");
-        setFeatured(listings.slice(0, 4));
-        setLatest(listings.slice(0, 8));
+        const count = (listingsRes.data ?? []).length;
+        const statuses = [...new Set((listingsRes.data ?? []).map((l: any) => l.status))].join(", ");
+        setErrorMsg(`got ${count} rows, statuses: [${statuses || "none"}]`);
+
+        const published = (listingsRes.data ?? []).filter((l: any) => l.status === "published");
+        setLatest(published as unknown as Listing[]);
       }
     } catch (e: any) {
       console.error("loadAll error:", e);
