@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthForm } from "@/components/shared/auth-form";
+import { GoogleLoginButton } from "@/components/shared/google-login-button";
 import { registerAction } from "@/lib/actions/auth";
 
 export const metadata = { title: "สมัครสมาชิก — เซ้งร้าน.com" };
@@ -22,7 +23,16 @@ export default function RegisterPage() {
             <CardTitle className="text-xl">สมัครสมาชิก</CardTitle>
             <CardDescription>สร้างบัญชีเพื่อลงประกาศฟรี</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <GoogleLoginButton />
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-neutral-400">หรือสมัครด้วยอีเมล</span>
+              </div>
+            </div>
             <AuthForm action={registerAction} submitLabel="สมัครสมาชิก">
               <div className="space-y-2">
                 <Label htmlFor="display_name">ชื่อที่แสดง</Label>
