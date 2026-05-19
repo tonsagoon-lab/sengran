@@ -186,12 +186,13 @@ export default function HomeScreen() {
         setCategories((catsRes.data ?? []) as Category[]);
       }
 
-      // Load listings (without is_featured first to check if that's the problem)
+      // Step 1: bare-minimum query to confirm data exists
       const listingsRes = await supabase
         .from("listings")
         .select(
-          `id, slug, title, listing_type, sale_price, rent_price, district, is_featured,
-           published_at, listing_images(id, storage_path, display_order),
+          `id, slug, title, listing_type, sale_price, rent_price, district,
+           published_at,
+           listing_images(id, storage_path, display_order),
            categories(name_th, slug), provinces(name_th, slug)`
         )
         .eq("status", "published")
@@ -200,10 +201,11 @@ export default function HomeScreen() {
 
       if (listingsRes.error) {
         console.error("listings error:", listingsRes.error.message);
-        setErrorMsg(listingsRes.error.message);
+        setErrorMsg("listings: " + listingsRes.error.message);
       } else {
         const listings = (listingsRes.data ?? []) as unknown as Listing[];
-        setFeatured(listings.filter((l) => l.is_featured).slice(0, 6));
+        if (listings.length === 0) setErrorMsg("listings returned 0 rows");
+        setFeatured(listings.slice(0, 4));
         setLatest(listings.slice(0, 8));
       }
     } catch (e: any) {
