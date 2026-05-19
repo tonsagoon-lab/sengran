@@ -61,7 +61,7 @@ function ListingCardV({
   width?: number;
   onPress: () => void;
 }) {
-  const cover = item.listing_images
+  const cover = (item.listing_images ?? [])
     .slice()
     .sort((a, b) => a.display_order - b.display_order)[0];
   const imageUrl = cover ? resolveImageUrl(cover.storage_path) : null;
@@ -186,21 +186,24 @@ export default function HomeScreen() {
         setCategories((catsRes.data ?? []) as Category[]);
       }
 
-      // Debug: simplest possible query — no joins, no filters
       const listingsRes = await supabase
         .from("listings")
-        .select("id, slug, title, listing_type, sale_price, rent_price, district, published_at, status")
-        .limit(5);
+        .select(
+          `id, slug, title, listing_type, sale_price, rent_price, district, is_featured,
+           published_at,
+           listing_images(id, storage_path, display_order),
+           categories(name_th, slug), provinces(name_th, slug)`
+        )
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .limit(20);
 
       if (listingsRes.error) {
-        setErrorMsg("listings error: " + listingsRes.error.message);
+        setErrorMsg("listings: " + listingsRes.error.message);
       } else {
-        const count = (listingsRes.data ?? []).length;
-        const statuses = [...new Set((listingsRes.data ?? []).map((l: any) => l.status))].join(", ");
-        setErrorMsg(`got ${count} rows, statuses: [${statuses || "none"}]`);
-
-        const published = (listingsRes.data ?? []).filter((l: any) => l.status === "published");
-        setLatest(published as unknown as Listing[]);
+        const listings = (listingsRes.data ?? []) as unknown as Listing[];
+        setFeatured(listings.filter((l) => l.is_featured).slice(0, 4));
+        setLatest(listings.slice(0, 8));
       }
     } catch (e: any) {
       console.error("loadAll error:", e);
