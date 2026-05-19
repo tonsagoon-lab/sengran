@@ -17,6 +17,7 @@ export type Listing = {
   deposit: number | null;
   district: string | null;
   status: string;
+  is_featured: boolean | null;
   view_count: number;
   published_at: string | null;
   category_id: number | null;
@@ -43,6 +44,7 @@ export type Category = {
   id: number;
   name_th: string;
   slug: string;
+  icon?: string | null;
 };
 
 export type Province = {

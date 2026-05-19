@@ -1,425 +1,532 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
+  Dimensions,
   Image,
   Pressable,
-  RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { resolveImageUrl } from "../../lib/image-url";
 import type { Category, Listing } from "../../lib/types";
 
-const PAGE_SIZE = 20;
-type FilterType = "all" | "sale" | "rent";
-
-function formatPrice(n: number | null): string {
-  if (!n) return "";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return String(n);
+// ─── Helpers ────────────────────────────────────────────────
+function priceText(item: Listing): string {
+  const price =
+    item.listing_type === "sale"
+      ? item.sale_price
+      : item.listing_type === "rent"
+      ? item.rent_price
+      : item.sale_price ?? item.rent_price;
+  if (!price) return "";
+  if (price >= 1_000_000) return `฿${(price / 1_000_000).toFixed(1)}M`;
+  if (price >= 1_000) return `฿${Math.round(price / 1000)}K`;
+  return `฿${price.toLocaleString("th-TH")}`;
 }
 
-function ListingCard({ item, onPress }: { item: Listing; onPress: () => void }) {
+function priceUnit(item: Listing): string {
+  if (item.listing_type === "rent") return "/ด.";
+  if (item.listing_type === "both" && !item.sale_price && item.rent_price) return "/ด.";
+  return "";
+}
+
+type BadgeType = "sale" | "rent" | "both";
+function TypeBadge({ type, featured }: { type: BadgeType; featured?: boolean | null }) {
+  const cfg = {
+    sale: { bg: "#dbeafe", border: "#bfdbfe", text: "#1d4ed8", label: "เซ้ง" },
+    rent: { bg: "#dcfce7", border: "#bbf7d0", text: "#15803d", label: "ให้เช่า" },
+    both: { bg: "#f3e8ff", border: "#e9d5ff", text: "#7e22ce", label: "เซ้ง+เช่า" },
+  }[type];
+  return (
+    <View style={[styles.badge, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
+      {featured && <Text style={styles.badgeStar}>⭐</Text>}
+      <Text style={[styles.badgeText, { color: cfg.text }]}>{cfg.label}</Text>
+    </View>
+  );
+}
+
+// ─── Vertical card (featured strip + latest grid) ─────────
+function ListingCardV({
+  item,
+  width,
+  onPress,
+}: {
+  item: Listing;
+  width?: number;
+  onPress: () => void;
+}) {
   const cover = item.listing_images
     .slice()
     .sort((a, b) => a.display_order - b.display_order)[0];
   const imageUrl = cover ? resolveImageUrl(cover.storage_path) : null;
   const [imgError, setImgError] = useState(false);
 
-  const typeBadge =
-    item.listing_type === "sale" ? "เซ้ง" :
-    item.listing_type === "rent" ? "ให้เช่า" : "เซ้ง+เช่า";
-
-  const price =
-    item.listing_type === "sale" ? item.sale_price :
-    item.listing_type === "rent" ? item.rent_price :
-    item.sale_price ?? item.rent_price;
-
-  const priceLabel =
-    item.listing_type === "rent" || (!item.sale_price && item.rent_price)
-      ? `฿${formatPrice(price)}/ด.`
-      : `฿${formatPrice(price)}`;
-
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      {imageUrl && !imgError ? (
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.cardImage}
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
-          <Text style={{ fontSize: 32 }}>🏪</Text>
-        </View>
-      )}
-
-      <View style={styles.cardContent}>
-        <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-
-        <View style={styles.badgeRow}>
-          <View style={[styles.badge, item.listing_type === "sale" ? styles.badgeSale : styles.badgeRent]}>
-            <Text style={styles.badgeText}>{typeBadge}</Text>
+    <Pressable
+      onPress={onPress}
+      style={[styles.cardV, width ? { width } : undefined]}
+    >
+      <View style={styles.cardVImageWrap}>
+        {imageUrl && !imgError ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.cardVImage}
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <View style={[styles.cardVImage, styles.cardVImagePlaceholder]}>
+            <Text style={{ fontSize: 28 }}>🏪</Text>
           </View>
-          {item.categories && (
-            <View style={styles.badgeCat}>
-              <Text style={styles.badgeCatText}>{item.categories.name_th}</Text>
-            </View>
-          )}
+        )}
+        <View style={styles.cardVBadgeWrap}>
+          <TypeBadge type={item.listing_type} featured={item.is_featured} />
         </View>
-
+      </View>
+      <View style={styles.cardVBody}>
+        <View style={styles.cardVPriceRow}>
+          <Text style={styles.cardVPrice}>{priceText(item)}</Text>
+          {priceUnit(item) ? (
+            <Text style={styles.cardVPriceUnit}>{priceUnit(item)}</Text>
+          ) : null}
+        </View>
+        <Text style={styles.cardVTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
         {(item.district || item.provinces) && (
-          <View style={styles.locationRow}>
-            <Text style={styles.locationIcon}>📍</Text>
-            <Text style={styles.locationText} numberOfLines={1}>
+          <View style={styles.cardVLoc}>
+            <Ionicons name="location-outline" size={11} color="#9ca3af" />
+            <Text style={styles.cardVLocText} numberOfLines={1}>
               {[item.district, item.provinces?.name_th].filter(Boolean).join(", ")}
             </Text>
           </View>
         )}
-
-        {price ? (
-          <Text style={styles.price}>{priceLabel}</Text>
-        ) : null}
       </View>
     </Pressable>
   );
 }
 
-export default function BrowseScreen() {
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<FilterType>("all");
-  const [filterCat, setFilterCat] = useState<number | null>(null);
-  const [resultCount, setResultCount] = useState(0);
-  const page = useRef(0);
-  const searchTimer = useRef<ReturnType<typeof setTimeout>>(null);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+// ─── Section header ──────────────────────────────────────
+function SectionHeader({
+  title,
+  linkLabel,
+  onLink,
+}: {
+  title: string;
+  linkLabel?: string;
+  onLink?: () => void;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {linkLabel && (
+        <Pressable onPress={onLink}>
+          <Text style={styles.sectionLink}>{linkLabel} ›</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
 
-  useEffect(() => { loadCategories(); }, []);
+// ─── Category icons ──────────────────────────────────────
+const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  UtensilsCrossed: "restaurant-outline",
+  Coffee: "cafe-outline",
+  Scissors: "cut-outline",
+  Sparkles: "sparkles-outline",
+  ShoppingBasket: "basket-outline",
+  Car: "car-outline",
+  Store: "storefront-outline",
+  Music: "musical-notes-outline",
+  WashingMachine: "water-outline",
+  Layers: "layers-outline",
+  Home: "home-outline",
+  Building: "business-outline",
+};
+
+function getCatIcon(iconName: string | null): keyof typeof Ionicons.glyphMap {
+  if (!iconName) return "storefront-outline";
+  return CATEGORY_ICONS[iconName] ?? "storefront-outline";
+}
+
+const SCREEN_W = Dimensions.get("window").width;
+const CAT_ITEM_W = Math.floor((SCREEN_W - 32 - 24) / 4); // 4 cols, 3 gaps of 8
+const CARD_W = Math.floor((SCREEN_W - 32 - 10) / 2); // 2 cols, 1 gap of 10
+
+// ─── Home screen ─────────────────────────────────────────
+export default function HomeScreen() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [featured, setFeatured] = useState<Listing[]>([]);
+  const [latest, setLatest] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
-  }, [search]);
+    loadAll();
+  }, []);
 
-  useEffect(() => { resetAndLoad(); }, [filterType, filterCat, debouncedSearch]);
+  async function loadAll() {
+    const [catsRes, listingsRes] = await Promise.all([
+      supabase
+        .from("categories")
+        .select("id, name_th, slug, icon")
+        .eq("is_active", true)
+        .order("display_order")
+        .limit(8),
+      supabase
+        .from("listings")
+        .select(
+          `id, slug, title, listing_type, sale_price, rent_price, district, is_featured,
+           listing_images(id, storage_path, display_order),
+           categories(name_th, slug), provinces(name_th, slug)`
+        )
+        .eq("status", "published")
+        .order("boost_rank", { ascending: false })
+        .order("published_at", { ascending: false })
+        .limit(20),
+    ]);
 
-  async function loadCategories() {
-    const { data } = await supabase
-      .from("categories").select("id, name_th, slug")
-      .eq("is_active", true).order("display_order");
-    setCategories(data ?? []);
-  }
-
-  function buildQuery(from: number, to: number) {
-    let q = supabase
-      .from("listings")
-      .select(
-        `id, slug, title, listing_type, sale_price, rent_price, district,
-         listing_images(id, storage_path, display_order),
-         categories(name_th, slug), provinces(name_th, slug)`,
-        { count: "exact" }
-      )
-      .eq("status", "published")
-      .order("boost_rank", { ascending: false })
-      .order("published_at", { ascending: false })
-      .range(from, to);
-
-    if (filterType === "sale") q = q.in("listing_type", ["sale", "both"]);
-    if (filterType === "rent") q = q.in("listing_type", ["rent", "both"]);
-    if (filterCat) q = q.eq("category_id", filterCat);
-    if (debouncedSearch.trim()) q = q.ilike("title", `%${debouncedSearch.trim()}%`);
-    return q;
-  }
-
-  async function resetAndLoad() {
-    page.current = 0;
-    setLoading(true);
-    setHasMore(true);
-    const { data, count } = await buildQuery(0, PAGE_SIZE - 1);
-    setListings((data ?? []) as unknown as Listing[]);
-    setResultCount(count ?? 0);
-    setHasMore((data ?? []).length === PAGE_SIZE);
+    const listings = (listingsRes.data ?? []) as unknown as Listing[];
+    setCategories((catsRes.data ?? []) as Category[]);
+    setFeatured(listings.filter((l) => l.is_featured).slice(0, 6));
+    setLatest(listings.slice(0, 8));
     setLoading(false);
   }
 
-  async function loadMore() {
-    if (!hasMore || loadingMore) return;
-    setLoadingMore(true);
-    page.current += 1;
-    const from = page.current * PAGE_SIZE;
-    const { data } = await buildQuery(from, from + PAGE_SIZE - 1);
-    const newItems = (data ?? []) as unknown as Listing[];
-    setListings((prev) => [...prev, ...newItems]);
-    setHasMore(newItems.length === PAGE_SIZE);
-    setLoadingMore(false);
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color="#f97316" />
+        </View>
+      </SafeAreaView>
+    );
   }
-
-  async function onRefresh() {
-    setRefreshing(true);
-    await resetAndLoad();
-    setRefreshing(false);
-  }
-
-  const renderItem = useCallback(
-    ({ item }: { item: Listing }) => (
-      <ListingCard item={item} onPress={() => router.push(`/listing/${item.slug}`)} />
-    ), []
-  );
 
   return (
-    <SafeAreaView style={styles.container}>
-
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>เซ้งร้าน</Text>
-          <Text style={styles.headerSub}>ซื้อ ขาย เช่า ร้านค้าทั่วไทย</Text>
-        </View>
-      </View>
-
-      {/* Search bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="ค้นหาร้านค้า..."
-            placeholderTextColor="#9ca3af"
-            value={search}
-            onChangeText={setSearch}
-            returnKeyType="search"
-          />
-          {search.length > 0 && (
-            <Pressable onPress={() => setSearch("")}>
-              <Text style={styles.clearBtn}>✕</Text>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+        {/* Location header */}
+        <View style={styles.locationHeader}>
+          <View>
+            <Text style={styles.locationLabel}>ตำแหน่งปัจจุบัน</Text>
+            <View style={styles.locationRow}>
+              <Ionicons name="location" size={16} color="#f97316" />
+              <Text style={styles.locationCity}>ทั่วประเทศไทย</Text>
+              <Ionicons name="chevron-down" size={14} color="#9ca3af" />
+            </View>
+          </View>
+          <View style={styles.headerIcons}>
+            <Pressable style={styles.iconBtn} onPress={() => router.push("/browse")}>
+              <Ionicons name="notifications-outline" size={22} color="#374151" />
             </Pressable>
-          )}
+            <Pressable style={styles.iconBtn}>
+              <Ionicons name="chatbubble-outline" size={22} color="#374151" />
+            </Pressable>
+          </View>
         </View>
-      </View>
 
-      {/* Filter chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContainer}
-      >
-        {([["all", "ทั้งหมด", "🏪"], ["sale", "เซ้ง", "🏷️"], ["rent", "ให้เช่า", "🔑"]] as [FilterType, string, string][]).map(
-          ([val, label, icon]) => (
+        {/* Search bar */}
+        <Pressable
+          style={styles.searchBar}
+          onPress={() => router.push("/(tabs)/browse")}
+        >
+          <Ionicons name="search-outline" size={18} color="#9ca3af" />
+          <Text style={styles.searchPlaceholder}>ค้นหาร้าน...</Text>
+          <Ionicons name="options-outline" size={18} color="#9ca3af" />
+        </Pressable>
+
+        {/* Type pills */}
+        <View style={styles.typePills}>
+          {(
+            [
+              { key: "sale", label: "เซ้ง" },
+              { key: "rent", label: "ให้เช่า" },
+              { key: "both", label: "ทั้งคู่" },
+            ] as const
+          ).map((t, i) => (
             <Pressable
-              key={val}
-              style={[styles.filterChip, filterType === val && styles.filterChipActive]}
-              onPress={() => setFilterType(val)}
+              key={t.key}
+              style={[styles.typePill, i === 0 && styles.typePillActive]}
+              onPress={() => router.push(`/(tabs)/browse?type=${t.key}`)}
             >
-              <Text style={styles.filterChipIcon}>{icon}</Text>
-              <Text style={[styles.filterChipText, filterType === val && styles.filterChipTextActive]}>
-                {label}
+              <Text style={[styles.typePillText, i === 0 && styles.typePillTextActive]}>
+                {t.label}
               </Text>
             </Pressable>
-          )
-        )}
-        <View style={styles.filterDivider} />
-        {categories.map((cat) => (
-          <Pressable
-            key={cat.id}
-            style={[styles.filterChip, filterCat === cat.id && styles.filterChipActive]}
-            onPress={() => setFilterCat(filterCat === cat.id ? null : cat.id)}
-          >
-            <Text style={[styles.filterChipText, filterCat === cat.id && styles.filterChipTextActive]}>
-              {cat.name_th}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {/* Result count */}
-      {!loading && (
-        <View style={styles.resultRow}>
-          <Text style={styles.resultCount}>{resultCount.toLocaleString()} ประกาศ</Text>
+          ))}
         </View>
-      )}
 
-      {/* Listings */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#f97316" />
-          <Text style={styles.loadingText}>กำลังโหลด...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={listings}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>🔍</Text>
-              <Text style={styles.emptyTitle}>ไม่พบประกาศ</Text>
-              <Text style={styles.emptyText}>ลองเปลี่ยนคำค้นหาหรือตัวกรอง</Text>
+        {/* Categories */}
+        {categories.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader
+              title="หมวดหมู่"
+              linkLabel="ดูทั้งหมด"
+              onLink={() => router.push("/(tabs)/browse")}
+            />
+            <View style={styles.catGrid}>
+              {categories.slice(0, 8).map((cat) => (
+                <Pressable
+                  key={cat.id}
+                  style={styles.catItem}
+                  onPress={() => router.push(`/(tabs)/browse?cat=${cat.id}`)}
+                >
+                  <View style={styles.catBubble}>
+                    <Ionicons name={getCatIcon(cat.icon)} size={20} color="#ea580c" />
+                  </View>
+                  <Text style={styles.catLabel} numberOfLines={2}>
+                    {cat.name_th}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
-          }
-          ListFooterComponent={
-            loadingMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator color="#f97316" />
-              </View>
-            ) : null
-          }
-        />
-      )}
+          </View>
+        )}
+
+        {/* Featured — horizontal scroll */}
+        {featured.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader
+              title="ประกาศแนะนำ"
+              linkLabel="ดูทั้งหมด"
+              onLink={() => router.push("/(tabs)/browse")}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.featuredScroll}
+            >
+              {featured.map((item) => (
+                <ListingCardV
+                  key={item.id}
+                  item={item}
+                  width={192}
+                  onPress={() => router.push(`/listing/${item.slug}`)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Latest — 2-col grid */}
+        {latest.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader
+              title="🆕 ประกาศล่าสุด"
+              linkLabel="ดูทั้งหมด"
+              onLink={() => router.push("/(tabs)/browse")}
+            />
+            <View style={styles.latestGrid}>
+              {latest.slice(0, 8).map((item) => (
+                <ListingCardV
+                  key={item.id}
+                  item={item}
+                  onPress={() => router.push(`/listing/${item.slug}`)}
+                />
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Free listing CTA */}
+        <Pressable
+          style={styles.ctaBanner}
+          onPress={() => router.push("/(tabs)/create")}
+        >
+          <View style={styles.ctaIcon}>
+            <Ionicons name="add" size={22} color="#fff" />
+          </View>
+          <View style={styles.ctaText}>
+            <Text style={styles.ctaTitle}>ลงประกาศฟรี!</Text>
+            <Text style={styles.ctaSub}>เซ้ง / ให้เช่าร้านของคุณ ไม่มีค่าใช้จ่าย</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+        </Pressable>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const CARD_RADIUS = 16;
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f9fb" },
+  container: { flex: 1, backgroundColor: "#fff" },
+  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  header: {
+  // Location header
+  locationHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 10,
     paddingBottom: 4,
   },
-  headerTitle: { fontSize: 24, fontWeight: "800", color: "#111827", letterSpacing: -0.5 },
-  headerSub: { fontSize: 13, color: "#9ca3af", marginTop: 1 },
+  locationLabel: { fontSize: 11, color: "#9ca3af" },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  locationCity: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  headerIcons: { flexDirection: "row", gap: 4 },
+  iconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
 
-  searchContainer: { paddingHorizontal: 16, paddingVertical: 10 },
+  // Search
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 14,
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    backgroundColor: "#f9fafb",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
     paddingHorizontal: 14,
     paddingVertical: 11,
-    gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
   },
-  searchIcon: { fontSize: 16 },
-  searchInput: { flex: 1, fontSize: 15, color: "#111827" },
-  clearBtn: { fontSize: 13, color: "#9ca3af", paddingHorizontal: 4 },
+  searchPlaceholder: { flex: 1, fontSize: 14, color: "#9ca3af" },
 
-  filterScroll: { maxHeight: 48 },
-  filterContainer: {
+  // Type pills
+  typePills: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  typePill: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+  },
+  typePillActive: { backgroundColor: "#fff7ed", borderColor: "#fed7aa" },
+  typePillText: { fontSize: 13, fontWeight: "500", color: "#6b7280" },
+  typePillTextActive: { color: "#c2410c", fontWeight: "600" },
+
+  // Section
+  section: { marginTop: 20 },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  sectionLink: { fontSize: 12, color: "#c2410c", fontWeight: "500" },
+
+  // Category grid
+  catGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     paddingHorizontal: 16,
     gap: 8,
-    alignItems: "center",
-    paddingVertical: 4,
   },
-  filterChip: {
-    flexDirection: "row",
+  catItem: {
+    width: CAT_ITEM_W,
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
     backgroundColor: "#fff",
-    borderWidth: 1.5,
+    borderRadius: 14,
+    borderWidth: 1,
     borderColor: "#e5e7eb",
   },
-  filterChipActive: { backgroundColor: "#f97316", borderColor: "#f97316" },
-  filterChipIcon: { fontSize: 13 },
-  filterChipText: { fontSize: 13, fontWeight: "600", color: "#6b7280" },
-  filterChipTextActive: { color: "#fff" },
-  filterDivider: { width: 1, height: 20, backgroundColor: "#e5e7eb", marginHorizontal: 4 },
+  catBubble: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#ffedd5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  catLabel: {
+    fontSize: 11,
+    color: "#374151",
+    textAlign: "center",
+    lineHeight: 14,
+  },
 
-  resultRow: { paddingHorizontal: 20, paddingVertical: 8 },
-  resultCount: { fontSize: 13, fontWeight: "600", color: "#6b7280" },
+  // Featured scroll
+  featuredScroll: { paddingLeft: 16, paddingRight: 8, gap: 10, paddingBottom: 4 },
 
-  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { color: "#9ca3af", fontSize: 14 },
-
-  listContent: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
-
-  card: {
+  // Latest grid
+  latestGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+
+  // Vertical card
+  cardV: {
+    flex: 0,
+    width: CARD_W,
     backgroundColor: "#fff",
-    borderRadius: CARD_RADIUS,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
   },
-  cardImage: {
-    width: 120,
-    height: 120,
-    resizeMode: "cover",
-  },
-  cardImagePlaceholder: {
+  cardVImageWrap: { position: "relative" },
+  cardVImage: { width: "100%", aspectRatio: 4 / 3, resizeMode: "cover" },
+  cardVImagePlaceholder: {
     backgroundColor: "#f3f4f6",
     alignItems: "center",
     justifyContent: "center",
   },
-  cardContent: {
-    flex: 1,
-    padding: 12,
-    gap: 5,
-    justifyContent: "center",
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-    lineHeight: 20,
-  },
-  badgeRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  cardVBadgeWrap: { position: "absolute", top: 6, left: 6 },
+  cardVBody: { padding: 10, gap: 3 },
+  cardVPriceRow: { flexDirection: "row", alignItems: "baseline", gap: 3 },
+  cardVPrice: { fontSize: 15, fontWeight: "700", color: "#111827" },
+  cardVPriceUnit: { fontSize: 11, color: "#9ca3af" },
+  cardVTitle: { fontSize: 13, fontWeight: "500", color: "#374151", lineHeight: 18 },
+  cardVLoc: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
+  cardVLocText: { fontSize: 11, color: "#9ca3af", flex: 1 },
+
+  // Badge
   badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
-  },
-  badgeSale: { backgroundColor: "#fff7ed", borderWidth: 1, borderColor: "#fed7aa" },
-  badgeRent: { backgroundColor: "#eff6ff", borderWidth: 1, borderColor: "#bfdbfe" },
-  badgeText: { fontSize: 11, fontWeight: "700", color: "#374151" },
-  badgeCat: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: "#f0fdf4",
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#bbf7d0",
   },
-  badgeCatText: { fontSize: 11, fontWeight: "600", color: "#15803d" },
+  badgeStar: { fontSize: 9 },
+  badgeText: { fontSize: 10, fontWeight: "600" },
 
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 3 },
-  locationIcon: { fontSize: 11 },
-  locationText: { fontSize: 12, color: "#6b7280", flex: 1 },
-
-  price: { fontSize: 15, fontWeight: "800", color: "#f97316", marginTop: 2 },
-
-  emptyState: { alignItems: "center", paddingTop: 80, gap: 8 },
-  emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: 17, fontWeight: "700", color: "#374151" },
-  emptyText: { fontSize: 14, color: "#9ca3af" },
-
-  footerLoader: { padding: 20, alignItems: "center" },
+  // CTA banner
+  ctaBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginHorizontal: 16,
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: "#fff7ed",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+  },
+  ctaIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#f97316",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  ctaText: { flex: 1 },
+  ctaTitle: { fontSize: 14, fontWeight: "700", color: "#c2410c" },
+  ctaSub: { fontSize: 12, color: "#9ca3af", marginTop: 1 },
 });

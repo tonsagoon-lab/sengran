@@ -21,10 +21,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="auth" />
-        <Stack.Screen
-          name="listing/[slug]"
-          options={{ headerShown: true, title: "รายละเอียด", headerBackTitle: "กลับ" }}
-        />
+        <Stack.Screen name="listing/[slug]" options={{ headerShown: false }} />
       </Stack>
     </SessionContext.Provider>
   );
