@@ -164,37 +164,54 @@ export default function HomeScreen() {
   const [featured, setFeatured] = useState<Listing[]>([]);
   const [latest, setLatest] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     loadAll();
   }, []);
 
   async function loadAll() {
-    const [catsRes, listingsRes] = await Promise.all([
-      supabase
+    try {
+      // Load categories
+      const catsRes = await supabase
         .from("categories")
         .select("id, name_th, slug, icon")
         .eq("is_active", true)
         .order("display_order")
-        .limit(8),
-      supabase
+        .limit(8);
+
+      if (catsRes.error) {
+        console.error("categories error:", catsRes.error.message);
+      } else {
+        setCategories((catsRes.data ?? []) as Category[]);
+      }
+
+      // Load listings (without is_featured first to check if that's the problem)
+      const listingsRes = await supabase
         .from("listings")
         .select(
           `id, slug, title, listing_type, sale_price, rent_price, district, is_featured,
-           listing_images(id, storage_path, display_order),
+           published_at, listing_images(id, storage_path, display_order),
            categories(name_th, slug), provinces(name_th, slug)`
         )
         .eq("status", "published")
-        .order("boost_rank", { ascending: false })
         .order("published_at", { ascending: false })
-        .limit(20),
-    ]);
+        .limit(20);
 
-    const listings = (listingsRes.data ?? []) as unknown as Listing[];
-    setCategories((catsRes.data ?? []) as Category[]);
-    setFeatured(listings.filter((l) => l.is_featured).slice(0, 6));
-    setLatest(listings.slice(0, 8));
-    setLoading(false);
+      if (listingsRes.error) {
+        console.error("listings error:", listingsRes.error.message);
+        setErrorMsg(listingsRes.error.message);
+      } else {
+        const listings = (listingsRes.data ?? []) as unknown as Listing[];
+        setFeatured(listings.filter((l) => l.is_featured).slice(0, 6));
+        setLatest(listings.slice(0, 8));
+      }
+    } catch (e: any) {
+      console.error("loadAll error:", e);
+      setErrorMsg(String(e));
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (loading) {
@@ -210,6 +227,12 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+        {/* Debug error — remove after fixing */}
+        {errorMsg && (
+          <View style={{ margin: 16, padding: 12, backgroundColor: "#fef2f2", borderRadius: 8, borderWidth: 1, borderColor: "#fca5a5" }}>
+            <Text style={{ color: "#dc2626", fontSize: 12 }}>Error: {errorMsg}</Text>
+          </View>
+        )}
         {/* Location header */}
         <View style={styles.locationHeader}>
           <View>
