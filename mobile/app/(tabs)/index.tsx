@@ -189,8 +189,7 @@ export default function HomeScreen() {
       const listingsRes = await supabase
         .from("listings")
         .select(
-          `id, slug, title, listing_type, sale_price, rent_price, district, is_featured,
-           published_at,
+          `id, slug, title, listing_type, sale_price, rent_price, district, published_at,
            listing_images(id, storage_path, display_order),
            categories(name_th, slug), provinces(name_th, slug)`
         )
@@ -202,7 +201,8 @@ export default function HomeScreen() {
         setErrorMsg("listings: " + listingsRes.error.message);
       } else {
         const listings = (listingsRes.data ?? []) as unknown as Listing[];
-        setFeatured(listings.filter((l) => l.is_featured).slice(0, 4));
+        setErrorMsg(listings.length === 0 ? "0 listings found" : null);
+        setFeatured(listings.slice(0, 4));
         setLatest(listings.slice(0, 8));
       }
     } catch (e: any) {
