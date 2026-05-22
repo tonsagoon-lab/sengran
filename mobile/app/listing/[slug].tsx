@@ -61,7 +61,7 @@ export default function ListingDetailScreen() {
     const { data, error } = await supabase
       .from("listings")
       .select(
-        `id, slug, title, description, listing_type, sale_price, rent_price, deposit, district,
+        `id, slug, title, description, listing_type, sale_price, rent_price, district,
          view_count, published_at, status,
          listing_images(id, storage_path, display_order),
          categories(name_th, slug), provinces(name_th, slug),
@@ -204,9 +204,6 @@ export default function ListingDetailScreen() {
                   <Text style={styles.priceLabel}>ค่าเช่า:</Text>
                   <Text style={styles.priceValue}>฿{fmtPrice(listing.rent_price)} บาท/เดือน</Text>
                 </View>
-              ) : null}
-              {listing.deposit && (listing.listing_type === "rent" || listing.listing_type === "both") ? (
-                <Text style={styles.depositText}>มัดจำ {listing.deposit} เดือน</Text>
               ) : null}
             </View>
           ) : null}
