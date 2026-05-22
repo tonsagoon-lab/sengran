@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { resolveImageUrl } from "../../lib/image-url";
+import { NearMeSection } from "../../components/NearMeSection";
 import type { Category, Listing } from "../../lib/types";
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -309,6 +310,9 @@ export default function HomeScreen() {
             </View>
           </View>
         )}
+
+        {/* Near me */}
+        <NearMeSection />
 
         {/* Featured — horizontal scroll */}
         {featured.length > 0 && (

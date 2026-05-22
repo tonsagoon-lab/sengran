@@ -32,7 +32,13 @@
     "plugins": [
       "expo-router",
       "expo-image-picker",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "แอปนี้ใช้ตำแหน่งของคุณเพื่อแสดงร้านที่อยู่ใกล้เคียง"
+        }
+      ]
     ]
   }
 }
