@@ -58,20 +58,20 @@ export default function ListingDetailScreen() {
   }, [slug]);
 
   async function fetchListing() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("listings")
       .select(
         `id, slug, title, description, listing_type, sale_price, rent_price, deposit, district,
-         area_sqm, video_url, latitude, longitude, view_count, published_at, status,
-         category_id, province_id,
+         view_count, published_at, status,
          listing_images(id, storage_path, display_order),
          categories(name_th, slug), provinces(name_th, slug),
          profiles!listings_user_id_fkey(display_name, mobile, line_id, avatar_url)`
       )
       .eq("slug", slug)
       .in("status", ["published", "expired"])
-      .single();
+      .maybeSingle();
 
+    if (error) console.error("detail error:", error.message);
     setListing(data as unknown as ListingDetail | null);
     setLoading(false);
 
