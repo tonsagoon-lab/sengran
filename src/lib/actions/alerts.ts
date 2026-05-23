@@ -9,11 +9,27 @@ async function getUser() {
   return { supabase, user };
 }
 
+function parseLocationFields(formData: FormData) {
+  const loc_mode = formData.get("loc_mode") as string;
+  if (loc_mode === "nearby") {
+    const center_lat = formData.get("center_lat") ? Number(formData.get("center_lat")) : null;
+    const center_lng = formData.get("center_lng") ? Number(formData.get("center_lng")) : null;
+    const radius_km = formData.get("radius_km") ? Number(formData.get("radius_km")) : null;
+    return { province_ids: [], center_lat, center_lng, radius_km };
+  }
+  return {
+    province_ids: formData.getAll("province_ids").map(Number).filter(Boolean),
+    center_lat: null,
+    center_lng: null,
+    radius_km: null,
+  };
+}
+
 export async function createAlertAction(formData: FormData) {
   const { supabase, user } = await getUser();
   if (!user) return { error: "กรุณาเข้าสู่ระบบ" };
 
-  const province_ids = formData.getAll("province_ids").map(Number).filter(Boolean);
+  const { province_ids, center_lat, center_lng, radius_km } = parseLocationFields(formData);
   const category_id = formData.get("category_id") ? Number(formData.get("category_id")) : null;
   const listing_type = (formData.get("listing_type") as string) || null;
   const min_price = formData.get("min_price") ? Number(formData.get("min_price")) : null;
@@ -27,6 +43,9 @@ export async function createAlertAction(formData: FormData) {
     listing_type,
     min_price,
     max_price,
+    center_lat,
+    center_lng,
+    radius_km,
   });
 
   if (error) return { error: error.message };
@@ -38,7 +57,7 @@ export async function updateAlertAction(id: string, formData: FormData) {
   const { supabase, user } = await getUser();
   if (!user) return { error: "กรุณาเข้าสู่ระบบ" };
 
-  const province_ids = formData.getAll("province_ids").map(Number).filter(Boolean);
+  const { province_ids, center_lat, center_lng, radius_km } = parseLocationFields(formData);
   const category_id = formData.get("category_id") ? Number(formData.get("category_id")) : null;
   const listing_type = (formData.get("listing_type") as string) || null;
   const min_price = formData.get("min_price") ? Number(formData.get("min_price")) : null;
@@ -47,7 +66,7 @@ export async function updateAlertAction(id: string, formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from("alert_preferences")
-    .update({ province_ids, category_id, listing_type, min_price, max_price })
+    .update({ province_ids, category_id, listing_type, min_price, max_price, center_lat, center_lng, radius_km })
     .eq("id", id)
     .eq("user_id", user.id);
 

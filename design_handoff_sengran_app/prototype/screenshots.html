@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>V1 Screenshots</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../assets/fonts/sarabun.css">
+<link rel="stylesheet" href="../assets/colors_and_type.css">
+<style>
+  html, body { height: 100%; margin: 0; padding: 0; }
+  body {
+    font-family: "Sarabun", "Noto Sans Thai", system-ui, sans-serif;
+    background: #f5f5f4;
+    display: flex; align-items: flex-start; justify-content: flex-start;
+    padding: 0;
+  }
+  #root {
+    width: 380px; height: 540px;
+    background: #fff;
+    overflow: hidden;
+  }
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="../src/data.jsx"></script>
+<script type="text/babel" src="../src/icons.jsx"></script>
+<script type="text/babel" src="../src/shared.jsx"></script>
+<script type="text/babel" src="../src/v1-classic.jsx"></script>
+
+<script type="text/babel">
+const { buildTheme, ContactSheet } = window.Shared;
+const { CATS, LISTINGS } = window.SengranData;
+const { HomeV1, BrowseV1, DetailV1, SavedV1, ProfileV1 } = window.V1;
+
+function App() {
+  const [screen, setScreen]       = React.useState("home");
+  const [selected, setSelected]   = React.useState(LISTINGS[0]);
+  const [contactFor, setContact]  = React.useState(null);
+  const [mapView, setMapView]     = React.useState(false);
+  const [faves, setFaves]         = React.useState(new Set(["l1", "l3"]));
+
+  const theme = buildTheme({ color: "orange", cards: "spacious" });
+  const safe  = { "--safe-top": "14px", "--safe-bottom": "14px" };
+
+  const ctx = {
+    screen, selected, contactFor, faves,
+    theme: { ...theme, ...safe },
+    initialMapView: mapView,
+    mapView, setMapView,
+    go: (s) => { if (s === "post") return; setScreen(s); },
+    openDetail: (l) => { setSelected(l); setScreen("detail"); },
+    back: () => setScreen("home"),
+    toggleFav: (id) => setFaves(p => {
+      const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n;
+    }),
+    openContact: setContact,
+    closeContact: () => setContact(null),
+  };
+
+  // Expose for external control during screenshots
+  window.appAPI = {
+    go: (s)   => setScreen(s),
+    openDetail: (id) => {
+      const l = LISTINGS.find(x => x.id === id) || LISTINGS[0];
+      setSelected(l); setScreen("detail");
+    },
+    openContact: (id) => {
+      const l = LISTINGS.find(x => x.id === id) || LISTINGS[0];
+      setSelected(l); setScreen("detail"); setContact(l);
+    },
+    setMapView,
+    reset: () => { setScreen("home"); setContact(null); setMapView(false); },
+  };
+
+  let body;
+  switch (screen) {
+    case "home":    body = <HomeV1 ctx={ctx} cats={CATS} catMode="icons"/>; break;
+    case "browse":  body = <BrowseV1 ctx={ctx}/>; break;
+    case "detail":  body = <DetailV1 ctx={ctx} listing={selected}/>; break;
+    case "saved":   body = <SavedV1 ctx={ctx}/>; break;
+    case "profile": body = <ProfileV1 ctx={ctx}/>; break;
+    default:        body = <HomeV1 ctx={ctx} cats={CATS} catMode="icons"/>;
+  }
+
+  return (
+    <div style={{ height: "100%", ...safe }}>
+      {body}
+      {contactFor && <ContactSheet listing={contactFor} onClose={() => setContact(null)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

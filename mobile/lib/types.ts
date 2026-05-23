@@ -32,10 +32,12 @@ export type Listing = {
 export type ListingDetail = Listing & {
   area_sqm: number | null;
   video_url: string | null;
+  contact_mobile: string | null;
+  contact_line: string | null;
+  latitude: number | null;
+  longitude: number | null;
   profiles: {
     display_name: string | null;
-    mobile: string | null;
-    line_id: string | null;
     avatar_url: string | null;
   } | null;
 };
@@ -50,5 +52,6 @@ export type Category = {
 export type Province = {
   id: number;
   name_th: string;
+  name_en?: string;
   slug: string;
 };

@@ -18,8 +18,10 @@ import type { Listing } from "../lib/types";
 
 const LOCATION_KEY = "user_location";
 const DENIED_KEY = "user_location_denied";
+const RADIUS_OPTIONS = [5, 10, 25, 50];
 const INITIAL_RADIUS = 10;
 const EXPANDED_RADIUS = 50;
+const MOVE_THRESHOLD_M = 500; // re-fetch ถ้าขยับเกิน 500 เมตร
 
 type State =
   | { phase: "prompt" }
@@ -30,11 +32,9 @@ type State =
 
 function priceText(item: Listing): string {
   const price =
-    item.listing_type === "sale"
-      ? item.sale_price
-      : item.listing_type === "rent"
-      ? item.rent_price
-      : item.sale_price ?? item.rent_price;
+    item.listing_type === "sale" ? item.sale_price
+    : item.listing_type === "rent" ? item.rent_price
+    : item.sale_price ?? item.rent_price;
   if (!price) return "";
   if (price >= 1_000_000) return `฿${(price / 1_000_000).toFixed(1)}M`;
   if (price >= 1_000) return `฿${Math.round(price / 1000)}K`;
@@ -42,20 +42,14 @@ function priceText(item: Listing): string {
 }
 
 function NearCard({ item }: { item: Listing }) {
-  const cover = (item.listing_images ?? [])
-    .slice()
-    .sort((a, b) => a.display_order - b.display_order)[0];
+  const cover = (item.listing_images ?? []).slice().sort((a, b) => a.display_order - b.display_order)[0];
   const imageUrl = cover ? resolveImageUrl(cover.storage_path) : null;
   const [imgError, setImgError] = useState(false);
 
   return (
     <Pressable style={styles.card} onPress={() => router.push(`/listing/${item.slug}`)}>
       {imageUrl && !imgError ? (
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.cardImg}
-          onError={() => setImgError(true)}
-        />
+        <Image source={{ uri: imageUrl }} style={styles.cardImg} onError={() => setImgError(true)} />
       ) : (
         <View style={[styles.cardImg, styles.cardImgPlaceholder]}>
           <Text style={{ fontSize: 24 }}>🏪</Text>
@@ -79,11 +73,13 @@ function NearCard({ item }: { item: Listing }) {
 
 export function NearMeSection() {
   const [state, setState] = useState<State>({ phase: "prompt" });
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     checkCachedLocation();
   }, []);
 
+  // ── เช็ค cache แล้ว silently อัปเดตถ้าขยับ ──────────────
   async function checkCachedLocation() {
     const denied = await AsyncStorage.getItem(DENIED_KEY);
     if (denied) { setState({ phase: "denied" }); return; }
@@ -91,10 +87,63 @@ export function NearMeSection() {
     const cached = await AsyncStorage.getItem(LOCATION_KEY);
     if (cached) {
       const { lat, lng } = JSON.parse(cached);
+      // แสดงผลจาก cache ก่อนทันที
       await fetchNearby(lat, lng, INITIAL_RADIUS);
+      // จากนั้น silently ดึง GPS ใหม่ถ้าขยับเกิน threshold
+      silentRefresh(lat, lng);
     }
   }
 
+  // ── Silent update — ไม่แสดง loading, อัปเดตเฉพาะถ้าขยับ ──
+  async function silentRefresh(oldLat: number, oldLng: number) {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== "granted") return;
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const { latitude: lat, longitude: lng } = loc.coords;
+
+      const dLat = (lat - oldLat) * 111_000;
+      const dLng = (lng - oldLng) * 111_000 * Math.cos((oldLat * Math.PI) / 180);
+      const dist = Math.hypot(dLat, dLng);
+
+      if (dist < MOVE_THRESHOLD_M) return; // ยังอยู่ที่เดิม ไม่ต้องโหลดใหม่
+
+      await AsyncStorage.setItem(LOCATION_KEY, JSON.stringify({ lat, lng }));
+      await fetchNearby(lat, lng, INITIAL_RADIUS);
+    } catch {
+      // ล้มเหลวเงียบๆ — ไม่กระทบ UI
+    }
+  }
+
+  // ── ปุ่ม refresh ที่ผู้ใช้กด ─────────────────────────────
+  async function handleRefresh() {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        await AsyncStorage.setItem(DENIED_KEY, "1");
+        setState({ phase: "denied" });
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      const { latitude: lat, longitude: lng } = loc.coords;
+      await AsyncStorage.setItem(LOCATION_KEY, JSON.stringify({ lat, lng }));
+      const cur = state;
+      await fetchNearby(lat, lng, cur.phase === "results" ? cur.radius : INITIAL_RADIUS);
+    } catch {
+      setState({ phase: "denied" });
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  // ── ขอ GPS ครั้งแรก ───────────────────────────────────────
   async function requestLocation() {
     setState({ phase: "loading" });
     try {
@@ -104,7 +153,9 @@ export function NearMeSection() {
         setState({ phase: "denied" });
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
       const { latitude: lat, longitude: lng } = loc.coords;
       await AsyncStorage.setItem(LOCATION_KEY, JSON.stringify({ lat, lng }));
       await fetchNearby(lat, lng, INITIAL_RADIUS);
@@ -113,30 +164,48 @@ export function NearMeSection() {
     }
   }
 
+  // ── Query ร้านใกล้เคียง ───────────────────────────────────
   async function fetchNearby(lat: number, lng: number, radius: number) {
     setState({ phase: "loading" });
-    const { data, error } = await supabase.rpc("listings_within_distance", {
-      lat,
-      lng,
+
+    const { data: nearby, error: rpcError } = await supabase.rpc("listings_within_distance", {
+      center_lat: lat,
+      center_lng: lng,
       radius_km: radius,
     });
 
-    if (error || !data || data.length === 0) {
-      if (radius < EXPANDED_RADIUS) {
-        setState({ phase: "empty", lat, lng });
-      } else {
-        setState({ phase: "denied" });
-      }
+    if (rpcError || !nearby || nearby.length === 0) {
+      setState(radius < EXPANDED_RADIUS ? { phase: "empty", lat, lng } : { phase: "denied" });
       return;
     }
 
-    setState({ phase: "results", listings: data as Listing[], radius, lat, lng });
+    const ids = (nearby as { id: string; distance_km: number }[]).slice(0, 8).map((r) => r.id);
+
+    const { data, error } = await supabase
+      .from("listings")
+      .select(
+        `id, slug, title, listing_type, sale_price, rent_price, district, is_featured, published_at,
+         listing_images(id, storage_path, display_order),
+         categories(name_th, slug), provinces(name_th, slug)`
+      )
+      .in("id", ids);
+
+    if (error || !data || data.length === 0) {
+      setState(radius < EXPANDED_RADIUS ? { phase: "empty", lat, lng } : { phase: "denied" });
+      return;
+    }
+
+    const idOrder = new Map(ids.map((id, i) => [id, i]));
+    const sorted = [...(data as unknown as Listing[])].sort(
+      (a, b) => (idOrder.get(a.id) ?? 99) - (idOrder.get(b.id) ?? 99)
+    );
+
+    setState({ phase: "results", listings: sorted, radius, lat, lng });
   }
 
   async function expandRadius() {
     if (state.phase !== "empty") return;
-    const { lat, lng } = state;
-    await fetchNearby(lat, lng, EXPANDED_RADIUS);
+    await fetchNearby(state.lat, state.lng, EXPANDED_RADIUS);
   }
 
   async function clearDenied() {
@@ -145,7 +214,7 @@ export function NearMeSection() {
     setState({ phase: "prompt" });
   }
 
-  // ── Render ──────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────
   return (
     <View style={styles.section}>
       <View style={styles.header}>
@@ -153,9 +222,33 @@ export function NearMeSection() {
           <Ionicons name="location" size={16} color="#f97316" />
           <Text style={styles.headerTitle}>ร้านใกล้เคียง</Text>
         </View>
-        {state.phase === "results" && (
-          <Text style={styles.headerSub}>รัศมี {state.radius} กม.</Text>
-        )}
+
+        <View style={styles.headerRight}>
+          {state.phase === "results" && (
+            <>
+              <View style={styles.radiusPills}>
+                {RADIUS_OPTIONS.map((r) => (
+                  <Pressable
+                    key={r}
+                    style={[styles.radiusPill, state.radius === r && styles.radiusPillActive]}
+                    onPress={() => fetchNearby(state.lat, state.lng, r)}
+                  >
+                    <Text style={[styles.radiusPillText, state.radius === r && styles.radiusPillTextActive]}>
+                      {r} กม.
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {/* ปุ่ม refresh ตำแหน่ง */}
+              <Pressable style={styles.refreshBtn} onPress={handleRefresh} disabled={refreshing}>
+                {refreshing
+                  ? <ActivityIndicator size="small" color="#f97316" style={{ width: 16, height: 16 }} />
+                  : <Ionicons name="locate-outline" size={16} color="#f97316" />
+                }
+              </Pressable>
+            </>
+          )}
+        </View>
       </View>
 
       {state.phase === "prompt" && (
@@ -193,9 +286,15 @@ export function NearMeSection() {
       {state.phase === "empty" && (
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyText}>ไม่พบร้านในรัศมี {INITIAL_RADIUS} กม.</Text>
-          <Pressable style={styles.expandBtn} onPress={expandRadius}>
-            <Text style={styles.expandBtnText}>ขยายรัศมีเป็น {EXPANDED_RADIUS} กม.</Text>
-          </Pressable>
+          <View style={styles.emptyActions}>
+            <Pressable style={styles.expandBtn} onPress={expandRadius}>
+              <Text style={styles.expandBtnText}>ขยายรัศมี {EXPANDED_RADIUS} กม.</Text>
+            </Pressable>
+            <Pressable style={styles.refreshBtnSmall} onPress={handleRefresh} disabled={refreshing}>
+              <Ionicons name="locate-outline" size={14} color="#6b7280" />
+              <Text style={styles.refreshBtnSmallText}>อัปเดตตำแหน่ง</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -212,34 +311,35 @@ export function NearMeSection() {
 const styles = StyleSheet.create({
   section: { marginTop: 20 },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    marginBottom: 10,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, marginBottom: 10,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
   headerTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  headerSub: { fontSize: 12, color: "#9ca3af" },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+  radiusPills: { flexDirection: "row", gap: 5 },
+  radiusPill: {
+    paddingHorizontal: 9, paddingVertical: 4,
+    borderRadius: 999, borderWidth: 1, borderColor: "#e5e7eb", backgroundColor: "#f9fafb",
+  },
+  radiusPillActive: { backgroundColor: "#fff7ed", borderColor: "#fed7aa" },
+  radiusPillText: { fontSize: 10, color: "#6b7280", fontWeight: "500" },
+  radiusPillTextActive: { color: "#c2410c", fontWeight: "700" },
+  refreshBtn: {
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: "#fff7ed", borderWidth: 1, borderColor: "#fed7aa",
+    alignItems: "center", justifyContent: "center",
+  },
 
   promptCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginHorizontal: 16,
-    padding: 14,
-    backgroundColor: "#fff7ed",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#fed7aa",
+    flexDirection: "row", alignItems: "center", gap: 12,
+    marginHorizontal: 16, padding: 14,
+    backgroundColor: "#fff7ed", borderRadius: 14,
+    borderWidth: 1, borderColor: "#fed7aa",
   },
   promptIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#ffedd5",
-    alignItems: "center",
-    justifyContent: "center",
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: "#ffedd5", alignItems: "center", justifyContent: "center",
   },
   promptText: { flex: 1 },
   promptTitle: { fontSize: 14, fontWeight: "600", color: "#c2410c" },
@@ -251,12 +351,8 @@ const styles = StyleSheet.create({
   scroll: { paddingLeft: 16, paddingRight: 8, gap: 10, paddingBottom: 4 },
 
   card: {
-    width: 160,
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    overflow: "hidden",
+    width: 160, backgroundColor: "#fff",
+    borderRadius: 14, borderWidth: 1, borderColor: "#e5e7eb", overflow: "hidden",
   },
   cardImg: { width: "100%", aspectRatio: 4 / 3, resizeMode: "cover" },
   cardImgPlaceholder: { backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" },
@@ -266,29 +362,26 @@ const styles = StyleSheet.create({
   cardLoc: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
   cardLocText: { fontSize: 11, color: "#9ca3af", flex: 1 },
 
-  emptyWrap: { paddingHorizontal: 16, gap: 8 },
+  emptyWrap: { paddingHorizontal: 16, gap: 10 },
   emptyText: { fontSize: 13, color: "#9ca3af" },
+  emptyActions: { flexDirection: "row", gap: 10, alignItems: "center", flexWrap: "wrap" },
   expandBtn: {
-    alignSelf: "flex-start",
-    backgroundColor: "#fff7ed",
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#fed7aa",
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    backgroundColor: "#fff7ed", borderRadius: 999,
+    borderWidth: 1, borderColor: "#fed7aa",
+    paddingHorizontal: 14, paddingVertical: 7,
   },
   expandBtnText: { fontSize: 13, color: "#c2410c", fontWeight: "600" },
+  refreshBtnSmall: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 999, borderWidth: 1, borderColor: "#e5e7eb", backgroundColor: "#f9fafb",
+  },
+  refreshBtnSmallText: { fontSize: 12, color: "#6b7280", fontWeight: "500" },
 
   deniedWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginHorizontal: 16,
-    padding: 12,
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+    flexDirection: "row", alignItems: "center", gap: 8,
+    marginHorizontal: 16, padding: 12,
+    backgroundColor: "#f9fafb", borderRadius: 12, borderWidth: 1, borderColor: "#e5e7eb",
   },
   deniedText: { fontSize: 13, color: "#6b7280" },
 });

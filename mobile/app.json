@@ -38,6 +38,14 @@
         {
           "locationWhenInUsePermission": "แอปนี้ใช้ตำแหน่งของคุณเพื่อแสดงร้านที่อยู่ใกล้เคียง"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#f97316",
+          "defaultChannel": "default"
+        }
       ]
     ]
   }

@@ -1,0 +1,42 @@
+/* Sarabun — local @font-face declarations. Pulled in by colors_and_type.css
+   and by Sengran Mobile App.html. Files live in /fonts at project root. */
+
+@font-face { font-family: "Sarabun"; font-weight: 100; font-style: normal;
+  font-display: swap; src: url("Sarabun-Thin.ttf") format("truetype"); }
+@font-face { font-family: "Sarabun"; font-weight: 100; font-style: italic;
+  font-display: swap; src: url("Sarabun-ThinItalic.ttf") format("truetype"); }
+
+@font-face { font-family: "Sarabun"; font-weight: 200; font-style: normal;
+  font-display: swap; src: url("Sarabun-ExtraLight.ttf") format("truetype"); }
+@font-face { font-family: "Sarabun"; font-weight: 200; font-style: italic;
+  font-display: swap; src: url("Sarabun-ExtraLightItalic.ttf") format("truetype"); }
+
+@font-face { font-family: "Sarabun"; font-weight: 300; font-style: normal;
+  font-display: swap; src: url("Sarabun-Light.ttf") format("truetype"); }
+@font-face { font-family: "Sarabun"; font-weight: 300; font-style: italic;
+  font-display: swap; src: url("Sarabun-LightItalic.ttf") format("truetype"); }
+
+@font-face { font-family: "Sarabun"; font-weight: 400; font-style: normal;
+  font-display: swap; src: url("Sarabun-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Sarabun"; font-weight: 400; font-style: italic;
+  font-display: swap; src: url("Sarabun-Italic.ttf") format("truetype"); }
+
+@font-face { font-family: "Sarabun"; font-weight: 500; font-style: normal;
+  font-display: swap; src: url("Sarabun-Medium.ttf") format("truetype"); }
+@font-face { font-family: "Sarabun"; font-weight: 500; font-style: italic;
+  font-display: swap; src: url("Sarabun-MediumItalic.ttf") format("truetype"); }
+
+@font-face { font-family: "Sarabun"; font-weight: 600; font-style: normal;
+  font-display: swap; src: url("Sarabun-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Sarabun"; font-weight: 600; font-style: italic;
+  font-display: swap; src: url("Sarabun-SemiBoldItalic.ttf") format("truetype"); }
+
+@font-face { font-family: "Sarabun"; font-weight: 700; font-style: normal;
+  font-display: swap; src: url("Sarabun-Bold.ttf") format("truetype"); }
+@font-face { font-family: "Sarabun"; font-weight: 700; font-style: italic;
+  font-display: swap; src: url("Sarabun-BoldItalic.ttf") format("truetype"); }
+
+@font-face { font-family: "Sarabun"; font-weight: 800; font-style: normal;
+  font-display: swap; src: url("Sarabun-ExtraBold.ttf") format("truetype"); }
+@font-face { font-family: "Sarabun"; font-weight: 800; font-style: italic;
+  font-display: swap; src: url("Sarabun-ExtraBoldItalic.ttf") format("truetype"); }

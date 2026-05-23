@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
@@ -162,14 +163,17 @@ const CARD_W = Math.floor((SCREEN_W - 32 - 10) / 2); // 2 cols, 1 gap of 10
 // ─── Home screen ─────────────────────────────────────────
 export default function HomeScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [editorialPicks, setEditorialPicks] = useState<Listing[]>([]);
   const [featured, setFeatured] = useState<Listing[]>([]);
   const [latest, setLatest] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadAll();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadAll();
+    }, [])
+  );
 
   async function loadAll() {
     try {
@@ -190,7 +194,7 @@ export default function HomeScreen() {
       const listingsRes = await supabase
         .from("listings")
         .select(
-          `id, slug, title, listing_type, sale_price, rent_price, district, published_at,
+          `id, slug, title, listing_type, sale_price, rent_price, district, is_featured, published_at,
            listing_images(id, storage_path, display_order),
            categories(name_th, slug), provinces(name_th, slug)`
         )
@@ -202,9 +206,27 @@ export default function HomeScreen() {
         setErrorMsg("listings: " + listingsRes.error.message);
       } else {
         const listings = (listingsRes.data ?? []) as unknown as Listing[];
-        setErrorMsg(listings.length === 0 ? "0 listings found" : null);
-        setFeatured(listings.slice(0, 4));
+        setFeatured(listings.filter((l) => l.is_featured).slice(0, 4));
         setLatest(listings.slice(0, 8));
+      }
+
+      // Editorial picks — ประกาศเซ้งด่วน!!
+      const picksRes = await supabase
+        .from("editorial_picks")
+        .select(
+          `display_order,
+           listings!inner(id, slug, title, listing_type, sale_price, rent_price, district, is_featured, published_at,
+             listing_images(id, storage_path, display_order),
+             categories(name_th, slug), provinces(name_th, slug))`
+        )
+        .order("display_order", { ascending: true })
+        .limit(8);
+
+      if (!picksRes.error && picksRes.data) {
+        const picks = (picksRes.data as any[])
+          .map((p) => p.listings)
+          .filter(Boolean) as Listing[];
+        setEditorialPicks(picks);
       }
     } catch (e: any) {
       console.error("loadAll error:", e);
@@ -227,27 +249,25 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-        {/* Debug error — remove after fixing */}
         {errorMsg && (
           <View style={{ margin: 16, padding: 12, backgroundColor: "#fef2f2", borderRadius: 8, borderWidth: 1, borderColor: "#fca5a5" }}>
             <Text style={{ color: "#dc2626", fontSize: 12 }}>Error: {errorMsg}</Text>
           </View>
         )}
-        {/* Location header */}
+        {/* App header */}
         <View style={styles.locationHeader}>
-          <View>
-            <Text style={styles.locationLabel}>ตำแหน่งปัจจุบัน</Text>
-            <View style={styles.locationRow}>
-              <Ionicons name="location" size={16} color="#f97316" />
-              <Text style={styles.locationCity}>ทั่วประเทศไทย</Text>
-              <Ionicons name="chevron-down" size={14} color="#9ca3af" />
+          <View style={styles.appBrand}>
+            <View style={styles.appLogoCircle}>
+              <Ionicons name="storefront" size={18} color="#fff" />
             </View>
+            <Text style={styles.appName}>เซ้งร้าน</Text>
           </View>
           <View style={styles.headerIcons}>
-            <Pressable style={styles.iconBtn} onPress={() => router.push("/browse")}>
-              <Ionicons name="notifications-outline" size={22} color="#374151" />
+            <Pressable style={styles.notifBtn} onPress={() => router.push("/(tabs)/profile?tab=notifications")}>
+              <Ionicons name="notifications-outline" size={15} color="#c2410c" />
+              <Text style={styles.notifBtnText}>แจ้งเตือนร้านใหม่</Text>
             </Pressable>
-            <Pressable style={styles.iconBtn}>
+            <Pressable style={styles.iconBtn} onPress={() => router.push("/(tabs)/profile?tab=messages")}>
               <Ionicons name="chatbubble-outline" size={22} color="#374151" />
             </Pressable>
           </View>
@@ -313,6 +333,26 @@ export default function HomeScreen() {
 
         {/* Near me */}
         <NearMeSection />
+
+        {/* Editorial picks — ประกาศเซ้งด่วน!! */}
+        {editorialPicks.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader
+              title="🔥 ประกาศเซ้งด่วน!!"
+              linkLabel="ดูทั้งหมด"
+              onLink={() => router.push("/(tabs)/browse")}
+            />
+            <View style={styles.latestGrid}>
+              {editorialPicks.map((item) => (
+                <ListingCardV
+                  key={item.id}
+                  item={item}
+                  onPress={() => router.push(`/listing/${item.slug}`)}
+                />
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Featured — horizontal scroll */}
         {featured.length > 0 && (
@@ -382,7 +422,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  // Location header
+  // App header
   locationHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -391,11 +431,24 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 4,
   },
-  locationLabel: { fontSize: 11, color: "#9ca3af" },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  locationCity: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  appBrand: { flexDirection: "row", alignItems: "center", gap: 8 },
+  appLogoCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#f97316",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  appName: { fontSize: 20, fontWeight: "800", color: "#111827", letterSpacing: -0.5 },
   headerIcons: { flexDirection: "row", gap: 4 },
   iconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  notifBtn: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    backgroundColor: "#fff7ed", borderWidth: 1, borderColor: "#fed7aa",
+    borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6,
+  },
+  notifBtnText: { fontSize: 12, fontWeight: "600", color: "#c2410c" },
 
   // Search
   searchBar: {

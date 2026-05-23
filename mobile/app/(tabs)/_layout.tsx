@@ -1,8 +1,10 @@
+import { useContext } from "react";
 import { Tabs } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { UnreadCountsContext } from "../_layout";
 
 type TabConfig = {
   name: string;
@@ -13,15 +15,17 @@ type TabConfig = {
 };
 
 const TABS: TabConfig[] = [
-  { name: "index",   label: "หน้าแรก",   icon: "home-outline",     iconActive: "home" },
-  { name: "browse",  label: "ค้นหา",     icon: "search-outline",   iconActive: "search" },
-  { name: "create",  label: "ลงประกาศ",  icon: "add",              iconActive: "add", primary: true },
-  { name: "saved",   label: "บันทึก",    icon: "bookmark-outline", iconActive: "bookmark" },
-  { name: "profile", label: "โปรไฟล์",   icon: "person-outline",   iconActive: "person" },
+  { name: "index",       label: "หน้าแรก",   icon: "home-outline",          iconActive: "home" },
+  { name: "browse",      label: "ค้นหา",     icon: "search-outline",        iconActive: "search" },
+  { name: "create",      label: "ลงประกาศ",  icon: "add",                   iconActive: "add", primary: true },
+  { name: "my-listings", label: "ของฉัน",    icon: "document-text-outline", iconActive: "document-text" },
+  { name: "profile",     label: "โปรไฟล์",   icon: "person-outline",        iconActive: "person" },
 ];
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { counts } = useContext(UnreadCountsContext);
+  const totalUnread = counts.messages + counts.notifications;
 
   return (
     <View style={[styles.tabBar, { paddingBottom: insets.bottom || 8 }]}>
@@ -46,13 +50,24 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           );
         }
 
+        const isProfile = tab.name === "profile";
+
         return (
           <Pressable key={route.key} onPress={onPress} style={styles.tabItem}>
-            <Ionicons
-              name={focused ? tab.iconActive : tab.icon}
-              size={24}
-              color={focused ? "#f97316" : "#9ca3af"}
-            />
+            <View style={styles.iconWrap}>
+              <Ionicons
+                name={focused ? tab.iconActive : tab.icon}
+                size={24}
+                color={focused ? "#f97316" : "#9ca3af"}
+              />
+              {isProfile && totalUnread > 0 && (
+                <View style={styles.badgeDot}>
+                  {totalUnread <= 9 && (
+                    <Text style={styles.badgeDotText}>{totalUnread}</Text>
+                  )}
+                </View>
+              )}
+            </View>
             <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
               {tab.label}
             </Text>
@@ -69,7 +84,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
-    paddingTop: 6,
+    paddingTop: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.05,
@@ -79,19 +94,38 @@ const styles = StyleSheet.create({
   tabItem: {
     flex: 1,
     alignItems: "center",
+    justifyContent: "center",
     gap: 3,
+    paddingVertical: 4,
+    minHeight: 52,
   },
+  iconWrap: { position: "relative" },
+  badgeDot: {
+    position: "absolute",
+    top: -3,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
+  badgeDotText: { color: "#fff", fontSize: 9, fontWeight: "700" },
   tabLabel: { fontSize: 10, fontWeight: "500", color: "#9ca3af" },
   tabLabelActive: { color: "#f97316", fontWeight: "700" },
   tabLabelInactive: { fontSize: 10, fontWeight: "500", color: "#9ca3af" },
   primaryBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: "#f97316",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -14,
+    marginTop: -16,
     shadowColor: "#f97316",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
@@ -106,9 +140,9 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="browse" />
       <Tabs.Screen name="create" />
-      <Tabs.Screen name="saved" />
+      <Tabs.Screen name="my-listings" />
       <Tabs.Screen name="profile" />
-      <Tabs.Screen name="my-listings" options={{ href: null }} />
+      <Tabs.Screen name="saved" options={{ href: null }} />
     </Tabs>
   );
 }

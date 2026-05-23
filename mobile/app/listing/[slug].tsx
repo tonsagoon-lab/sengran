@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -17,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { resolveImageUrl } from "../../lib/image-url";
+import { SessionContext } from "../_layout";
 import type { ListingDetail } from "../../lib/types";
 
 const { width: W } = Dimensions.get("window");
@@ -57,10 +59,13 @@ function TypeBadge({ type }: { type: BadgeType }) {
 export default function ListingDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
+  const session = useContext(SessionContext);
   const [listing, setListing] = useState<ListingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [saved, setSaved] = useState(false);
+  const [savingLoading, setSavingLoading] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -72,10 +77,11 @@ export default function ListingDetailScreen() {
       .from("listings")
       .select(
         `id, slug, title, description, listing_type, sale_price, rent_price, district,
+         contact_mobile, contact_line, latitude, longitude,
          view_count, published_at, status,
          listing_images(id, storage_path, display_order),
          categories(name_th, slug), provinces(name_th, slug),
-         profiles!listings_user_id_fkey(display_name, mobile, line_id, avatar_url)`
+         profiles!listings_user_id_fkey(display_name, avatar_url)`
       )
       .eq("slug", slug)
       .in("status", ["published", "expired"])
@@ -87,17 +93,73 @@ export default function ListingDetailScreen() {
 
     if (data) {
       supabase.rpc("increment_listing_view_count", { listing_slug: slug }).then(() => {});
+      if (session) checkSaved(data.id);
     }
   }
 
+  async function checkSaved(listingId: string) {
+    const { data } = await supabase
+      .from("favorites")
+      .select("listing_id")
+      .eq("listing_id", listingId)
+      .maybeSingle();
+    setSaved(!!data);
+  }
+
+  async function handleSave() {
+    if (!session) {
+      router.push("/auth/login");
+      return;
+    }
+    if (!listing) return;
+    setSavingLoading(true);
+    if (saved) {
+      await supabase.from("favorites").delete().eq("listing_id", listing.id);
+      setSaved(false);
+    } else {
+      await supabase.from("favorites").insert({ listing_id: listing.id });
+      setSaved(true);
+    }
+    setSavingLoading(false);
+  }
+
+  async function handleShare() {
+    if (!listing) return;
+    await Share.share({
+      title: listing.title,
+      message: `${listing.title}\nhttps://sengran.com/listing/${listing.slug}`,
+    });
+  }
+
+
   function handleCall() {
-    if (!listing?.profiles?.mobile) return;
-    Linking.openURL(`tel:${listing.profiles.mobile.replace(/[^0-9+]/g, "")}`);
+    if (!listing?.contact_mobile) return;
+    Linking.openURL(`tel:${listing.contact_mobile.replace(/[^0-9+]/g, "")}`);
   }
 
   function handleLine() {
-    if (!listing?.profiles?.line_id) return;
-    Linking.openURL(`https://line.me/R/ti/p/~${listing.profiles.line_id}`);
+    if (!listing?.contact_line) return;
+    Linking.openURL(`https://line.me/R/ti/p/~${listing.contact_line}`);
+  }
+
+  function handleMessage() {
+    router.push(`/messages/${listing.id}`);
+  }
+
+  function handleOpenMaps() {
+    if (!listing?.latitude || !listing?.longitude) return;
+    const lat = listing.latitude;
+    const lng = listing.longitude;
+    const url = Platform.OS === "ios"
+      ? `maps://maps.apple.com/?q=${lat},${lng}&ll=${lat},${lng}`
+      : `geo:${lat},${lng}?q=${lat},${lng}`;
+    Linking.canOpenURL(url).then((supported) => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+      }
+    });
   }
 
   if (loading) {
@@ -122,10 +184,14 @@ export default function ListingDetailScreen() {
     .sort((a, b) => a.display_order - b.display_order)
     .filter((img) => !failedImages.has(img.storage_path));
 
-  const sellerInitial = listing.profiles?.display_name?.charAt(0)?.toUpperCase() ?? "?";
+  const profile = Array.isArray(listing.profiles)
+    ? listing.profiles[0] ?? null
+    : listing.profiles;
 
-  const hasMobile = !!listing.profiles?.mobile;
-  const hasLine = !!listing.profiles?.line_id;
+  const sellerInitial = profile?.display_name?.charAt(0)?.toUpperCase() ?? "?";
+
+  const hasMobile = !!listing.contact_mobile;
+  const hasLine = !!listing.contact_line;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["bottom"]}>
@@ -175,7 +241,7 @@ export default function ListingDetailScreen() {
 
         {/* Content */}
         <View style={styles.content}>
-          {/* Badges */}
+          {/* Badges + action buttons row */}
           <View style={styles.badgeRow}>
             <TypeBadge type={listing.listing_type} />
             {listing.categories && (
@@ -183,16 +249,27 @@ export default function ListingDetailScreen() {
                 <Text style={styles.catBadgeText}>{listing.categories.name_th}</Text>
               </View>
             )}
+            <View style={{ flex: 1 }} />
+            <Pressable style={styles.iconBtn} onPress={handleShare}>
+              <Ionicons name="share-outline" size={20} color="#6b7280" />
+            </Pressable>
+            <Pressable style={styles.iconBtn} onPress={handleSave} disabled={savingLoading}>
+              {savingLoading ? (
+                <ActivityIndicator size="small" color="#f97316" />
+              ) : (
+                <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={20} color={saved ? "#f97316" : "#6b7280"} />
+              )}
+            </Pressable>
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>{listing.title}</Text>
+          <Text selectable style={styles.title}>{listing.title}</Text>
 
           {/* Location */}
           {(listing.district || listing.provinces) && (
             <View style={styles.locRow}>
               <Ionicons name="location-outline" size={13} color="#9ca3af" />
-              <Text style={styles.locText}>
+              <Text selectable style={styles.locText}>
                 {[listing.district, listing.provinces?.name_th].filter(Boolean).join(", ")}
               </Text>
             </View>
@@ -205,14 +282,14 @@ export default function ListingDetailScreen() {
                 <View style={styles.priceRow}>
                   <Ionicons name="storefront-outline" size={16} color="#9a3412" />
                   <Text style={styles.priceLabel}>ราคาเซ้ง:</Text>
-                  <Text style={styles.priceValue}>฿{fmtPrice(listing.sale_price)} บาท</Text>
+                  <Text selectable style={styles.priceValue}>฿{fmtPrice(listing.sale_price)} บาท</Text>
                 </View>
               ) : null}
               {listing.rent_price ? (
                 <View style={styles.priceRow}>
                   <Ionicons name="layers-outline" size={16} color="#9a3412" />
                   <Text style={styles.priceLabel}>ค่าเช่า:</Text>
-                  <Text style={styles.priceValue}>฿{fmtPrice(listing.rent_price)} บาท/เดือน</Text>
+                  <Text selectable style={styles.priceValue}>฿{fmtPrice(listing.rent_price)} บาท/เดือน</Text>
                 </View>
               ) : null}
             </View>
@@ -244,19 +321,51 @@ export default function ListingDetailScreen() {
           {listing.description ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>รายละเอียด</Text>
-              <Text style={styles.description}>{stripHtml(listing.description)}</Text>
+              <Text selectable style={styles.description}>{stripHtml(listing.description)}</Text>
             </View>
           ) : null}
 
+          {/* Map */}
+          {listing.latitude && listing.longitude && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>ที่ตั้ง</Text>
+              <Pressable style={styles.mapCard} onPress={handleOpenMaps}>
+                {/* Grid lines decoration */}
+                <View style={styles.mapGrid}>
+                  {[0,1,2,3].map(i => (
+                    <View key={`h${i}`} style={[styles.mapGridLineH, { top: `${25 * (i+1)}%` as any }]} />
+                  ))}
+                  {[0,1,2,3].map(i => (
+                    <View key={`v${i}`} style={[styles.mapGridLineV, { left: `${20 * (i+1)}%` as any }]} />
+                  ))}
+                </View>
+                {/* Pin */}
+                <View style={styles.mapPinWrap}>
+                  <View style={styles.mapPinCircle}>
+                    <Ionicons name="location" size={28} color="#ef4444" />
+                  </View>
+                  <Text style={styles.mapCoords}>
+                    {listing.latitude.toFixed(5)}, {listing.longitude.toFixed(5)}
+                  </Text>
+                </View>
+                {/* Navigate button */}
+                <View style={styles.mapNavBtn}>
+                  <Ionicons name="navigate" size={16} color="#fff" />
+                  <Text style={styles.mapNavText}>เปิดใน Google Maps</Text>
+                </View>
+              </Pressable>
+            </View>
+          )}
+
           {/* Seller */}
-          {listing.profiles && (
+          {profile && (
             <View style={styles.sellerCard}>
               <View style={styles.sellerAvatar}>
                 <Text style={styles.sellerInitial}>{sellerInitial}</Text>
               </View>
               <View style={styles.sellerInfo}>
                 <Text style={styles.sellerName}>
-                  {listing.profiles.display_name ?? "ผู้ขาย"}
+                  {profile.display_name ?? "ผู้ขาย"}
                 </Text>
                 <Text style={styles.sellerMeta}>ผู้ขาย · ตอบเร็ว</Text>
               </View>
@@ -264,35 +373,38 @@ export default function ListingDetailScreen() {
             </View>
           )}
 
+
           {/* Spacer for sticky bar */}
           <View style={{ height: 24 }} />
         </View>
       </ScrollView>
 
       {/* Sticky contact bar */}
-      {listing.profiles && (hasMobile || hasLine) && (
-        <View style={styles.stickyBar}>
-          {hasMobile && (
-            <Pressable style={[styles.contactBtn, styles.callBtn]} onPress={handleCall}>
-              <Ionicons name="call-outline" size={18} color="#fff" />
-              <Text style={styles.contactBtnText}>โทร</Text>
-            </Pressable>
-          )}
-          {hasLine && (
-            <Pressable style={[styles.contactBtn, styles.lineBtn]} onPress={handleLine}>
-              {/* LINE logo */}
-              <Text style={styles.lineLogoText}>L</Text>
-              <Text style={styles.contactBtnText}>LINE</Text>
-            </Pressable>
-          )}
-          {!hasMobile && !hasLine && (
-            <Pressable style={[styles.contactBtn, styles.msgBtn]}>
-              <Ionicons name="chatbubble-outline" size={18} color="#374151" />
-              <Text style={[styles.contactBtnText, { color: "#374151" }]}>ติดต่อสอบถาม</Text>
-            </Pressable>
-          )}
-        </View>
-      )}
+      <View style={styles.stickyBar}>
+        <Pressable
+          style={[styles.contactBtn, hasMobile ? styles.callBtn : styles.btnDisabled]}
+          onPress={handleCall}
+          disabled={!hasMobile}
+        >
+          <Ionicons name="call-outline" size={18} color="#fff" />
+          <Text style={styles.contactBtnText}>โทร</Text>
+        </Pressable>
+
+        <Pressable
+          style={[styles.contactBtn, styles.msgBtn]}
+          onPress={handleMessage}
+        >
+          <Ionicons name="chatbubble-outline" size={18} color="#fff" />
+          <Text style={styles.contactBtnText}>ข้อความ</Text>
+        </Pressable>
+
+        {hasLine && (
+          <Pressable style={[styles.contactBtn, styles.lineBtn]} onPress={handleLine}>
+            <Text style={styles.lineLogoText}>L</Text>
+            <Text style={styles.contactBtnText}>LINE</Text>
+          </Pressable>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -309,7 +421,7 @@ const styles = StyleSheet.create({
   pagePillText: { color: "#fff", fontSize: 11 },
   backBtn: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 12 : 12,
+    top: 12,
     left: 12,
     width: 36,
     height: 36,
@@ -322,6 +434,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   // Content
@@ -387,6 +505,53 @@ const styles = StyleSheet.create({
   sellerName: { fontSize: 14, fontWeight: "600", color: "#111827" },
   sellerMeta: { fontSize: 12, color: "#9ca3af", marginTop: 2 },
 
+  // Map
+  mapCard: {
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#d1fae5",
+    height: 160,
+    backgroundColor: "#f0fdf4",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    gap: 8,
+  },
+  mapGrid: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+  mapGridLineH: { position: "absolute", left: 0, right: 0, height: 1, backgroundColor: "#d1fae5" },
+  mapGridLineV: { position: "absolute", top: 0, bottom: 0, width: 1, backgroundColor: "#d1fae5" },
+  mapPinWrap: { alignItems: "center", gap: 4 },
+  mapPinCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  mapCoords: { fontSize: 11, color: "#6b7280" },
+  mapNavBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#4285F4",
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    shadowColor: "#4285F4",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  mapNavText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+
   // Sticky bar
   stickyBar: {
     flexDirection: "row",
@@ -414,7 +579,8 @@ const styles = StyleSheet.create({
   },
   callBtn: { backgroundColor: "#f97316" },
   lineBtn: { backgroundColor: "#06C755" },
-  msgBtn: { backgroundColor: "#f9fafb", borderWidth: 1, borderColor: "#e5e7eb" },
-  contactBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  msgBtn: { backgroundColor: "#3b82f6" },
+  btnDisabled: { backgroundColor: "#d1d5db" },
+  contactBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   lineLogoText: { color: "#fff", fontSize: 15, fontWeight: "900", fontStyle: "italic" },
 });

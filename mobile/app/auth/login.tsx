@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
-  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
@@ -18,11 +20,42 @@ import { supabase } from "../../lib/supabase";
 
 WebBrowser.maybeCompleteAuthSession();
 
+async function applyTokensFromUrl(url: string): Promise<boolean> {
+  const hash = url.split("#")[1] ?? "";
+  const p = new URLSearchParams(hash);
+  const at = p.get("access_token");
+  const rt = p.get("refresh_token");
+  if (at && rt) {
+    await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+    return true;
+  }
+  const q = url.split("?")[1] ?? "";
+  const qp = new URLSearchParams(q);
+  const qat = qp.get("access_token");
+  const qrt = qp.get("refresh_token");
+  if (qat && qrt) {
+    await supabase.auth.setSession({ access_token: qat, refresh_token: qrt });
+    return true;
+  }
+  return false;
+}
+
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
+
+  // Handle deep link callback (Android Expo Go)
+  useEffect(() => {
+    const sub = Linking.addEventListener("url", async ({ url }) => {
+      if (!url.includes("access_token")) return;
+      const ok = await applyTokensFromUrl(url);
+      if (ok) router.replace("/(tabs)");
+    });
+    return () => sub.remove();
+  }, []);
 
   async function handleLogin() {
     if (!email.trim() || !password) {
@@ -38,7 +71,7 @@ export default function LoginScreen() {
   async function handleGoogleLogin() {
     setGoogleLoading(true);
     try {
-      const redirectTo = makeRedirectUri({ scheme: "sengran", path: "auth/callback" });
+      const redirectTo = makeRedirectUri({ path: "auth/callback" });
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -51,25 +84,13 @@ export default function LoginScreen() {
         return;
       }
 
+      // On Android Expo Go, openAuthSessionAsync may not intercept the redirect.
+      // Linking listener above handles the callback in that case.
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
       if (result.type === "success" && result.url) {
-        const url = new URL(result.url);
-        const accessToken = url.searchParams.get("access_token");
-        const refreshToken = url.searchParams.get("refresh_token");
-
-        if (accessToken && refreshToken) {
-          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-        } else {
-          // Try fragment params
-          const hash = result.url.split("#")[1] ?? "";
-          const params = new URLSearchParams(hash);
-          const at = params.get("access_token");
-          const rt = params.get("refresh_token");
-          if (at && rt) {
-            await supabase.auth.setSession({ access_token: at, refresh_token: rt });
-          }
-        }
+        const ok = await applyTokensFromUrl(result.url);
+        if (ok) router.replace("/(tabs)");
       }
     } catch (e) {
       Alert.alert("เกิดข้อผิดพลาด", "ลอง login ใหม่อีกครั้ง");
@@ -80,8 +101,14 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.inner}
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+      >
+      <ScrollView
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.logoRow}>
           <Text style={styles.logo}>🏪</Text>
@@ -124,15 +151,21 @@ export default function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            blurOnSubmit={false}
           />
 
           <Text style={styles.label}>รหัสผ่าน</Text>
           <TextInput
+            ref={passwordRef}
             style={styles.input}
             placeholder="รหัสผ่าน"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
           />
 
           <Pressable
@@ -153,6 +186,7 @@ export default function LoginScreen() {
             </Text>
           </Pressable>
         </View>
+      </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -160,7 +194,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  inner: { flex: 1, justifyContent: "center", paddingHorizontal: 24 },
+  inner: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 24, paddingVertical: 32 },
   logoRow: { flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 8 },
   logo: { fontSize: 40 },
   appName: { fontSize: 28, fontWeight: "800", color: "#f97316" },

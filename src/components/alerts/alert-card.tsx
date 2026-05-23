@@ -23,7 +23,9 @@ function formatPrice(n: number) {
 function describeAlert(alert: AlertPreference, provinces: { id: number; name_th: string }[]) {
   const parts: string[] = [];
 
-  if (alert.province_ids.length > 0) {
+  if (alert.center_lat != null && alert.radius_km != null) {
+    parts.push(`ใกล้ฉัน ${alert.radius_km} กม.`);
+  } else if (alert.province_ids.length > 0) {
     const names = alert.province_ids
       .map((id) => provinces.find((p) => p.id === id)?.name_th)
       .filter(Boolean);

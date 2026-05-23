@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>V1 Classic · เซ้งร้าน App — Standalone Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../assets/fonts/sarabun.css">
+<link rel="stylesheet" href="../assets/colors_and_type.css">
+<style>
+  html, body, #root { height: 100%; margin: 0; padding: 0; }
+  body {
+    font-family: "Sarabun", "Noto Sans Thai", system-ui, sans-serif;
+    background: #f5f5f4;
+    display: flex; align-items: center; justify-content: center;
+  }
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+
+  /* Phone wrapper for standalone viewing */
+  #phone-wrapper {
+    width: 390px; height: 844px; max-height: 100vh;
+    box-shadow: 0 12px 40px rgb(0 0 0 / 0.15);
+    border-radius: 38px;
+    overflow: hidden;
+    background: #fff;
+  }
+  @media (max-width: 420px) {
+    #phone-wrapper { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; }
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="phone-wrapper"><div id="root" style="height:100%"></div></div>
+
+<script type="text/babel" src="../src/data.jsx"></script>
+<script type="text/babel" src="../src/icons.jsx"></script>
+<script type="text/babel" src="../src/shared.jsx"></script>
+<script type="text/babel" src="../src/v1-classic.jsx"></script>
+
+<script type="text/babel">
+const { buildTheme, ContactSheet } = window.Shared;
+const { CATS, LISTINGS } = window.SengranData;
+const { HomeV1, BrowseV1, DetailV1, SavedV1, ProfileV1 } = window.V1;
+
+function useRouter() {
+  const [screen, setScreen] = React.useState("home");
+  const [stack, setStack] = React.useState([]);
+  const [selected, setSelected] = React.useState(LISTINGS[0]);
+  const [contactFor, setContactFor] = React.useState(null);
+  const [faves, setFaves] = React.useState(new Set(["l1", "l3"]));
+
+  const go = (target) => {
+    if (target === "post") { setScreen("home"); return; }
+    setStack(s => screen === target ? s : [...s, screen]);
+    setScreen(target);
+  };
+  const openDetail = (l) => { setSelected(l); setStack(s => [...s, screen]); setScreen("detail"); };
+  const back = () => setStack(s => {
+    if (!s.length) return s;
+    setScreen(s[s.length - 1]);
+    return s.slice(0, -1);
+  });
+  const toggleFav = (id) => setFaves(prev => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
+
+  return { screen, selected, contactFor, faves, go, openDetail, back, toggleFav,
+           openContact: setContactFor, closeContact: () => setContactFor(null) };
+}
+
+function App() {
+  const theme = buildTheme({ color: "orange", cards: "spacious" });
+  const ctx = { ...useRouter(), theme };
+  let body;
+  switch (ctx.screen) {
+    case "home":    body = <HomeV1 ctx={ctx} cats={CATS} catMode="icons"/>; break;
+    case "browse":  body = <BrowseV1 ctx={ctx}/>; break;
+    case "detail":  body = <DetailV1 ctx={ctx} listing={ctx.selected}/>; break;
+    case "saved":   body = <SavedV1 ctx={ctx}/>; break;
+    case "profile": body = <ProfileV1 ctx={ctx}/>; break;
+    default:        body = <HomeV1 ctx={ctx} cats={CATS} catMode="icons"/>;
+  }
+  // override safe-areas for standalone (no device frame chrome)
+  const safeOverride = {
+    "--safe-top": "20px",
+    "--safe-bottom": "20px",
+  };
+  return (
+    <div style={{ height: "100%", ...safeOverride }}>
+      {React.cloneElement(body, { ctx: { ...ctx, theme: { ...theme, ...safeOverride } } })}
+      {ctx.contactFor && <ContactSheet listing={ctx.contactFor} onClose={ctx.closeContact}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
