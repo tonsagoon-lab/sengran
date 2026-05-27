@@ -154,19 +154,31 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <TrendingUp className="h-4 w-4 text-teal-500" />
               คนเข้าเว็บ 30 วันที่ผ่านมา
             </h2>
-            <div className="flex items-end gap-0.5 h-24">
-              {pageViewsPerDay.map(({ date, count }) => {
-                const max = Math.max(...pageViewsPerDay.map((d) => d.count), 1);
-                const pct = (count / max) * 100;
-                const d = new Date(date);
-                const label = `${d.getDate()}/${d.getMonth() + 1}`;
-                return (
-                  <div key={date} className="flex-1 flex flex-col items-center gap-0.5 group" title={`${label}: ${count} คน`}>
-                    <div className="w-full rounded-sm bg-teal-100 group-hover:bg-teal-300 transition-colors" style={{ height: `${Math.max(pct, 2)}%` }} />
-                  </div>
-                );
-              })}
-            </div>
+            {(() => {
+              const max = Math.max(...pageViewsPerDay.map((d) => d.count), 1);
+              return (
+                <div className="flex items-end gap-px h-28">
+                  {pageViewsPerDay.map(({ date, count }) => {
+                    const pct = count === 0 ? 0 : Math.max((count / max) * 100, 8);
+                    const d = new Date(date);
+                    const label = `${d.getDate()}/${d.getMonth() + 1}`;
+                    return (
+                      <div key={date} className="flex-1 flex flex-col justify-end h-full group" title={`${label}: ${count} คน`}>
+                        {count > 0 && (
+                          <div
+                            className="w-full rounded-t-sm bg-teal-400 group-hover:bg-teal-500 transition-colors"
+                            style={{ height: `${pct}%` }}
+                          />
+                        )}
+                        {count === 0 && (
+                          <div className="w-full rounded-t-sm bg-neutral-100" style={{ height: "4px" }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
             <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
               <span>{pageViewsPerDay[0]?.date.slice(5)}</span>
               <span>รวม {pageViewsPerDay.reduce((s, d) => s + d.count, 0).toLocaleString("th-TH")} ครั้ง</span>
