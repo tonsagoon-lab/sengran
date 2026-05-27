@@ -8,6 +8,9 @@ import {
   getListingsByProvince,
   getTopSearches,
   getRecentSold,
+  getPageViewsPerDay,
+  getTopReferrers,
+  getTodayPageViews,
 } from "@/lib/db/admin";
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { ChartSection } from "@/components/admin/chart-section";
@@ -18,7 +21,7 @@ import { AdminTabs } from "@/components/admin/admin-tabs";
 import { ArticlesManager } from "@/components/admin/articles-manager";
 import {
   LayoutGrid, Users, Eye,
-  FileText, CheckCircle, EyeOff, FileEdit,
+  FileText, CheckCircle, EyeOff, FileEdit, TrendingUp, Globe,
 } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -85,6 +88,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     byProvince,
     topSearches,
     recentSold,
+    pageViewsPerDay,
+    topReferrers,
+    todayViews,
   ] = await Promise.all([
     getAdminStats(),
     getTopListings(10),
@@ -92,6 +98,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     getListingsByProvince(10),
     getTopSearches(10),
     getRecentSold(10),
+    getPageViewsPerDay(30),
+    getTopReferrers(10),
+    getTodayPageViews(),
   ]);
 
   const maxCat = Math.max(...byCategory.map((c) => c.count), 1);
@@ -134,6 +143,52 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <StatCard label="แบบร่าง" value={stats.draft} icon={FileEdit} color="bg-yellow-500" />
           <StatCard label="ผู้ใช้ทั้งหมด" value={stats.totalUsers} icon={Users} color="bg-purple-500" />
           <StatCard label="ยอดวิวรวม" value={stats.totalViews} icon={Eye} color="bg-pink-500" />
+          <StatCard label="คนเข้าวันนี้" value={todayViews} icon={TrendingUp} color="bg-teal-500" />
+        </div>
+
+        {/* Traffic section */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {/* Page views per day chart */}
+          <div className="rounded-xl border bg-white p-5">
+            <h2 className="text-sm font-semibold text-neutral-800 mb-4 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-teal-500" />
+              คนเข้าเว็บ 30 วันที่ผ่านมา
+            </h2>
+            <div className="flex items-end gap-0.5 h-24">
+              {pageViewsPerDay.map(({ date, count }) => {
+                const max = Math.max(...pageViewsPerDay.map((d) => d.count), 1);
+                const pct = (count / max) * 100;
+                const d = new Date(date);
+                const label = `${d.getDate()}/${d.getMonth() + 1}`;
+                return (
+                  <div key={date} className="flex-1 flex flex-col items-center gap-0.5 group" title={`${label}: ${count} คน`}>
+                    <div className="w-full rounded-sm bg-teal-100 group-hover:bg-teal-300 transition-colors" style={{ height: `${Math.max(pct, 2)}%` }} />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
+              <span>{pageViewsPerDay[0]?.date.slice(5)}</span>
+              <span>รวม {pageViewsPerDay.reduce((s, d) => s + d.count, 0).toLocaleString("th-TH")} ครั้ง</span>
+              <span>{pageViewsPerDay[pageViewsPerDay.length - 1]?.date.slice(5)}</span>
+            </div>
+          </div>
+
+          {/* Top referrers */}
+          <div className="rounded-xl border bg-white p-5">
+            <h2 className="text-sm font-semibold text-neutral-800 mb-4 flex items-center gap-2">
+              <Globe className="h-4 w-4 text-blue-500" />
+              คนมาจากเว็บไหน (30 วัน)
+            </h2>
+            {topReferrers.length === 0 ? (
+              <p className="text-sm text-neutral-400 py-6 text-center">ยังไม่มีข้อมูล</p>
+            ) : (
+              <MiniBar
+                items={topReferrers.map((r) => ({ label: r.domain, count: r.count }))}
+                max={Math.max(...topReferrers.map((r) => r.count), 1)}
+              />
+            )}
+          </div>
         </div>
 
         {/* Content manager — listings & users */}

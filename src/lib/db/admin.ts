@@ -149,6 +149,67 @@ export async function getTopSearches(limit = 10) {
     .map(([query, count]) => ({ query, count }));
 }
 
+export async function getPageViewsPerDay(days = 30) {
+  const supabase = createAdminClient();
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const { data } = await supabase
+    .from("page_views")
+    .select("created_at")
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: true });
+
+  const map: Record<string, number> = {};
+  for (let i = 0; i < days; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - (days - 1 - i));
+    map[d.toISOString().slice(0, 10)] = 0;
+  }
+  for (const row of data ?? []) {
+    const key = (row.created_at as string).slice(0, 10);
+    if (key in map) map[key] = (map[key] ?? 0) + 1;
+  }
+
+  return Object.entries(map).map(([date, count]) => ({ date, count }));
+}
+
+export async function getTopReferrers(limit = 10) {
+  const supabase = createAdminClient();
+  const since = new Date();
+  since.setDate(since.getDate() - 30);
+
+  const { data } = await supabase
+    .from("page_views")
+    .select("referrer_domain")
+    .gte("created_at", since.toISOString())
+    .not("referrer_domain", "is", null);
+
+  const map: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const d = row.referrer_domain as string;
+    map[d] = (map[d] ?? 0) + 1;
+  }
+
+  return Object.entries(map)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([domain, count]) => ({ domain, count }));
+}
+
+export async function getTodayPageViews() {
+  const supabase = createAdminClient();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const { count } = await supabase
+    .from("page_views")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", today.toISOString());
+
+  return count ?? 0;
+}
+
 export async function getRecentSold(limit = 10) {
   const supabase = createAdminClient();
   const { data } = await supabase
