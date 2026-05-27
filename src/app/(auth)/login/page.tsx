@@ -6,7 +6,7 @@ import { AuthForm } from "@/components/shared/auth-form";
 import { GoogleLoginButton } from "@/components/shared/google-login-button";
 import { loginAction } from "@/lib/actions/auth";
 
-export const metadata = { title: "เข้าสู่ระบบ — เซ้งร้าน.com" };
+export const metadata = { title: "เข้าสู่ระบบ — เซ้งร้าน.com", robots: { index: false, follow: false } };
 
 export default function LoginPage({
   searchParams,

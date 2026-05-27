@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAllCategories, getAllProvinces, getAllAmenities } from "@/lib/db/listings";
 import { ListingWizard } from "@/components/listing-wizard";
 
-export const metadata = { title: "ลงประกาศใหม่ — เซ้งร้าน.com" };
+export const metadata = { title: "ลงประกาศใหม่ — เซ้งร้าน.com" , robots: { index: false, follow: false } };
 
 export default async function NewListingPage() {
   const supabase = await createClient();

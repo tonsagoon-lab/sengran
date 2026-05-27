@@ -32,6 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.xn--72ch7bybxexd0cc.com";
+
 export default async function CategoryPage({ params, searchParams }: Props) {
   const { slug: rawSlug } = await params;
   const slug = decodeURIComponent(rawSlug);
@@ -46,8 +48,19 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     else if (Array.isArray(v) && v[0]) flat[k] = v[0];
   }
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "หน้าแรก", item: BASE_URL },
+      { "@type": "ListItem", position: 2, name: "ประกาศทั้งหมด", item: `${BASE_URL}/listings` },
+      { "@type": "ListItem", position: 3, name: `${cat.name_th} เซ้งและให้เช่า`, item: `${BASE_URL}/property-type/${slug}` },
+    ],
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <TopMenuBar />
       <BrowsePage
         searchParams={flat}

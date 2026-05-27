@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+export const revalidate = 60;
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { BrowsePage } from "@/components/listings/browse-page";
 
@@ -20,7 +22,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     title,
     description,
     openGraph: { title, description },
-    ...(page > 1 ? { robots: { index: false } } : {}),
+    alternates: { canonical: "/listings" },
+    ...(page > 1 ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

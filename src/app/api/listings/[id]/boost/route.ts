@@ -116,7 +116,7 @@ export async function POST(
     });
 
     const { data: lst } = await admin.from("listings").select("title, slug").eq("id", listingId).single();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xn--12c1bik6bbd8af5l3d.com";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.xn--72ch7bybxexd0cc.com";
     const listingUrl = lst?.slug ? `${siteUrl}/property/${lst.slug}` : null;
     const typeLabel = pkg.type === "facebook" ? "📣 ยิงโฆษณา Facebook" : "⭐ Premium หน้าแรก";
     await sendTelegramNotification(

@@ -7,7 +7,7 @@ import { Heart } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "ประกาศที่บันทึกไว้ — เซ้งร้าน.com" };
+export const metadata: Metadata = { title: "ประกาศที่บันทึกไว้ — เซ้งร้าน.com" , robots: { index: false, follow: false } };
 
 export default async function FavoritesPage() {
   const supabase = await createClient();

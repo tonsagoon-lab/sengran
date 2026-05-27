@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ListingCard } from "@/components/listings/listing-card";
 import { QuotaUpgradeButton } from "@/components/listings/quota-upgrade-button";
 
-export const metadata = { title: "ประกาศของฉัน — เซ้งร้าน.com" };
+export const metadata = { title: "ประกาศของฉัน — เซ้งร้าน.com" , robots: { index: false, follow: false } };
 
 export default async function MyListingsPage() {
   const supabase = await createClient();

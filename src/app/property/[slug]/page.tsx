@@ -20,7 +20,7 @@ import { stripHtmlTags } from "@/lib/utils/html";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xn--12c1bik6bbd8af5l3d.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.xn--72ch7bybxexd0cc.com";
 
 interface Props {
   params: Promise<{ slug: string }>;

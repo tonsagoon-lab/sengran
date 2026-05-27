@@ -10,7 +10,7 @@ import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { updateProfileAction } from "@/lib/actions/auth";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "โปรไฟล์ — เซ้งร้าน.com" };
+export const metadata: Metadata = { title: "โปรไฟล์ — เซ้งร้าน.com" , robots: { index: false, follow: false } };
 
 interface Props {
   searchParams: Promise<{ reason?: string }>;

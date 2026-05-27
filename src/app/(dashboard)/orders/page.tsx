@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ShoppingBag, ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "ประวัติการสั่งซื้อ — เซ้งร้าน.com" };
+export const metadata: Metadata = { title: "ประวัติการสั่งซื้อ — เซ้งร้าน.com" , robots: { index: false, follow: false } };
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   success: { label: "สำเร็จ", cls: "bg-green-100 text-green-700" },

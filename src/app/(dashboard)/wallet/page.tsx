@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Coins, Plus, ArrowDownLeft, ArrowUpRight, Gift, ShieldCheck } from "lucide-react";
+import { Coins, ArrowDownLeft, ArrowUpRight, Gift, ShieldCheck } from "lucide-react";
 import { TopupSuccessModal } from "@/components/wallet/topup-success-modal";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "กระเป๋า coin — เซ้งร้าน.com" };
+export const metadata: Metadata = { title: "กระเป๋า coin — เซ้งร้าน.com" , robots: { index: false, follow: false } };
 
 const TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   topup: {
@@ -91,13 +90,15 @@ export default async function WalletPage({
         </p>
         <p className="text-sm opacity-70 mt-1">coins</p>
 
-        <Link
-          href="/wallet/topup"
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white/20 hover:bg-white/30 px-5 py-2.5 text-sm font-semibold transition-colors"
+        <a
+          href="https://line.me/R/ti/p/~salebiz"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#06C755] hover:bg-[#05a847] px-5 py-2.5 text-sm font-semibold transition-colors"
         >
-          <Plus className="h-4 w-4" />
-          เติม coin
-        </Link>
+          <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M19.952 12.477c0-4.185-4.194-7.588-9.352-7.588S1.248 8.292 1.248 12.477c0 3.752 3.327 6.893 7.822 7.49.305.066.72.2.825.46.094.236.062.606.03.845l-.133.8c-.041.236-.188.923.809.503 1-.42 5.374-3.165 7.33-5.418 1.351-1.482 2.021-2.987 2.021-4.68z"/></svg>
+          ติดต่อซื้อ coin ผ่าน LINE
+        </a>
       </div>
 
       {/* Transaction history */}

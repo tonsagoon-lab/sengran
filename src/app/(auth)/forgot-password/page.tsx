@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { AuthForm } from "@/components/shared/auth-form";
 import { forgotPasswordAction } from "@/lib/actions/auth";
 
-export const metadata = { title: "ลืมรหัสผ่าน — เซ้งร้าน.com" };
+export const metadata = { title: "ลืมรหัสผ่าน — เซ้งร้าน.com", robots: { index: false, follow: false } };
 
 export default function ForgotPasswordPage() {
   return (

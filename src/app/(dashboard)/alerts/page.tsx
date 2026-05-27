@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, LogIn } from "lucide-react";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "การแจ้งเตือน — เซ้งร้าน.com" };
+export const metadata: Metadata = { title: "การแจ้งเตือน — เซ้งร้าน.com" , robots: { index: false, follow: false } };
 
 export default async function AlertsPage() {
   const supabase = await createClient();

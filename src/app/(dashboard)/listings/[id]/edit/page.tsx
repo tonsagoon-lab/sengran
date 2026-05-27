@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAllCategories, getAllProvinces, getAllAmenities, getListingForEdit, getListingForEditAdmin } from "@/lib/db/listings";
 import { ListingWizard } from "@/components/listing-wizard";
 
-export const metadata = { title: "แก้ไขประกาศ — เซ้งร้าน.com" };
+export const metadata = { title: "แก้ไขประกาศ — เซ้งร้าน.com" , robots: { index: false, follow: false } };
 
 function isPrivileged(email: string | undefined): boolean {
   if (!email) return false;

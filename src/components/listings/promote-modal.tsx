@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Star, Megaphone, X, CheckCircle2, ChevronRight, ExternalLink, CreditCard, QrCode, Clock } from "lucide-react";
+import { Star, Megaphone, X, CheckCircle2, ExternalLink, CreditCard, QrCode, Clock } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -345,22 +345,18 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
 
               <div className="flex gap-2 pt-1">
                 <Button variant="outline" className="flex-1" onClick={onClose}>ยกเลิก</Button>
-                <Button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" disabled={!canSubmit || loading} onClick={handleConfirm}>
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                      กำลังดำเนินการ...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      {payMethod === "promptpay" ? "รับ QR Code" : "ชำระเงิน"}
-                      {selectedOption && <span className="text-white/80">({selectedOption.baht.toLocaleString("th-TH")} บาท)</span>}
-                      <ChevronRight className="h-4 w-4" />
-                    </span>
-                  )}
-                </Button>
+                <a
+                  href="https://line.me/R/ti/p/~salebiz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#06C755] py-2.5 text-white font-semibold hover:bg-[#05a847] transition-colors text-sm"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M19.952 12.477c0-4.185-4.194-7.588-9.352-7.588S1.248 8.292 1.248 12.477c0 3.752 3.327 6.893 7.822 7.49.305.066.72.2.825.46.094.236.062.606.03.845l-.133.8c-.041.236-.188.923.809.503 1-.42 5.374-3.165 7.33-5.418 1.351-1.482 2.021-2.987 2.021-4.68z"/></svg>
+                  ติดต่อสั่งซื้อผ่าน LINE
+                  {selectedOption && <span className="text-white/80">({selectedOption.baht.toLocaleString("th-TH")} บาท)</span>}
+                </a>
               </div>
-              <p className="text-center text-xs text-neutral-400">ชำระเงินปลอดภัยโดย Omise</p>
+              <p className="text-center text-xs text-neutral-400">ทีมงานจะติดต่อกลับเพื่อยืนยันและรับชำระเงิน</p>
             </div>
           )}
         </div>

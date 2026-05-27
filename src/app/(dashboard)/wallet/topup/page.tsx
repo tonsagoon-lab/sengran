@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TopupForm } from "@/components/wallet/topup-form";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "เติม coin — เซ้งร้าน.com" };
+export const metadata: Metadata = { title: "เติม coin — เซ้งร้าน.com" , robots: { index: false, follow: false } };
 
 export default async function TopupPage() {
   const supabase = await createClient();

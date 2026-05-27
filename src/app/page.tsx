@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+export const revalidate = 60;
 import { Suspense } from "react";
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { HeroSearch } from "@/components/home/hero-search";
@@ -11,14 +13,18 @@ import { PremiumListings } from "@/components/home/premium-listings";
 import { getAllProvinces } from "@/lib/db/listings";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.xn--72ch7bybxexd0cc.com";
+
 export const metadata: Metadata = {
   title: "เซ้งร้าน.com ประกาศเซ้งร้านฟรี เซ้งร้านกาแฟ เซ้งคาเฟ่ เซ้งร้านอาหาร เซ้งร้านเหล้า เซ้งกิจการต่างๆ",
   description:
     "ประกาศเซ้งร้านฟรี เซ้งร้านกาแฟ เซ้งคาเฟ่ เซ้งร้านอาหาร เซ้งร้านเหล้า เซ้งกิจการทุกประเภท ทำเลดีทั่วประเทศไทย ติดต่อได้ทันที",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "เซ้งร้าน.com ประกาศเซ้งร้านฟรี เซ้งร้านกาแฟ เซ้งคาเฟ่ เซ้งร้านอาหาร",
     description:
       "ประกาศเซ้งร้านฟรี เซ้งร้านกาแฟ เซ้งคาเฟ่ เซ้งร้านอาหาร เซ้งร้านเหล้า เซ้งกิจการทุกประเภท ทำเลดีทั่วประเทศไทย",
+    url: BASE_URL,
   },
 };
 
@@ -51,12 +57,47 @@ function SectionSkeleton() {
   );
 }
 
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${BASE_URL}/#organization`,
+      name: "เซ้งร้าน.com",
+      url: BASE_URL,
+      logo: { "@type": "ImageObject", url: `${BASE_URL}/og-image.png` },
+      sameAs: ["https://www.facebook.com/sengran"],
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        availableLanguage: "Thai",
+      },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${BASE_URL}/#website`,
+      url: BASE_URL,
+      name: "เซ้งร้าน.com",
+      publisher: { "@id": `${BASE_URL}/#organization` },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: { "@type": "EntryPoint", urlTemplate: `${BASE_URL}/listings?q={search_term_string}` },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+};
+
 export default async function HomePage() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const provinces = await getAllProvinces();
 
   return (
     <div className="flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+      />
       <TopMenuBar />
       {/* Hero + search */}
       <Suspense fallback={<HeroSkeleton />}>

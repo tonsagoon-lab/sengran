@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { resolveImageUrl } from "../../lib/image-url";
 import { NearMeSection } from "../../components/NearMeSection";
+import { UnreadCountsContext } from "../_layout";
 import type { Category, Listing } from "../../lib/types";
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -162,7 +164,9 @@ const CARD_W = Math.floor((SCREEN_W - 32 - 10) / 2); // 2 cols, 1 gap of 10
 
 // ─── Home screen ─────────────────────────────────────────
 export default function HomeScreen() {
+  const { counts } = useContext(UnreadCountsContext);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [banners, setBanners] = useState<{ id: string; title: string | null; image_url: string; link_url: string | null }[]>([]);
   const [editorialPicks, setEditorialPicks] = useState<Listing[]>([]);
   const [featured, setFeatured] = useState<Listing[]>([]);
   const [latest, setLatest] = useState<Listing[]>([]);
@@ -177,13 +181,13 @@ export default function HomeScreen() {
 
   async function loadAll() {
     try {
-      // Load categories
+      // Load only the 4 featured categories for home screen
       const catsRes = await supabase
         .from("categories")
         .select("id, name_th, slug, icon")
         .eq("is_active", true)
-        .order("display_order")
-        .limit(8);
+        .in("slug", ["restaurant", "cafe", "salon", "beauty-clinic"])
+        .order("display_order");
 
       if (catsRes.error) {
         console.error("categories error:", catsRes.error.message);
@@ -209,6 +213,17 @@ export default function HomeScreen() {
         setFeatured(listings.filter((l) => l.is_featured).slice(0, 4));
         setLatest(listings.slice(0, 8));
       }
+
+      // Banners
+      const now = new Date().toISOString();
+      const bannersRes = await supabase
+        .from("banners")
+        .select("id, title, image_url, link_url, display_order")
+        .eq("is_active", true)
+        .or(`starts_at.is.null,starts_at.lte.${now}`)
+        .or(`ends_at.is.null,ends_at.gte.${now}`)
+        .order("display_order");
+      if (!bannersRes.error) setBanners(bannersRes.data ?? []);
 
       // Editorial picks — ประกาศเซ้งด่วน!!
       const picksRes = await supabase
@@ -266,9 +281,23 @@ export default function HomeScreen() {
             <Pressable style={styles.notifBtn} onPress={() => router.push("/(tabs)/profile?tab=notifications")}>
               <Ionicons name="notifications-outline" size={15} color="#c2410c" />
               <Text style={styles.notifBtnText}>แจ้งเตือนร้านใหม่</Text>
+              {counts.notifications > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>
+                    {counts.notifications > 99 ? "99+" : counts.notifications}
+                  </Text>
+                </View>
+              )}
             </Pressable>
             <Pressable style={styles.iconBtn} onPress={() => router.push("/(tabs)/profile?tab=messages")}>
               <Ionicons name="chatbubble-outline" size={22} color="#374151" />
+              {counts.messages > 0 && (
+                <View style={styles.iconBadge}>
+                  <Text style={styles.iconBadgeText}>
+                    {counts.messages > 99 ? "99+" : counts.messages}
+                  </Text>
+                </View>
+              )}
             </Pressable>
           </View>
         </View>
@@ -283,27 +312,6 @@ export default function HomeScreen() {
           <Ionicons name="options-outline" size={18} color="#9ca3af" />
         </Pressable>
 
-        {/* Type pills */}
-        <View style={styles.typePills}>
-          {(
-            [
-              { key: "sale", label: "เซ้ง" },
-              { key: "rent", label: "ให้เช่า" },
-              { key: "both", label: "ทั้งคู่" },
-            ] as const
-          ).map((t, i) => (
-            <Pressable
-              key={t.key}
-              style={[styles.typePill, i === 0 && styles.typePillActive]}
-              onPress={() => router.push(`/(tabs)/browse?type=${t.key}`)}
-            >
-              <Text style={[styles.typePillText, i === 0 && styles.typePillTextActive]}>
-                {t.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
         {/* Categories */}
         {categories.length > 0 && (
           <View style={styles.section}>
@@ -313,7 +321,7 @@ export default function HomeScreen() {
               onLink={() => router.push("/(tabs)/browse")}
             />
             <View style={styles.catGrid}>
-              {categories.slice(0, 8).map((cat) => (
+              {categories.slice(0, 4).map((cat) => (
                 <Pressable
                   key={cat.id}
                   style={styles.catItem}
@@ -399,6 +407,28 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Banners */}
+        {banners.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.bannerStack}>
+              {banners.map((b) => (
+                <Pressable
+                  key={b.id}
+                  style={styles.bannerCard}
+                  onPress={() => b.link_url && Linking.openURL(b.link_url)}
+                  disabled={!b.link_url}
+                >
+                  <Image
+                    source={{ uri: b.image_url }}
+                    style={styles.bannerImg}
+                    resizeMode="cover"
+                  />
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Free listing CTA */}
         <Pressable
           style={styles.ctaBanner}
@@ -449,6 +479,19 @@ const styles = StyleSheet.create({
     borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6,
   },
   notifBtnText: { fontSize: 12, fontWeight: "600", color: "#c2410c" },
+  notifBadge: {
+    minWidth: 18, height: 18, borderRadius: 9,
+    backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  notifBadgeText: { fontSize: 10, fontWeight: "700", color: "#fff" },
+  iconBadge: {
+    position: "absolute", top: 0, right: 0,
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center",
+    paddingHorizontal: 3, borderWidth: 1.5, borderColor: "#fff",
+  },
+  iconBadgeText: { fontSize: 9, fontWeight: "700", color: "#fff" },
 
   // Search
   searchBar: {
@@ -532,6 +575,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 14,
   },
+
+  // Banner
+  bannerStack: { paddingHorizontal: 16, gap: 10 },
+  bannerCard: { borderRadius: 12, overflow: "hidden" },
+  bannerImg: { width: "100%", aspectRatio: 16 / 7 },
 
   // Featured scroll
   featuredScroll: { paddingLeft: 16, paddingRight: 8, gap: 10, paddingBottom: 4 },

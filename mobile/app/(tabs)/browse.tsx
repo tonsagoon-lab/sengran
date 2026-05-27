@@ -136,11 +136,21 @@ export default function BrowseScreen() {
   const [maxPrice, setMaxPrice] = useState("");
   const [resultCount, setResultCount] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
+  const [activePicker, setActivePicker] = useState<null | "type" | "cat" | "province">(null);
 
   const page = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => { loadMeta(); }, []);
+
+  // Sync params when navigating from another tab (tab screens stay mounted)
+  useEffect(() => {
+    setFilterCat(params.cat ? Number(params.cat) : null);
+  }, [params.cat]);
+
+  useEffect(() => {
+    setFilterType((params.type as FilterType) ?? "all");
+  }, [params.type]);
 
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -309,44 +319,36 @@ export default function BrowseScreen() {
         )}
       </View>
 
-      {/* Type pills */}
-      <View style={styles.pillRow}>
-        {TYPE_FILTERS.map((f) => (
-          <Pressable
-            key={f.key}
-            style={[styles.pill, filterType === f.key && styles.pillActive]}
-            onPress={() => setFilterType(f.key)}
-          >
-            <Text style={[styles.pillText, filterType === f.key && styles.pillTextActive]}>
-              {f.label}
-            </Text>
-          </Pressable>
-        ))}
+      {/* Filter chips */}
+      <View style={styles.chipRow}>
+        <Pressable
+          style={[styles.filterChip, filterType !== "all" && styles.filterChipActive]}
+          onPress={() => setActivePicker("type")}
+        >
+          <Text style={[styles.filterChipText, filterType !== "all" && styles.filterChipTextActive]} numberOfLines={1}>
+            {filterType === "all" ? "ประเภทประกาศ" : TYPE_FILTERS.find(f => f.key === filterType)?.label}
+          </Text>
+          <Ionicons name="chevron-down" size={12} color={filterType !== "all" ? "#c2410c" : "#6b7280"} />
+        </Pressable>
+        <Pressable
+          style={[styles.filterChip, filterCat !== null && styles.filterChipActive]}
+          onPress={() => setActivePicker("cat")}
+        >
+          <Text style={[styles.filterChipText, filterCat !== null && styles.filterChipTextActive]} numberOfLines={1}>
+            {filterCat !== null ? categories.find(c => c.id === filterCat)?.name_th ?? "หมวดหมู่" : "หมวดหมู่"}
+          </Text>
+          <Ionicons name="chevron-down" size={12} color={filterCat !== null ? "#c2410c" : "#6b7280"} />
+        </Pressable>
+        <Pressable
+          style={[styles.filterChip, filterProvince !== null && styles.filterChipActive]}
+          onPress={() => setActivePicker("province")}
+        >
+          <Text style={[styles.filterChipText, filterProvince !== null && styles.filterChipTextActive]} numberOfLines={1}>
+            {filterProvince !== null ? provinces.find(p => p.id === filterProvince)?.name_th ?? "จังหวัด" : "จังหวัด"}
+          </Text>
+          <Ionicons name="chevron-down" size={12} color={filterProvince !== null ? "#c2410c" : "#6b7280"} />
+        </Pressable>
       </View>
-
-      {/* Active filter tags */}
-      {(filterProvince !== null || filterRadius !== null || filterCat !== null) && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagRow} contentContainerStyle={styles.tagRowContent}>
-          {filterProvince !== null && (
-            <Pressable style={styles.tag} onPress={() => setFilterProvince(null)}>
-              <Text style={styles.tagText}>{provinces.find((p) => p.id === filterProvince)?.name_th}</Text>
-              <Ionicons name="close" size={12} color="#c2410c" />
-            </Pressable>
-          )}
-          {filterRadius !== null && (
-            <Pressable style={styles.tag} onPress={clearDistance}>
-              <Text style={styles.tagText}>รัศมี {filterRadius} กม.</Text>
-              <Ionicons name="close" size={12} color="#c2410c" />
-            </Pressable>
-          )}
-          {filterCat !== null && (
-            <Pressable style={styles.tag} onPress={() => setFilterCat(null)}>
-              <Text style={styles.tagText}>{categories.find((c) => c.id === filterCat)?.name_th}</Text>
-              <Ionicons name="close" size={12} color="#c2410c" />
-            </Pressable>
-          )}
-        </ScrollView>
-      )}
 
       {/* Results */}
       {loading ? (
@@ -373,6 +375,89 @@ export default function BrowseScreen() {
           ListFooterComponent={loadingMore ? <View style={styles.footerLoader}><ActivityIndicator color="#f97316" /></View> : null}
         />
       )}
+
+      {/* Mini picker modal */}
+      <Modal visible={activePicker !== null} transparent animationType="slide" onRequestClose={() => setActivePicker(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setActivePicker(null)}>
+          <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHandle} />
+            {activePicker === "type" && (
+              <>
+                <Text style={styles.modalTitle}>ประเภทประกาศ</Text>
+                {TYPE_FILTERS.map((f) => (
+                  <Pressable
+                    key={f.key}
+                    style={[styles.pickerRow, filterType === f.key && styles.pickerRowActive]}
+                    onPress={() => { setFilterType(f.key); setActivePicker(null); }}
+                  >
+                    <Text style={[styles.pickerRowText, filterType === f.key && styles.pickerRowTextActive]}>{f.label}</Text>
+                    {filterType === f.key && <Ionicons name="checkmark" size={18} color="#f97316" />}
+                  </Pressable>
+                ))}
+              </>
+            )}
+            {activePicker === "cat" && (
+              <>
+                <Text style={styles.modalTitle}>หมวดหมู่</Text>
+                <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
+                  <Pressable
+                    style={[styles.pickerRow, filterCat === null && styles.pickerRowActive]}
+                    onPress={() => { setFilterCat(null); setActivePicker(null); }}
+                  >
+                    <Text style={[styles.pickerRowText, filterCat === null && styles.pickerRowTextActive]}>ทุกหมวดหมู่</Text>
+                    {filterCat === null && <Ionicons name="checkmark" size={18} color="#f97316" />}
+                  </Pressable>
+                  {categories.map((cat) => (
+                    <Pressable
+                      key={cat.id}
+                      style={[styles.pickerRow, filterCat === cat.id && styles.pickerRowActive]}
+                      onPress={() => { setFilterCat(cat.id); setActivePicker(null); }}
+                    >
+                      <Text style={[styles.pickerRowText, filterCat === cat.id && styles.pickerRowTextActive]}>{cat.name_th}</Text>
+                      {filterCat === cat.id && <Ionicons name="checkmark" size={18} color="#f97316" />}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+            {activePicker === "province" && (
+              <>
+                <Text style={styles.modalTitle}>จังหวัด</Text>
+                <View style={styles.pickerSearch}>
+                  <Ionicons name="search-outline" size={16} color="#9ca3af" />
+                  <TextInput
+                    style={styles.pickerSearchInput}
+                    placeholder="ค้นหาจังหวัด..."
+                    placeholderTextColor="#9ca3af"
+                    value={provinceSearch}
+                    onChangeText={setProvinceSearch}
+                    autoFocus
+                  />
+                </View>
+                <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 340 }}>
+                  <Pressable
+                    style={[styles.pickerRow, filterProvince === null && styles.pickerRowActive]}
+                    onPress={() => { setFilterProvince(null); setProvinceSearch(""); setActivePicker(null); }}
+                  >
+                    <Text style={[styles.pickerRowText, filterProvince === null && styles.pickerRowTextActive]}>ทุกจังหวัด</Text>
+                    {filterProvince === null && <Ionicons name="checkmark" size={18} color="#f97316" />}
+                  </Pressable>
+                  {filteredProvinces.map((p) => (
+                    <Pressable
+                      key={p.id}
+                      style={[styles.pickerRow, filterProvince === p.id && styles.pickerRowActive]}
+                      onPress={() => { setFilterProvince(p.id); setProvinceSearch(""); setActivePicker(null); }}
+                    >
+                      <Text style={[styles.pickerRowText, filterProvince === p.id && styles.pickerRowTextActive]}>{p.name_th}</Text>
+                      {filterProvince === p.id && <Ionicons name="checkmark" size={18} color="#f97316" />}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Filter modal */}
       <Modal visible={showFilter} transparent animationType="slide" onRequestClose={() => setShowFilter(false)}>
@@ -565,30 +650,20 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 14, color: "#111827" },
 
-  pillRow: {
+  chipRow: {
     flexDirection: "row", gap: 8,
     paddingHorizontal: 16, paddingBottom: 10,
     borderBottomWidth: 1, borderBottomColor: "#f3f4f6",
   },
-  pill: {
-    flex: 1, alignItems: "center",
-    paddingVertical: 9,
+  filterChip: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4,
+    paddingVertical: 9, paddingHorizontal: 10,
     borderRadius: 999, backgroundColor: "#fff",
     borderWidth: 1, borderColor: "#e5e7eb",
   },
-  pillActive: { backgroundColor: "#f97316", borderColor: "#f97316" },
-  pillText: { fontSize: 13, fontWeight: "500", color: "#6b7280" },
-  pillTextActive: { color: "#fff", fontWeight: "700" },
-
-  tagRow: { maxHeight: 40 },
-  tagRowContent: { paddingHorizontal: 16, gap: 6, paddingVertical: 4 },
-  tag: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 10, paddingVertical: 5,
-    backgroundColor: "#fff7ed", borderRadius: 999,
-    borderWidth: 1, borderColor: "#fed7aa",
-  },
-  tagText: { fontSize: 12, color: "#c2410c", fontWeight: "600" },
+  filterChipActive: { backgroundColor: "#fff7ed", borderColor: "#fed7aa" },
+  filterChipText: { fontSize: 12, fontWeight: "500", color: "#6b7280", flexShrink: 1 },
+  filterChipTextActive: { color: "#c2410c", fontWeight: "600" },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
@@ -622,6 +697,22 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 17, fontWeight: "700", color: "#374151" },
   emptySub: { fontSize: 14, color: "#9ca3af" },
   footerLoader: { padding: 20, alignItems: "center" },
+
+  pickerRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingVertical: 14, paddingHorizontal: 4,
+    borderBottomWidth: 1, borderBottomColor: "#f9fafb",
+  },
+  pickerRowActive: { },
+  pickerRowText: { fontSize: 15, color: "#374151" },
+  pickerRowTextActive: { color: "#f97316", fontWeight: "600" },
+  pickerSearch: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: "#f9fafb", borderRadius: 10,
+    borderWidth: 1, borderColor: "#e5e7eb",
+    paddingHorizontal: 12, paddingVertical: 9, marginBottom: 8,
+  },
+  pickerSearchInput: { flex: 1, fontSize: 14, color: "#111827" },
 
   // Filter modal
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },

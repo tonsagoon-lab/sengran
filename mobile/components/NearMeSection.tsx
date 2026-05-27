@@ -74,6 +74,7 @@ function NearCard({ item }: { item: Listing }) {
 export function NearMeSection() {
   const [state, setState] = useState<State>({ phase: "prompt" });
   const [refreshing, setRefreshing] = useState(false);
+  const [promptRadius, setPromptRadius] = useState(INITIAL_RADIUS);
 
   useEffect(() => {
     checkCachedLocation();
@@ -144,7 +145,7 @@ export function NearMeSection() {
   }
 
   // ── ขอ GPS ครั้งแรก ───────────────────────────────────────
-  async function requestLocation() {
+  async function requestLocation(radius = promptRadius) {
     setState({ phase: "loading" });
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -158,7 +159,7 @@ export function NearMeSection() {
       });
       const { latitude: lat, longitude: lng } = loc.coords;
       await AsyncStorage.setItem(LOCATION_KEY, JSON.stringify({ lat, lng }));
-      await fetchNearby(lat, lng, INITIAL_RADIUS);
+      await fetchNearby(lat, lng, radius);
     } catch {
       setState({ phase: "denied" });
     }
@@ -167,45 +168,89 @@ export function NearMeSection() {
   // ── Query ร้านใกล้เคียง ───────────────────────────────────
   async function fetchNearby(lat: number, lng: number, radius: number) {
     setState({ phase: "loading" });
+    console.log("[NearMe] fetchNearby start", { lat, lng, radius });
 
-    const { data: nearby, error: rpcError } = await supabase.rpc("listings_within_distance", {
-      center_lat: lat,
-      center_lng: lng,
-      radius_km: radius,
-    });
+    const timeout = <T,>(ms: number): Promise<T> =>
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
 
-    if (rpcError || !nearby || nearby.length === 0) {
-      setState(radius < EXPANDED_RADIUS ? { phase: "empty", lat, lng } : { phase: "denied" });
-      return;
+    const SELECT = `id, slug, title, listing_type, sale_price, rent_price, district, is_featured, published_at,
+      listing_images(id, storage_path, display_order),
+      categories(name_th, slug), provinces(name_th, slug)`;
+
+    try {
+      // 1. GPS ในระยะที่เลือก
+      const rpcResult = await Promise.race([
+        supabase.rpc("listings_within_distance", { center_lat: lat, center_lng: lng, radius_km: radius }),
+        timeout<never>(10_000),
+      ]);
+      const { data: nearby, error: rpcError } = rpcResult as { data: unknown; error: unknown };
+      console.log("[NearMe] rpc result", { count: (nearby as unknown[])?.length, error: rpcError });
+
+      if (nearby && (nearby as { id: string }[]).length > 0) {
+        const ids = (nearby as { id: string; distance_km: number }[]).slice(0, 8).map((r) => r.id);
+        const { data } = await Promise.race([
+          supabase.from("listings").select(SELECT).in("id", ids),
+          timeout<never>(10_000),
+        ]);
+        if (data && data.length > 0) {
+          const idOrder = new Map(ids.map((id, i) => [id, i]));
+          const sorted = [...(data as unknown as Listing[])].sort(
+            (a, b) => (idOrder.get(a.id) ?? 99) - (idOrder.get(b.id) ?? 99)
+          );
+          setState({ phase: "results", listings: sorted, radius, lat, lng });
+          return;
+        }
+      }
+
+      // 2. Fallback: หา province ที่ใกล้ที่สุดจากรัศมี 200 กม.
+      console.log("[NearMe] fallback: wide 200km search");
+      const { data: wideIds } = await Promise.race([
+        supabase.rpc("listings_within_distance", { center_lat: lat, center_lng: lng, radius_km: 200 }),
+        timeout<never>(10_000),
+      ]);
+      console.log("[NearMe] wide rpc count:", (wideIds as unknown[])?.length);
+
+      if (wideIds && (wideIds as { id: string }[]).length > 0) {
+        const nearestId = (wideIds as { id: string }[])[0].id;
+        const { data: nearest } = await supabase
+          .from("listings").select("province_id").eq("id", nearestId).single();
+        const provinceId = (nearest as { province_id: number } | null)?.province_id ?? null;
+
+        if (provinceId) {
+          const { data } = await Promise.race([
+            supabase.from("listings").select(SELECT)
+              .eq("province_id", provinceId).eq("status", "published")
+              .order("published_at", { ascending: false }).limit(8),
+            timeout<never>(10_000),
+          ]);
+          if (data && data.length > 0) {
+            setState({ phase: "results", listings: data as unknown as Listing[], radius, lat, lng });
+            return;
+          }
+        }
+      }
+
+      // 3. Last resort: listing ล่าสุด
+      console.log("[NearMe] fallback: latest listings");
+      const { data: latest } = await Promise.race([
+        supabase.from("listings").select(SELECT)
+          .eq("status", "published")
+          .order("published_at", { ascending: false }).limit(8),
+        timeout<never>(10_000),
+      ]);
+
+      console.log("[NearMe] latest count:", latest?.length);
+      if (latest && latest.length > 0) {
+        setState({ phase: "results", listings: latest as unknown as Listing[], radius, lat, lng });
+        return;
+      }
+
+      console.log("[NearMe] all fallbacks empty → showing empty state");
+      setState({ phase: "empty", lat, lng });
+    } catch (err) {
+      console.log("[NearMe] caught error:", err);
+      setState({ phase: "empty", lat, lng });
     }
-
-    const ids = (nearby as { id: string; distance_km: number }[]).slice(0, 8).map((r) => r.id);
-
-    const { data, error } = await supabase
-      .from("listings")
-      .select(
-        `id, slug, title, listing_type, sale_price, rent_price, district, is_featured, published_at,
-         listing_images(id, storage_path, display_order),
-         categories(name_th, slug), provinces(name_th, slug)`
-      )
-      .in("id", ids);
-
-    if (error || !data || data.length === 0) {
-      setState(radius < EXPANDED_RADIUS ? { phase: "empty", lat, lng } : { phase: "denied" });
-      return;
-    }
-
-    const idOrder = new Map(ids.map((id, i) => [id, i]));
-    const sorted = [...(data as unknown as Listing[])].sort(
-      (a, b) => (idOrder.get(a.id) ?? 99) - (idOrder.get(b.id) ?? 99)
-    );
-
-    setState({ phase: "results", listings: sorted, radius, lat, lng });
-  }
-
-  async function expandRadius() {
-    if (state.phase !== "empty") return;
-    await fetchNearby(state.lat, state.lng, EXPANDED_RADIUS);
   }
 
   async function clearDenied() {
@@ -224,44 +269,68 @@ export function NearMeSection() {
         </View>
 
         <View style={styles.headerRight}>
-          {state.phase === "results" && (
-            <>
-              <View style={styles.radiusPills}>
-                {RADIUS_OPTIONS.map((r) => (
-                  <Pressable
-                    key={r}
-                    style={[styles.radiusPill, state.radius === r && styles.radiusPillActive]}
-                    onPress={() => fetchNearby(state.lat, state.lng, r)}
-                  >
-                    <Text style={[styles.radiusPillText, state.radius === r && styles.radiusPillTextActive]}>
-                      {r} กม.
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-              {/* ปุ่ม refresh ตำแหน่ง */}
-              <Pressable style={styles.refreshBtn} onPress={handleRefresh} disabled={refreshing}>
-                {refreshing
-                  ? <ActivityIndicator size="small" color="#f97316" style={{ width: 16, height: 16 }} />
-                  : <Ionicons name="locate-outline" size={16} color="#f97316" />
-                }
-              </Pressable>
-            </>
+          {(state.phase === "results" || state.phase === "empty") && (
+            <Pressable style={styles.refreshBtn} onPress={handleRefresh} disabled={refreshing}>
+              {refreshing
+                ? <ActivityIndicator size="small" color="#f97316" style={{ width: 16, height: 16 }} />
+                : <Ionicons name="locate-outline" size={16} color="#f97316" />
+              }
+            </Pressable>
           )}
         </View>
       </View>
 
+      {/* Radius row — เหมือนเว็บ แสดงระหว่าง header กับ content */}
+      {(state.phase === "results" || state.phase === "empty") && (
+        <View style={styles.radiusRow}>
+          <Text style={styles.radiusRowLabel}>ระยะ:</Text>
+          {RADIUS_OPTIONS.map((r) => {
+            const active = state.phase === "results" && state.radius === r;
+            const { lat, lng } = state as { lat: number; lng: number };
+            return (
+              <Pressable
+                key={r}
+                style={[styles.radiusPill, active && styles.radiusPillActive]}
+                onPress={() => fetchNearby(lat, lng, r)}
+              >
+                <Text style={[styles.radiusPillText, active && styles.radiusPillTextActive]}>
+                  {r} กม.
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
       {state.phase === "prompt" && (
-        <Pressable style={styles.promptCard} onPress={requestLocation}>
-          <View style={styles.promptIcon}>
-            <Ionicons name="navigate" size={20} color="#f97316" />
+        <View style={styles.promptCard}>
+          <View style={styles.promptTop}>
+            <View style={styles.promptIcon}>
+              <Ionicons name="navigate" size={18} color="#f97316" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.promptTitle}>ค้นหาร้านใกล้คุณ</Text>
+              <Text style={styles.promptSub}>เลือกรัศมีที่ต้องการ</Text>
+            </View>
           </View>
-          <View style={styles.promptText}>
-            <Text style={styles.promptTitle}>ค้นหาร้านใกล้คุณ</Text>
-            <Text style={styles.promptSub}>กดเพื่ออนุญาตใช้ตำแหน่ง</Text>
+          <View style={styles.promptRadiusPills}>
+            {RADIUS_OPTIONS.map((r) => (
+              <Pressable
+                key={r}
+                style={[styles.radiusPill, promptRadius === r && styles.radiusPillActive]}
+                onPress={() => setPromptRadius(r)}
+              >
+                <Text style={[styles.radiusPillText, promptRadius === r && styles.radiusPillTextActive]}>
+                  {r} กม.
+                </Text>
+              </Pressable>
+            ))}
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
-        </Pressable>
+          <Pressable style={styles.promptBtn} onPress={() => requestLocation(promptRadius)}>
+            <Ionicons name="locate" size={15} color="#fff" />
+            <Text style={styles.promptBtnText}>ค้นหาร้านใกล้คุณ</Text>
+          </Pressable>
+        </View>
       )}
 
       {state.phase === "loading" && (
@@ -285,14 +354,14 @@ export function NearMeSection() {
 
       {state.phase === "empty" && (
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyText}>ไม่พบร้านในรัศมี {INITIAL_RADIUS} กม.</Text>
-          <View style={styles.emptyActions}>
-            <Pressable style={styles.expandBtn} onPress={expandRadius}>
-              <Text style={styles.expandBtnText}>ขยายรัศมี {EXPANDED_RADIUS} กม.</Text>
-            </Pressable>
+          <Text style={styles.emptyText}>ไม่พบร้านในรัศมีที่เลือก ลองเพิ่มระยะด้านบน</Text>
+          <View style={styles.emptyFooter}>
             <Pressable style={styles.refreshBtnSmall} onPress={handleRefresh} disabled={refreshing}>
               <Ionicons name="locate-outline" size={14} color="#6b7280" />
               <Text style={styles.refreshBtnSmallText}>อัปเดตตำแหน่ง</Text>
+            </Pressable>
+            <Pressable style={styles.browseLinkBtn} onPress={() => router.push("/(tabs)/browse")}>
+              <Text style={styles.browseLinkText}>ดูร้านทั้งหมด →</Text>
             </Pressable>
           </View>
         </View>
@@ -317,14 +386,18 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
   headerTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
-  radiusPills: { flexDirection: "row", gap: 5 },
+  radiusRow: {
+    flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap",
+    paddingHorizontal: 16, marginBottom: 10,
+  },
+  radiusRowLabel: { fontSize: 12, color: "#9ca3af", fontWeight: "500" },
   radiusPill: {
-    paddingHorizontal: 9, paddingVertical: 4,
+    paddingHorizontal: 11, paddingVertical: 5,
     borderRadius: 999, borderWidth: 1, borderColor: "#e5e7eb", backgroundColor: "#f9fafb",
   },
-  radiusPillActive: { backgroundColor: "#fff7ed", borderColor: "#fed7aa" },
-  radiusPillText: { fontSize: 10, color: "#6b7280", fontWeight: "500" },
-  radiusPillTextActive: { color: "#c2410c", fontWeight: "700" },
+  radiusPillActive: { backgroundColor: "#f97316", borderColor: "#f97316" },
+  radiusPillText: { fontSize: 11, color: "#6b7280", fontWeight: "500" },
+  radiusPillTextActive: { color: "#fff", fontWeight: "700", fontSize: 11 },
   refreshBtn: {
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: "#fff7ed", borderWidth: 1, borderColor: "#fed7aa",
@@ -332,18 +405,23 @@ const styles = StyleSheet.create({
   },
 
   promptCard: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    marginHorizontal: 16, padding: 14,
+    marginHorizontal: 16, padding: 14, gap: 12,
     backgroundColor: "#fff7ed", borderRadius: 14,
     borderWidth: 1, borderColor: "#fed7aa",
   },
+  promptTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   promptIcon: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: "#ffedd5", alignItems: "center", justifyContent: "center",
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: "#ffedd5", alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
-  promptText: { flex: 1 },
-  promptTitle: { fontSize: 14, fontWeight: "600", color: "#c2410c" },
-  promptSub: { fontSize: 12, color: "#9ca3af", marginTop: 2 },
+  promptTitle: { fontSize: 14, fontWeight: "700", color: "#c2410c" },
+  promptSub: { fontSize: 12, color: "#9ca3af", marginTop: 1 },
+  promptRadiusPills: { flexDirection: "row", gap: 7 },
+  promptBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    backgroundColor: "#f97316", borderRadius: 10, paddingVertical: 11,
+  },
+  promptBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
 
   loadingWrap: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 14 },
   loadingText: { fontSize: 14, color: "#9ca3af" },
@@ -364,13 +442,11 @@ const styles = StyleSheet.create({
 
   emptyWrap: { paddingHorizontal: 16, gap: 10 },
   emptyText: { fontSize: 13, color: "#9ca3af" },
-  emptyActions: { flexDirection: "row", gap: 10, alignItems: "center", flexWrap: "wrap" },
-  expandBtn: {
-    backgroundColor: "#fff7ed", borderRadius: 999,
-    borderWidth: 1, borderColor: "#fed7aa",
-    paddingHorizontal: 14, paddingVertical: 7,
-  },
-  expandBtnText: { fontSize: 13, color: "#c2410c", fontWeight: "600" },
+  emptyActions: { gap: 8 },
+  radiusPillsRow: { flexDirection: "row", gap: 7, flexWrap: "wrap" },
+  emptyFooter: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  browseLinkBtn: { paddingVertical: 7, paddingHorizontal: 12 },
+  browseLinkText: { fontSize: 13, color: "#f97316", fontWeight: "600" },
   refreshBtnSmall: {
     flexDirection: "row", alignItems: "center", gap: 5,
     paddingHorizontal: 12, paddingVertical: 7,

@@ -3,7 +3,7 @@ import { getAllCategoriesPublic, getAllProvincesPublic } from "@/lib/db/listings
 import { createAdminClient } from "@/lib/supabase/admin";
 import { REGIONS } from "@/lib/utils/regions";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xn--12c1bik6bbd8af5l3d.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.xn--72ch7bybxexd0cc.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = createAdminClient();
