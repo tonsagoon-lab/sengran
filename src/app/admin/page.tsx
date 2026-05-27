@@ -163,7 +163,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     const d = new Date(date);
                     const label = `${d.getDate()}/${d.getMonth() + 1}`;
                     return (
-                      <div key={date} className="flex-1 flex flex-col justify-end h-full group" title={`${label}: ${count} คน`}>
+                      <div key={date} className="flex-1 flex flex-col justify-end h-full group relative" title={`${label}: ${count} คน`}>
+                        {/* tooltip on hover */}
+                        {count > 0 && (
+                          <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">
+                            <div className="bg-neutral-800 text-white text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
+                              {label}: {count}
+                            </div>
+                          </div>
+                        )}
                         {count > 0 && (
                           <div
                             className="w-full rounded-t-sm bg-teal-400 group-hover:bg-teal-500 transition-colors"
@@ -171,7 +179,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                           />
                         )}
                         {count === 0 && (
-                          <div className="w-full rounded-t-sm bg-neutral-100" style={{ height: "4px" }} />
+                          <div className="w-full bg-neutral-100" style={{ height: "3px" }} />
                         )}
                       </div>
                     );
