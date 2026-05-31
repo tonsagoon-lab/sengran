@@ -1,12 +1,10 @@
 import { useContext } from "react";
 import { Tabs } from "expo-router";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { UnreadCountsContext } from "../_layout";
-
-const LINE_ADS_URL = "https://line.me/R/ti/p/~salebiz";
 
 type TabConfig = {
   name: string;
@@ -14,15 +12,14 @@ type TabConfig = {
   icon: keyof typeof Ionicons.glyphMap;
   iconActive: keyof typeof Ionicons.glyphMap;
   primary?: boolean;
-  lineAds?: boolean;
 };
 
 const TABS: TabConfig[] = [
-  { name: "index",    label: "หน้าแรก",      icon: "home-outline",          iconActive: "home" },
-  { name: "create",   label: "ลงฟรี!",       icon: "add",                   iconActive: "add", primary: true },
-  { name: "alerts",   label: "เตือนเซ้งร้าน", icon: "notifications-outline", iconActive: "notifications" },
-  { name: "messages", label: "ข้อความ",      icon: "chatbubble-outline",    iconActive: "chatbubble" },
-  { name: "profile",  label: "ลงโฆษณา",     icon: "megaphone-outline",     iconActive: "megaphone", lineAds: true },
+  { name: "index",       label: "หน้าแรก",  icon: "home-outline",          iconActive: "home" },
+  { name: "browse",      label: "ค้นหา",    icon: "search-outline",        iconActive: "search" },
+  { name: "create",      label: "ลงประกาศ", icon: "add",                   iconActive: "add", primary: true },
+  { name: "my-listings", label: "ของฉัน",   icon: "document-text-outline", iconActive: "document-text" },
+  { name: "profile",     label: "โปรไฟล์",  icon: "person-outline",        iconActive: "person" },
 ];
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -42,15 +39,6 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
         };
 
-        if (tab.lineAds) {
-          return (
-            <Pressable key={route.key} onPress={() => Linking.openURL(LINE_ADS_URL)} style={styles.tabItem}>
-              <Ionicons name="megaphone-outline" size={24} color="#2563eb" />
-              <Text style={[styles.tabLabel, { color: "#2563eb" }]}>{tab.label}</Text>
-            </Pressable>
-          );
-        }
-
         if (tab.primary) {
           return (
             <Pressable key={route.key} onPress={onPress} style={styles.tabItem}>
@@ -62,9 +50,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           );
         }
 
-        const badgeCount =
-          tab.name === "alerts" ? counts.notifications :
-          tab.name === "messages" ? counts.messages : 0;
+        const isProfile = tab.name === "profile";
 
         return (
           <Pressable key={route.key} onPress={onPress} style={styles.tabItem}>
@@ -74,9 +60,11 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 size={24}
                 color={focused ? "#f97316" : "#9ca3af"}
               />
-              {badgeCount > 0 && (
+              {isProfile && totalUnread > 0 && (
                 <View style={styles.badgeDot}>
-                  <Text style={styles.badgeDotText}>{badgeCount > 9 ? "9+" : badgeCount}</Text>
+                  {totalUnread <= 9 && (
+                    <Text style={styles.badgeDotText}>{totalUnread}</Text>
+                  )}
                 </View>
               )}
             </View>
@@ -150,13 +138,12 @@ export default function TabsLayout() {
   return (
     <Tabs tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="browse" />
       <Tabs.Screen name="create" />
-      <Tabs.Screen name="alerts" />
-      <Tabs.Screen name="messages" />
+      <Tabs.Screen name="my-listings" />
       <Tabs.Screen name="profile" />
-      {/* hidden screens */}
-      <Tabs.Screen name="browse" options={{ href: null }} />
-      <Tabs.Screen name="my-listings" options={{ href: null }} />
+      <Tabs.Screen name="alerts" options={{ href: null }} />
+      <Tabs.Screen name="messages" options={{ href: null }} />
       <Tabs.Screen name="saved" options={{ href: null }} />
     </Tabs>
   );
