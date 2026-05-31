@@ -20,7 +20,7 @@ type SearchResult = {
   provinces: { name_th: string } | null;
 };
 
-const MAX_PICKS = 8;
+const MAX_PICKS = 20;
 
 export function PicksManager() {
   const [picks, setPicks] = useState<Pick[]>([]);
