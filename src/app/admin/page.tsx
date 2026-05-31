@@ -16,6 +16,7 @@ import {
 } from "@/lib/db/admin";
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { ChartSection } from "@/components/admin/chart-section";
+import { PageViewsChart } from "@/components/admin/pageviews-chart";
 import { PicksManager } from "@/components/admin/picks-manager";
 import { ContentManager } from "@/components/admin/content-manager";
 import { SiteSettings } from "@/components/admin/site-settings";
@@ -158,48 +159,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
         {/* Traffic section */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {/* Page views per day chart */}
-          <div className="rounded-xl border bg-white p-5">
-            <h2 className="text-sm font-semibold text-neutral-800 mb-4 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-teal-500" />
-              คนเข้าเว็บ 30 วันที่ผ่านมา
-            </h2>
-            {(() => {
-              const max = Math.max(...pageViewsPerDay.map((d) => d.count), 1);
-              return (
-                <div className="flex items-end gap-px h-28">
-                  {pageViewsPerDay.map(({ date, count }) => {
-                    const pct = count === 0 ? 0 : Math.max((count / max) * 100, 8);
-                    const d = new Date(date);
-                    const label = `${d.getDate()}/${d.getMonth() + 1}`;
-                    return (
-                      <div key={date} className="flex-1 flex flex-col justify-end h-full relative" title={`${label}: ${count} คน`}>
-                        {count > 0 && (
-                          <>
-                            <div className="text-center text-[9px] font-semibold text-teal-700 mb-0.5 leading-none">
-                              {count}
-                            </div>
-                            <div
-                              className="w-full rounded-t-sm bg-teal-400 hover:bg-teal-500 transition-colors"
-                              style={{ height: `${pct}%` }}
-                            />
-                          </>
-                        )}
-                        {count === 0 && (
-                          <div className="w-full bg-neutral-100" style={{ height: "3px" }} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-            <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
-              <span>{pageViewsPerDay[0]?.date.slice(5)}</span>
-              <span>รวม {pageViewsPerDay.reduce((s, d) => s + d.count, 0).toLocaleString("th-TH")} ครั้ง</span>
-              <span>{pageViewsPerDay[pageViewsPerDay.length - 1]?.date.slice(5)}</span>
-            </div>
-          </div>
+          {/* Page views chart — interactive */}
+          <PageViewsChart initialData={pageViewsPerDay} initialDays={30} />
 
           {/* Top referrers */}
           <div className="rounded-xl border bg-white p-5">
