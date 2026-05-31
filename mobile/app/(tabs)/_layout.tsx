@@ -6,20 +6,23 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { UnreadCountsContext } from "../_layout";
 
+const LINE_ADS_URL = "https://line.me/R/ti/p/~salebiz";
+
 type TabConfig = {
   name: string;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconActive: keyof typeof Ionicons.glyphMap;
   primary?: boolean;
+  lineAds?: boolean;
 };
 
 const TABS: TabConfig[] = [
-  { name: "index",       label: "หน้าแรก",   icon: "home-outline",          iconActive: "home" },
-  { name: "browse",      label: "ค้นหา",     icon: "search-outline",        iconActive: "search" },
-  { name: "create",      label: "ลงประกาศ",  icon: "add",                   iconActive: "add", primary: true },
-  { name: "my-listings", label: "ของฉัน",    icon: "document-text-outline", iconActive: "document-text" },
-  { name: "profile",     label: "โปรไฟล์",   icon: "person-outline",        iconActive: "person" },
+  { name: "index",    label: "หน้าแรก",   icon: "home-outline",          iconActive: "home" },
+  { name: "create",   label: "ลงประกาศ",  icon: "add",                   iconActive: "add", primary: true },
+  { name: "alerts",   label: "เตือนใหม่", icon: "notifications-outline", iconActive: "notifications" },
+  { name: "messages", label: "ข้อความ",   icon: "chatbubble-outline",    iconActive: "chatbubble" },
+  { name: "profile",  label: "โปรไฟล์",   icon: "person-outline",        iconActive: "person" },
 ];
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -50,7 +53,9 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           );
         }
 
-        const isProfile = tab.name === "profile";
+        const badgeCount =
+          tab.name === "alerts" ? counts.notifications :
+          tab.name === "messages" ? counts.messages : 0;
 
         return (
           <Pressable key={route.key} onPress={onPress} style={styles.tabItem}>
@@ -60,11 +65,9 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 size={24}
                 color={focused ? "#f97316" : "#9ca3af"}
               />
-              {isProfile && totalUnread > 0 && (
+              {badgeCount > 0 && (
                 <View style={styles.badgeDot}>
-                  {totalUnread <= 9 && (
-                    <Text style={styles.badgeDotText}>{totalUnread}</Text>
-                  )}
+                  <Text style={styles.badgeDotText}>{badgeCount > 9 ? "9+" : badgeCount}</Text>
                 </View>
               )}
             </View>
@@ -138,10 +141,13 @@ export default function TabsLayout() {
   return (
     <Tabs tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="browse" />
       <Tabs.Screen name="create" />
-      <Tabs.Screen name="my-listings" />
+      <Tabs.Screen name="alerts" />
+      <Tabs.Screen name="messages" />
       <Tabs.Screen name="profile" />
+      {/* hidden screens */}
+      <Tabs.Screen name="browse" options={{ href: null }} />
+      <Tabs.Screen name="my-listings" options={{ href: null }} />
       <Tabs.Screen name="saved" options={{ href: null }} />
     </Tabs>
   );
