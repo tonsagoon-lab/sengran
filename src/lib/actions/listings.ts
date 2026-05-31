@@ -17,7 +17,7 @@ function hasValidImage(l: SearchListing): boolean {
 }
 
 const NEAR_ME_SELECT = `
-  id, title, slug, listing_type, sale_price, rent_price,
+  id, title, slug, listing_type, sale_price, rent_price, revenue_amount, revenue_period,
   is_featured, featured_until, district, province_id, view_count, published_at,
   listing_images(id, storage_path, display_order),
   categories(name_th, slug),
