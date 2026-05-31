@@ -210,6 +210,35 @@ export async function getTodayPageViews() {
   return count ?? 0;
 }
 
+export async function getPendingReports(limit = 100) {
+  const supabase = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
+    .from("reports")
+    .select("id, reason, detail, status, created_at, listing_id, listings(title, slug)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as {
+    id: number;
+    reason: string;
+    detail: string | null;
+    status: "pending" | "reviewed" | "dismissed";
+    created_at: string;
+    listing_id: string;
+    listings: { title: string; slug: string } | null;
+  }[];
+}
+
+export async function getPendingReportCount() {
+  const supabase = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { count } = await (supabase as any)
+    .from("reports")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  return count ?? 0;
+}
+
 export async function getRecentSold(limit = 10) {
   const supabase = createAdminClient();
   const { data } = await supabase

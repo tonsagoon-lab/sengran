@@ -119,7 +119,7 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
     }
     setStatus("gps-loading");
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const loc: LocationState = {
           type: "gps",
           lat: pos.coords.latitude,
@@ -130,10 +130,30 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
         setLocation(loc);
         fetchListings(loc);
       },
-      () => {
-        setStatus("province-select");
+      (err) => {
+        // Only show province picker if user explicitly denied permission
+        if (err.code === GeolocationPositionError.PERMISSION_DENIED) {
+          setStatus("province-select");
+          return;
+        }
+        // Timeout or position unavailable — retry once with longer timeout and low accuracy
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const loc: LocationState = {
+              type: "gps",
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              radiusKm: 10,
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(loc));
+            setLocation(loc);
+            fetchListings(loc);
+          },
+          () => setStatus("province-select"),
+          { timeout: 20000, enableHighAccuracy: false, maximumAge: 60000 }
+        );
       },
-      { timeout: 10000 }
+      { timeout: 10000, enableHighAccuracy: false }
     );
   };
 

@@ -11,6 +11,8 @@ import {
   getPageViewsPerDay,
   getTopReferrers,
   getTodayPageViews,
+  getPendingReports,
+  getPendingReportCount,
 } from "@/lib/db/admin";
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { ChartSection } from "@/components/admin/chart-section";
@@ -19,6 +21,7 @@ import { ContentManager } from "@/components/admin/content-manager";
 import { SiteSettings } from "@/components/admin/site-settings";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import { ArticlesManager } from "@/components/admin/articles-manager";
+import { ReportsManager } from "@/components/admin/reports-manager";
 import {
   LayoutGrid, Users, Eye,
   FileText, CheckCircle, EyeOff, FileEdit, TrendingUp, Globe,
@@ -79,7 +82,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const isAdmin = user.email === ADMIN_EMAIL;
   const isStaffOnly = !isAdmin && STAFF_EMAILS.includes(user.email ?? "");
   const { tab } = await searchParams;
-  const activeTab = tab === "settings" ? "settings" : tab === "articles" ? "articles" : "dashboard";
+  const activeTab = tab === "settings" ? "settings" : tab === "articles" ? "articles" : tab === "reports" ? "reports" : "dashboard";
 
   const [
     stats,
@@ -91,6 +94,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     pageViewsPerDay,
     topReferrers,
     todayViews,
+    allReports,
+    pendingReportCount,
   ] = await Promise.all([
     getAdminStats(),
     getTopListings(10),
@@ -101,6 +106,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     getPageViewsPerDay(30),
     getTopReferrers(10),
     getTodayPageViews(),
+    getPendingReports(),
+    getPendingReportCount(),
   ]);
 
   const maxCat = Math.max(...byCategory.map((c) => c.count), 1);
@@ -121,7 +128,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {/* ── Admin-only below ─────────────────────────────── */}
         {!isStaffOnly && <>
         {/* Tab bar */}
-        <AdminTabs />
+        <AdminTabs pendingReports={pendingReportCount} />
+
+        {/* ── Reports tab ──────────────────────────────────── */}
+        {activeTab === "reports" && <ReportsManager initialReports={allReports} />}
 
         {/* ── Articles tab ─────────────────────────────────── */}
         {activeTab === "articles" && <ArticlesManager />}
