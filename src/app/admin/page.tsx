@@ -172,16 +172,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     const pct = count === 0 ? 0 : Math.max((count / max) * 100, 8);
                     const d = new Date(date);
                     const label = `${d.getDate()}/${d.getMonth() + 1}`;
-                    const isMax = count === max && count > 0;
                     return (
                       <div key={date} className="flex-1 flex flex-col justify-end h-full relative" title={`${label}: ${count} คน`}>
                         {count > 0 && (
                           <>
-                            {isMax && (
-                              <div className="text-center text-[9px] font-semibold text-teal-700 mb-0.5 leading-none">
-                                {count}
-                              </div>
-                            )}
+                            <div className="text-center text-[9px] font-semibold text-teal-700 mb-0.5 leading-none">
+                              {count}
+                            </div>
                             <div
                               className="w-full rounded-t-sm bg-teal-400 hover:bg-teal-500 transition-colors"
                               style={{ height: `${pct}%` }}
