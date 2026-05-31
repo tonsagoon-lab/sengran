@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   UtensilsCrossed, Coffee, Scissors, Sparkles, ShoppingBasket,
-  WashingMachine, Car, Store, Music, LayoutGrid, type LucideIcon,
+  WashingMachine, Car, Store, Music, LayoutGrid, PawPrint, type LucideIcon,
 } from "lucide-react";
 import { getAllCategoriesPublic } from "@/lib/db/listings";
 
@@ -16,6 +16,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Store,
   Music,
   LayoutGrid,
+  PawPrint,
 };
 
 // คีย์เวิร์ดใน name_th ที่อยากโชว์หน้าแรก — เรียงตามลำดับที่ต้องการ
