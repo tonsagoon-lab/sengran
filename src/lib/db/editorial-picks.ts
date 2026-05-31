@@ -19,7 +19,7 @@ export async function getEditorialPicks() {
     .select(LISTING_PICK_SELECT)
     .eq("listings.status", "published")
     .order("display_order", { ascending: true })
-    .limit(8);
+    .limit(20);
   return (data ?? []).filter((r: unknown) => (r as EditorialPickRow).listings !== null) as unknown as EditorialPickRow[];
 }
 
@@ -37,7 +37,7 @@ export async function addEditorialPick(listingId: string, addedBy: string) {
   const { count } = await supabase
     .from("editorial_picks")
     .select("id", { count: "exact", head: true });
-  if ((count ?? 0) >= 8) throw new Error("สูงสุด 8 โพสแนะนำ");
+  if ((count ?? 0) >= 20) throw new Error("สูงสุด 20 โพสแนะนำ");
 
   const maxOrder = await supabase
     .from("editorial_picks")

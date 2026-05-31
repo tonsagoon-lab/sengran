@@ -20,14 +20,24 @@ export async function EditorialPicks({ supabaseUrl }: EditorialPicksProps) {
   const picks = await getEditorialPicks();
   if (picks.length === 0) return null;
 
+  const visible = picks.slice(0, 4);
+  const hasMore = picks.length > 4;
+
   return (
     <section className="space-y-4">
-      <div className="flex items-center gap-2">
-        <span className="text-lg">⭐</span>
-        <h2 className="font-semibold text-neutral-800 text-lg">ประกาศเซ้งด่วน !!</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">⭐</span>
+          <h2 className="font-semibold text-neutral-800 text-lg">ประกาศเซ้งด่วน !!</h2>
+        </div>
+        {hasMore && (
+          <Link href="/listings?urgent=1" className="text-sm text-orange-600 hover:underline">
+            ดูทั้งหมด ({picks.length}) →
+          </Link>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4">
-        {picks.map((pick) => {
+        {visible.map((pick) => {
           const listing = pick.listings;
           const cover = listing.listing_images
             .slice()
