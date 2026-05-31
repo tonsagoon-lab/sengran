@@ -18,6 +18,14 @@ const TYPE_BADGE: Record<string, { label: string; className: string }> = {
 
 const fmt = new Intl.NumberFormat("th-TH");
 
+function getAgeSuffix(publishedAt: string | null): string | null {
+  if (!publishedAt) return null;
+  const days = Math.floor((Date.now() - new Date(publishedAt).getTime()) / 86_400_000);
+  if (days <= 10) return `ลงได้ ${days === 0 ? 1 : days} วัน`;
+  if (days <= 30) return "ประกาศใหม่";
+  return null;
+}
+
 function PriceDisplay({ listing }: { listing: SearchListing }) {
   const { listing_type, sale_price, rent_price } = listing;
   if (listing_type === "sale" && sale_price) {
@@ -75,6 +83,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
   const coverUrl = cover ? resolveImageUrl(cover.storage_path) : null;
 
   const typeBadge = TYPE_BADGE[listing.listing_type];
+  const ageSuffix = getAgeSuffix(listing.published_at ?? null);
   const location = [listing.district, listing.provinces?.name_th].filter(Boolean).join(", ");
 
   return (
@@ -109,6 +118,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
           >
             {listing.is_featured && <span className="mr-1">⭐</span>}
             {typeBadge.label}
+            {ageSuffix && <span className="ml-1 opacity-80">· {ageSuffix}</span>}
           </span>
         </div>
         {/* Favorite button */}

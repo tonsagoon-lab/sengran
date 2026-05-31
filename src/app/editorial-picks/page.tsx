@@ -21,6 +21,14 @@ const TYPE_BADGE: Record<string, { label: string; className: string }> = {
 
 const fmt = new Intl.NumberFormat("th-TH");
 
+function getAgeSuffix(publishedAt: string | null): string | null {
+  if (!publishedAt) return null;
+  const days = Math.floor((Date.now() - new Date(publishedAt).getTime()) / 86_400_000);
+  if (days <= 10) return `ลงได้ ${days === 0 ? 1 : days} วัน`;
+  if (days <= 30) return "ประกาศใหม่";
+  return null;
+}
+
 export default async function EditorialPicksPage() {
   const picks = await getEditorialPicks();
 
@@ -45,6 +53,7 @@ export default async function EditorialPicksPage() {
                 .sort((a, b) => a.display_order - b.display_order)[0];
               const coverUrl = cover ? resolveImageUrl(cover.storage_path) : null;
               const badge = TYPE_BADGE[listing.listing_type] ?? TYPE_BADGE.sale;
+              const ageSuffix = getAgeSuffix(listing.published_at ?? null);
               const location = [listing.district, listing.provinces?.name_th].filter(Boolean).join(", ");
 
               let priceText = "ติดต่อสอบถาม";
@@ -74,7 +83,7 @@ export default async function EditorialPicksPage() {
                       <div className="flex h-full items-center justify-center text-neutral-300 text-xs">ไม่มีรูป</div>
                     )}
                     <span className={`absolute top-1.5 left-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${badge.className}`}>
-                      {badge.label}
+                      {badge.label}{ageSuffix && <span className="ml-1 opacity-80">· {ageSuffix}</span>}
                     </span>
                     <span className="absolute top-1.5 right-1.5 rounded-full bg-orange-500 text-white px-1.5 py-0.5 text-[10px] font-medium">
                       ⭐ แนะนำ
