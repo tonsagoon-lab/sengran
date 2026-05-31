@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { Tabs } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,11 +18,11 @@ type TabConfig = {
 };
 
 const TABS: TabConfig[] = [
-  { name: "index",    label: "หน้าแรก",   icon: "home-outline",          iconActive: "home" },
-  { name: "create",   label: "ลงประกาศ",  icon: "add",                   iconActive: "add", primary: true },
-  { name: "alerts",   label: "เตือนใหม่", icon: "notifications-outline", iconActive: "notifications" },
-  { name: "messages", label: "ข้อความ",   icon: "chatbubble-outline",    iconActive: "chatbubble" },
-  { name: "profile",  label: "โปรไฟล์",   icon: "person-outline",        iconActive: "person" },
+  { name: "index",    label: "หน้าแรก",      icon: "home-outline",          iconActive: "home" },
+  { name: "create",   label: "ลงฟรี!",       icon: "add",                   iconActive: "add", primary: true },
+  { name: "alerts",   label: "เตือนเซ้งร้าน", icon: "notifications-outline", iconActive: "notifications" },
+  { name: "messages", label: "ข้อความ",      icon: "chatbubble-outline",    iconActive: "chatbubble" },
+  { name: "profile",  label: "ลงโฆษณา",     icon: "megaphone-outline",     iconActive: "megaphone", lineAds: true },
 ];
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -41,6 +41,15 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
           if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
         };
+
+        if (tab.lineAds) {
+          return (
+            <Pressable key={route.key} onPress={() => Linking.openURL(LINE_ADS_URL)} style={styles.tabItem}>
+              <Ionicons name="megaphone-outline" size={24} color="#2563eb" />
+              <Text style={[styles.tabLabel, { color: "#2563eb" }]}>{tab.label}</Text>
+            </Pressable>
+          );
+        }
 
         if (tab.primary) {
           return (
