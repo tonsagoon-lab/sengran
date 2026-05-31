@@ -32,7 +32,7 @@ export async function EditorialPicks({ supabaseUrl }: EditorialPicksProps) {
           <h2 className="font-semibold text-neutral-800 text-lg">ฝากเซ้ง-ประเมินราคาแล้ว</h2>
         </div>
         {hasMore && (
-          <Link href="/listings?urgent=1" className="text-sm text-orange-600 hover:underline">
+          <Link href="/editorial-picks" className="text-sm text-orange-600 hover:underline">
             ดูทั้งหมด ({picks.length}) →
           </Link>
         )}
