@@ -29,7 +29,7 @@ export async function EditorialPicks({ supabaseUrl }: EditorialPicksProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-lg">⭐</span>
-          <h2 className="font-semibold text-neutral-800 text-lg">ประกาศเซ้งด่วน !!</h2>
+          <h2 className="font-semibold text-neutral-800 text-lg">ฝากเซ้ง-ประเมินราคาแล้ว</h2>
         </div>
         {hasMore && (
           <Link href="/listings?urgent=1" className="text-sm text-orange-600 hover:underline">
