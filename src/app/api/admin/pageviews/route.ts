@@ -12,23 +12,43 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const days = Math.min(Math.max(Number(req.nextUrl.searchParams.get("days") ?? "30"), 1), 365);
-  const since = new Date();
-  since.setDate(since.getDate() - (days - 1));
-  since.setHours(0, 0, 0, 0);
+  const { searchParams } = req.nextUrl;
+  const fromParam = searchParams.get("from");
+  const toParam = searchParams.get("to");
+
+  let since: Date;
+  let until: Date;
+
+  if (fromParam && toParam) {
+    since = new Date(fromParam);
+    since.setHours(0, 0, 0, 0);
+    until = new Date(toParam);
+    until.setHours(23, 59, 59, 999);
+    if (isNaN(since.getTime()) || isNaN(until.getTime()) || since > until) {
+      return NextResponse.json({ error: "Invalid date range" }, { status: 400 });
+    }
+  } else {
+    const days = Math.min(Math.max(Number(searchParams.get("days") ?? "30"), 1), 365);
+    since = new Date();
+    since.setDate(since.getDate() - (days - 1));
+    since.setHours(0, 0, 0, 0);
+    until = new Date();
+    until.setHours(23, 59, 59, 999);
+  }
 
   const admin = createAdminClient();
   const { data } = await admin
     .from("page_views")
     .select("created_at")
     .gte("created_at", since.toISOString())
+    .lte("created_at", until.toISOString())
     .order("created_at", { ascending: true });
 
   const map: Record<string, number> = {};
-  for (let i = 0; i < days; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - (days - 1 - i));
-    map[d.toISOString().slice(0, 10)] = 0;
+  const cursor = new Date(since);
+  while (cursor <= until) {
+    map[cursor.toISOString().slice(0, 10)] = 0;
+    cursor.setDate(cursor.getDate() + 1);
   }
   for (const row of data ?? []) {
     const key = (row.created_at as string).slice(0, 10);
