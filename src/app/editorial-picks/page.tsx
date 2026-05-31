@@ -82,6 +82,14 @@ export default async function EditorialPicksPage() {
                   </div>
                   <div className="flex flex-col gap-0.5 p-2.5 flex-1">
                     <p className="text-sm font-bold text-neutral-900">{priceText}</p>
+                    {listing.revenue_amount && (
+                      <p className="text-[11px] text-green-600">
+                        รายได้ {fmt.format(listing.revenue_amount)} บ.{" "}
+                        <span className="text-green-500">
+                          {listing.revenue_period === "yearly" ? "ต่อปี" : listing.revenue_period === "quarterly_avg" ? "เฉลี่ย 3 เดือน" : "เดือนล่าสุด"}
+                        </span>
+                      </p>
+                    )}
                     <p className="text-xs font-medium text-neutral-800 line-clamp-2 leading-snug">
                       {listing.title}
                     </p>

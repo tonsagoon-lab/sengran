@@ -6,6 +6,7 @@ const LISTING_PICK_SELECT = `
   listings!inner(
     id, title, slug, listing_type, sale_price, rent_price,
     is_featured, featured_until, district, province_id, view_count, published_at, status,
+    revenue_amount, revenue_period,
     listing_images(id, storage_path, display_order),
     categories(name_th, slug),
     provinces(name_th, slug)
@@ -96,6 +97,7 @@ export type EditorialPickRow = {
     is_featured: boolean; featured_until: string | null;
     district: string | null; province_id: number | null;
     view_count: number | null; published_at: string | null; status: string;
+    revenue_amount: number | null; revenue_period: "yearly" | "quarterly_avg" | "monthly_last" | null;
     listing_images: { id: string; storage_path: string; display_order: number }[];
     categories: { name_th: string; slug: string } | null;
     provinces: { name_th: string; slug: string } | null;
