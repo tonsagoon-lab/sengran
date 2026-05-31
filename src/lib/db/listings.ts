@@ -188,6 +188,8 @@ export type SearchListing = {
   listing_type: "sale" | "rent" | "both";
   sale_price: number | null;
   rent_price: number | null;
+  revenue_amount: number | null;
+  revenue_period: "yearly" | "quarterly_avg" | "monthly_last" | null;
   is_featured: boolean;
   featured_until: string | null;
   district: string | null;
@@ -217,7 +219,7 @@ export interface SearchParams {
 }
 
 const LISTING_CARD_SELECT = `
-  id, title, slug, listing_type, sale_price, rent_price,
+  id, title, slug, listing_type, sale_price, rent_price, revenue_amount, revenue_period,
   is_featured, featured_until, district, province_id, view_count, published_at,
   listing_images(id, storage_path, display_order),
   categories(name_th, slug),

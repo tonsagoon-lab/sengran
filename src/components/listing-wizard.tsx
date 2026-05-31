@@ -79,6 +79,8 @@ interface WizardState {
   sale_price: string;
   rent_price: string;
   deposit_months: string;
+  revenue_amount: string;
+  revenue_period: "yearly" | "quarterly_avg" | "monthly_last";
   description: string; // HTML
   // Step 2
   province_id: string;
@@ -216,6 +218,8 @@ function buildInitialState(listing?: WizardProps["listing"]): WizardState {
     sale_price: listing?.sale_price != null ? String(listing.sale_price) : "",
     rent_price: listing?.rent_price != null ? String(listing.rent_price) : "",
     deposit_months: listing?.deposit_months != null ? String(listing.deposit_months) : "",
+    revenue_amount: listing?.revenue_amount != null ? String(listing.revenue_amount) : "",
+    revenue_period: listing?.revenue_period ?? "monthly_last",
     description: listing?.description ?? "",
     province_id: listing?.province_id != null ? String(listing.province_id) : "",
     district: listing?.district ?? "",
@@ -248,6 +252,10 @@ function migrateState(raw: string, listingId?: string): WizardState | null {
       sale_price: parsed.sale_price ?? "",
       rent_price: parsed.rent_price ?? "",
       deposit_months: parsed.deposit_months ?? "",
+      revenue_amount: parsed.revenue_amount ?? "",
+      revenue_period: ["yearly", "quarterly_avg", "monthly_last"].includes(parsed.revenue_period)
+        ? parsed.revenue_period
+        : "monthly_last",
       description: parsed.description ?? "",
       province_id: parsed.province_id ?? "",
       district: parsed.district ?? "",
@@ -407,6 +415,8 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
     fd.set("sale_price", unformat(data.sale_price));
     fd.set("rent_price", unformat(data.rent_price));
     fd.set("deposit_months", data.deposit_months);
+    fd.set("revenue_amount", unformat(data.revenue_amount));
+    fd.set("revenue_period", data.revenue_period);
     fd.set("province_id", data.province_id);
     fd.set("district", data.district);
     fd.set("address", data.address);
@@ -610,6 +620,49 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Revenue */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-neutral-500 uppercase tracking-wide">
+                รายได้ <span className="font-normal text-neutral-400 normal-case">(ถ้ามี)</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-2 flex-wrap">
+                {(["monthly_last", "quarterly_avg", "yearly"] as const).map((p) => {
+                  const labels = { monthly_last: "เดือนล่าสุด", quarterly_avg: "เฉลี่ย 3 เดือน", yearly: "ต่อปี" };
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setData({ revenue_period: p })}
+                      className={`px-3 py-1.5 rounded-lg border text-sm transition-colors ${
+                        data.revenue_period === p
+                          ? "border-orange-500 bg-orange-50 text-orange-700"
+                          : "border-neutral-200 hover:border-orange-300"
+                      }`}
+                    >
+                      {labels[p]}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">฿</span>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={data.revenue_amount}
+                  onChange={(e) => setData({ revenue_amount: e.target.value })}
+                  onBlur={(e) => setData({ revenue_amount: formatNumberOnBlur(e.target.value) })}
+                  onFocus={(e) => setData({ revenue_amount: unformat(e.target.value) })}
+                  placeholder="ใส่รายได้ (ไม่บังคับ)"
+                  className="pl-7"
+                />
+              </div>
             </CardContent>
           </Card>
 

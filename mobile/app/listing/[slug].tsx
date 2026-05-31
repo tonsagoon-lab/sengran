@@ -76,7 +76,7 @@ export default function ListingDetailScreen() {
     const { data, error } = await supabase
       .from("listings")
       .select(
-        `id, slug, title, description, listing_type, sale_price, rent_price, district,
+        `id, slug, title, description, listing_type, sale_price, rent_price, revenue_amount, revenue_period, district,
          contact_mobile, contact_line, latitude, longitude,
          view_count, published_at, status,
          listing_images(id, storage_path, display_order),
@@ -295,6 +295,20 @@ export default function ListingDetailScreen() {
             </View>
           ) : null}
 
+          {/* Revenue block */}
+          {listing.revenue_amount ? (
+            <View style={styles.revenueBlock}>
+              <Ionicons name="trending-up-outline" size={16} color="#15803d" />
+              <Text style={styles.revenueLabel}>รายได้:</Text>
+              <Text selectable style={styles.revenueValue}>
+                ฿{fmtPrice(listing.revenue_amount)} บาท
+                {listing.revenue_period === "yearly" ? "/ปี"
+                  : listing.revenue_period === "quarterly_avg" ? " (เฉลี่ย 3 ด.)"
+                  : "/เดือนล่าสุด"}
+              </Text>
+            </View>
+          ) : null}
+
           {/* Meta */}
           <View style={styles.metaRow}>
             <Ionicons name="eye-outline" size={14} color="#9ca3af" />
@@ -467,6 +481,19 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   priceLabel: { fontSize: 13, color: "#9a3412", fontWeight: "500" },
   priceValue: { fontSize: 15, fontWeight: "700", color: "#c2410c" },
+  revenueBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#f0fdf4",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+  },
+  revenueLabel: { fontSize: 13, color: "#15803d", fontWeight: "500" },
+  revenueValue: { fontSize: 14, fontWeight: "700", color: "#16a34a", flex: 1 },
   depositText: { fontSize: 12, color: "#9a3412", marginTop: 2 },
 
   // Meta

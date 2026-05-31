@@ -216,6 +216,21 @@ export default async function ListingDetailPage({ params }: Props) {
           {listing.deposit_months != null && (listing.listing_type === "rent" || listing.listing_type === "both") && (
             <p className="text-sm text-neutral-600">มัดจำ {listing.deposit_months} เดือน</p>
           )}
+          {listing.revenue_amount != null && (
+            <div className="flex items-center gap-2 pt-1 border-t border-orange-100">
+              <Tag className="h-4 w-4 text-green-500" />
+              <span className="text-base font-semibold text-green-700">
+                รายได้: {formatPrice(listing.revenue_amount)} บาท
+                <span className="text-sm font-normal text-green-600">
+                  {listing.revenue_period === "yearly"
+                    ? "/ปี"
+                    : listing.revenue_period === "quarterly_avg"
+                    ? " (เฉลี่ย 3 เดือน)"
+                    : "/เดือนล่าสุด"}
+                </span>
+              </span>
+            </div>
+          )}
         </div>
 
         <Separator />

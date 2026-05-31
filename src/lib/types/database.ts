@@ -120,6 +120,8 @@ export type Database = {
           rent_price: number | null;
           deposit_months: number | null;
           price_note: string | null;
+          revenue_amount: number | null;
+          revenue_period: "yearly" | "quarterly_avg" | "monthly_last" | null;
           category_id: number | null;
           province_id: number | null;
           district: string | null;
@@ -154,6 +156,8 @@ export type Database = {
           rent_price?: number | null;
           deposit_months?: number | null;
           price_note?: string | null;
+          revenue_amount?: number | null;
+          revenue_period?: "yearly" | "quarterly_avg" | "monthly_last" | null;
           category_id?: number | null;
           province_id?: number | null;
           district?: string | null;
@@ -184,6 +188,8 @@ export type Database = {
           rent_price?: number | null;
           deposit_months?: number | null;
           price_note?: string | null;
+          revenue_amount?: number | null;
+          revenue_period?: "yearly" | "quarterly_avg" | "monthly_last" | null;
           category_id?: number | null;
           province_id?: number | null;
           district?: string | null;

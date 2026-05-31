@@ -9,6 +9,8 @@ export const listingSchema = z
     rent_price: z.string().optional(),
     deposit_months: z.string().optional(),
     price_note: z.string().max(200).optional(),
+    revenue_amount: z.string().optional(),
+    revenue_period: z.enum(["yearly", "quarterly_avg", "monthly_last"]).optional(),
     category_id: z.string().optional(),
     province_id: z.string().min(1, "กรุณาเลือกจังหวัด"),
     district: z.string().max(100).optional(),

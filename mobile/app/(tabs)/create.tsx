@@ -41,6 +41,8 @@ export default function CreateListingScreen() {
   const [description, setDescription] = useState("");
   const [salePrice, setSalePrice] = useState("");
   const [rentPrice, setRentPrice] = useState("");
+  const [revenueAmount, setRevenueAmount] = useState("");
+  const [revenuePeriod, setRevenuePeriod] = useState<"monthly_last" | "quarterly_avg" | "yearly">("monthly_last");
   const [district, setDistrict] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [provinceId, setProvinceId] = useState<number | null>(null);
@@ -271,6 +273,8 @@ export default function CreateListingScreen() {
       listing_type: listingType,
       sale_price: salePrice ? parseInt(salePrice) : null,
       rent_price: rentPrice ? parseInt(rentPrice) : null,
+      revenue_amount: revenueAmount ? parseInt(revenueAmount) : null,
+      revenue_period: revenueAmount ? revenuePeriod : null,
       district: district.trim() || null,
       category_id: categoryId,
       province_id: provinceId,
@@ -400,6 +404,33 @@ export default function CreateListingScreen() {
               />
             </>
           )}
+
+          {/* Revenue */}
+          <Text style={styles.label}>รายได้ (ถ้ามี)</Text>
+          <View style={styles.revenueRow}>
+            {([
+              { value: "monthly_last", label: "เดือนล่าสุด" },
+              { value: "quarterly_avg", label: "เฉลี่ย 3 ด." },
+              { value: "yearly", label: "ต่อปี" },
+            ] as const).map((p) => (
+              <Pressable
+                key={p.value}
+                style={[styles.chip, revenuePeriod === p.value && styles.chipActive]}
+                onPress={() => setRevenuePeriod(p.value)}
+              >
+                <Text style={[styles.chipText, revenuePeriod === p.value && styles.chipTextActive]}>
+                  {p.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="รายได้ (บาท) — ไม่บังคับ"
+            value={revenueAmount}
+            onChangeText={setRevenueAmount}
+            keyboardType="number-pad"
+          />
 
           {/* Category */}
           <Text style={styles.label}>หมวดหมู่</Text>
@@ -631,6 +662,7 @@ const styles = StyleSheet.create({
   typeLabelActive: { color: "#f97316" },
   chipScroll: { maxHeight: 50 },
   chipRow: { flexDirection: "row", gap: 8, paddingVertical: 4 },
+  revenueRow: { flexDirection: "row", gap: 8, marginBottom: 8, flexWrap: "wrap" },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,

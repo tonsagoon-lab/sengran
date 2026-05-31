@@ -129,6 +129,14 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
       {/* Info */}
       <div className="flex flex-col gap-1 p-3 flex-1">
         <PriceDisplay listing={listing} />
+        {listing.revenue_amount && (
+          <p className="text-xs text-green-600 font-medium">
+            รายได้ ฿{fmt.format(listing.revenue_amount)}
+            <span className="font-normal text-green-500">
+              {listing.revenue_period === "yearly" ? "/ปี" : listing.revenue_period === "quarterly_avg" ? " (เฉลี่ย 3 ด.)" : "/ด. ล่าสุด"}
+            </span>
+          </p>
+        )}
 
         <p className="line-clamp-2 text-sm font-medium text-neutral-800 leading-snug">
           {listing.title}

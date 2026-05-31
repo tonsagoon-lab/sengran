@@ -39,6 +39,8 @@ export default function EditListingScreen() {
   const [description, setDescription] = useState("");
   const [salePrice, setSalePrice] = useState("");
   const [rentPrice, setRentPrice] = useState("");
+  const [revenueAmount, setRevenueAmount] = useState("");
+  const [revenuePeriod, setRevenuePeriod] = useState<"monthly_last" | "quarterly_avg" | "yearly">("monthly_last");
   const [district, setDistrict] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [provinceId, setProvinceId] = useState<number | null>(null);
@@ -67,7 +69,7 @@ export default function EditListingScreen() {
     const [{ data: listing }, { data: cats }, { data: provs }] = await Promise.all([
       supabase
         .from("listings")
-        .select(`id, title, description, listing_type, sale_price, rent_price, district,
+        .select(`id, title, description, listing_type, sale_price, rent_price, revenue_amount, revenue_period, district,
           category_id, province_id, latitude, longitude,
           listing_images(id, storage_path, display_order),
           provinces(id, name_th, slug)`)
@@ -86,6 +88,8 @@ export default function EditListingScreen() {
       setListingType((listing.listing_type as ListingType) ?? "sale");
       setSalePrice(listing.sale_price ? String(listing.sale_price) : "");
       setRentPrice(listing.rent_price ? String(listing.rent_price) : "");
+      setRevenueAmount((listing as any).revenue_amount ? String((listing as any).revenue_amount) : "");
+      if ((listing as any).revenue_period) setRevenuePeriod((listing as any).revenue_period);
       setDistrict(listing.district ?? "");
       setCategoryId(listing.category_id ?? null);
       setProvinceId(listing.province_id ?? null);
@@ -246,6 +250,8 @@ export default function EditListingScreen() {
       listing_type: listingType,
       sale_price: salePrice ? parseInt(salePrice) : null,
       rent_price: rentPrice ? parseInt(rentPrice) : null,
+      revenue_amount: revenueAmount ? parseInt(revenueAmount) : null,
+      revenue_period: revenueAmount ? revenuePeriod : null,
       district: district.trim() || null,
       category_id: categoryId,
       province_id: provinceId,
@@ -338,6 +344,31 @@ export default function EditListingScreen() {
               <TextInput style={styles.input} value={rentPrice} onChangeText={setRentPrice} keyboardType="number-pad" placeholder="เช่น 8000" />
             </>
           )}
+
+          {/* Revenue */}
+          <Text style={styles.label}>รายได้ (ถ้ามี)</Text>
+          <View style={styles.revenueRow}>
+            {([
+              { value: "monthly_last", label: "เดือนล่าสุด" },
+              { value: "quarterly_avg", label: "เฉลี่ย 3 ด." },
+              { value: "yearly", label: "ต่อปี" },
+            ] as const).map((p) => (
+              <Pressable
+                key={p.value}
+                style={[styles.chip, revenuePeriod === p.value && styles.chipActive]}
+                onPress={() => setRevenuePeriod(p.value)}
+              >
+                <Text style={[styles.chipText, revenuePeriod === p.value && styles.chipTextActive]}>{p.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="รายได้ (บาท) — ไม่บังคับ"
+            value={revenueAmount}
+            onChangeText={setRevenueAmount}
+            keyboardType="number-pad"
+          />
 
           {/* Category */}
           <Text style={styles.label}>หมวดหมู่</Text>
@@ -487,6 +518,7 @@ const styles = StyleSheet.create({
   typeLabelActive: { color: "#f97316" },
   chipScroll: { maxHeight: 50 },
   chipRow: { flexDirection: "row", gap: 8, paddingVertical: 4 },
+  revenueRow: { flexDirection: "row", gap: 8, marginBottom: 8, flexWrap: "wrap" },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: "#f3f4f6", borderWidth: 1, borderColor: "#e5e7eb" },
   chipActive: { backgroundColor: "#fff7ed", borderColor: "#f97316" },
   chipText: { fontSize: 13, color: "#6b7280" },
