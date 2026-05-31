@@ -49,7 +49,8 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLog
           className="flex shrink-0 items-center gap-1.5 rounded-full bg-green-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-600 transition-colors whitespace-nowrap"
         >
           <PlusCircle className="h-4 w-4 shrink-0" />
-          <span>ลงประกาศฟรี</span>
+          <span className="sm:hidden">ลงฟรี!</span>
+          <span className="hidden sm:inline">ลงประกาศฟรี</span>
         </Link>
 
         {/* 3. เตือนร้านเซ้งใหม่ — highlighted orange */}
@@ -59,7 +60,8 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLog
           className="relative flex shrink-0 items-center gap-1.5 rounded-full bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors whitespace-nowrap"
         >
           <Bell className="h-4 w-4 shrink-0" />
-          <span>เตือนร้านเซ้งใหม่</span>
+          <span className="sm:hidden">เตือนเซ้งร้าน</span>
+          <span className="hidden sm:inline">เตือนร้านเซ้งใหม่</span>
           {unreadNotifCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
               {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
