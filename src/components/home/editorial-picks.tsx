@@ -20,7 +20,8 @@ export async function EditorialPicks({ supabaseUrl }: EditorialPicksProps) {
   const picks = await getEditorialPicks();
   if (picks.length === 0) return null;
 
-  const visible = picks.slice(0, 4);
+  const shuffled = [...picks].sort(() => Math.random() - 0.5);
+  const visible = shuffled.slice(0, 4);
   const hasMore = picks.length > 4;
 
   return (
