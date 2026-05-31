@@ -72,7 +72,7 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLog
           href={LINE_CTA_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#06C755] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#05a847] transition-colors whitespace-nowrap"
+          className="flex shrink-0 items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
         >
           <Megaphone className="h-4 w-4 shrink-0" />
           <span>ลงโฆษณา</span>
