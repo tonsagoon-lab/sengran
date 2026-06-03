@@ -28,42 +28,95 @@ export function MapView({ listings }: MapViewProps) {
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
+    // Thailand bounding box — filter out bad coordinates
+    const THAILAND = { minLat: 5.5, maxLat: 20.5, minLng: 97.3, maxLng: 105.7 };
+    const THAILAND_BOUNDS: [[number, number], [number, number]] = [[5.5, 97.3], [20.5, 105.7]];
+    const BANGKOK: [number, number] = [13.7563, 100.5018];
+
+    function inThailand(lat: number, lng: number) {
+      return lat >= THAILAND.minLat && lat <= THAILAND.maxLat &&
+             lng >= THAILAND.minLng && lng <= THAILAND.maxLng;
+    }
+
+    function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
     async function init() {
       const L = (await import("leaflet")).default;
       await import("leaflet/dist/leaflet.css");
 
-      const center: [number, number] =
-        listings.length > 0
-          ? [listings[0].latitude, listings[0].longitude]
-          : [13.7563, 100.5018]; // Bangkok default
+      // Only listings inside Thailand
+      const valid = listings.filter((l) => inThailand(l.latitude, l.longitude));
 
-      const map = L.map(mapRef.current!, { zoomControl: false }).setView(center, 10);
+      const map = L.map(mapRef.current!, {
+        zoomControl: false,
+        maxBounds: THAILAND_BOUNDS,
+        maxBoundsViscosity: 0.8,
+      }).setView(BANGKOK, 6);
       mapInstanceRef.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap contributors",
         maxZoom: 19,
+        minZoom: 6,
       }).addTo(map);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
-      listings.forEach((listing) => {
+      valid.forEach((listing) => {
         const label = priceLabel(listing);
         const icon = L.divIcon({
           className: "",
           html: `<div class="map-price-marker">${label}</div>`,
           iconAnchor: [0, 0],
         });
-
         const marker = L.marker([listing.latitude, listing.longitude], { icon });
         marker.addTo(map);
         marker.on("click", () => setSelected(listing));
       });
 
-      if (listings.length > 1) {
-        const bounds = L.latLngBounds(listings.map((l) => [l.latitude, l.longitude]));
-        map.fitBounds(bounds, { padding: [40, 40] });
+      // Try GPS → zoom near user, else fitBounds of all listings
+      function centerOnUser(userLat: number, userLng: number) {
+        const RADII = [10, 30, 80, 300]; // km steps
+        for (const r of RADII) {
+          const nearby = valid.filter((l) => distanceKm(userLat, userLng, l.latitude, l.longitude) <= r);
+          if (nearby.length > 0) {
+            if (nearby.length === 1) {
+              map.setView([userLat, userLng], r <= 10 ? 13 : r <= 30 ? 11 : 9);
+            } else {
+              const bounds = L.latLngBounds(nearby.map((l) => [l.latitude, l.longitude]));
+              map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+            }
+            return;
+          }
+        }
+        // No listings near user at all — show all Thailand listings
+        fallbackFit();
       }
+
+      function fallbackFit() {
+        if (valid.length > 1) {
+          const bounds = L.latLngBounds(valid.map((l) => [l.latitude, l.longitude]));
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+        } else if (valid.length === 1) {
+          map.setView([valid[0].latitude, valid[0].longitude], 13);
+        } else {
+          map.fitBounds(THAILAND_BOUNDS, { padding: [20, 20] });
+        }
+      }
+
+      navigator.geolocation?.getCurrentPosition(
+        (pos) => centerOnUser(pos.coords.latitude, pos.coords.longitude),
+        () => fallbackFit(),
+        { timeout: 5000, enableHighAccuracy: false }
+      );
+      if (!navigator.geolocation) fallbackFit();
     }
 
     init();
