@@ -1,8 +1,8 @@
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getMapListings } from "@/lib/db/listings";
 import { TopMenuBar } from "@/components/top-menu-bar";
+import { MapLoader } from "@/components/map/map-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,11 +11,6 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = 120;
-
-const MapView = dynamic(
-  () => import("@/components/map/map-view").then((m) => m.MapView),
-  { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-neutral-400 text-sm">กำลังโหลดแผนที่…</div> }
-);
 
 export default async function MapPage() {
   const listings = await getMapListings();
@@ -37,7 +32,7 @@ export default async function MapPage() {
 
       {/* Map fills remaining height */}
       <div className="flex-1 min-h-0">
-        <MapView listings={listings} />
+        <MapLoader listings={listings} />
       </div>
     </div>
   );
