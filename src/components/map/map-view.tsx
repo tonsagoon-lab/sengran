@@ -42,9 +42,10 @@ const TYPE_COLOR: Record<string, string> = {
 
 interface MapViewProps {
   listings: MapListing[];
+  targetCenter?: [number, number] | null;
 }
 
-export function MapView({ listings }: MapViewProps) {
+export function MapView({ listings, targetCenter }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
   const markersRef = useRef<import("leaflet").Marker[]>([]);
@@ -130,6 +131,12 @@ export function MapView({ listings }: MapViewProps) {
     if (!navigator.geolocation) fallbackFit();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
+  // Fly to province center when targetCenter changes
+  useEffect(() => {
+    if (!ready || !mapInstanceRef.current || !targetCenter) return;
+    mapInstanceRef.current.flyTo(targetCenter, 11, { duration: 1.2 });
+  }, [ready, targetCenter]);
 
   // Re-render markers when listings (filter) changes
   useEffect(() => {

@@ -17,10 +17,12 @@ export default async function MapPage() {
   ]);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen bg-neutral-100">
       <TopMenuBar />
-      <div className="flex-1 min-h-0 relative">
-        <MapLoader listings={listings} categories={categories} />
+      <div className="flex-1 p-3 pb-6">
+        <div className="relative h-[68vh] rounded-2xl overflow-hidden shadow-lg border border-neutral-200">
+          <MapLoader listings={listings} categories={categories} />
+        </div>
       </div>
     </div>
   );
