@@ -145,11 +145,18 @@ export function MapView({ listings }: MapViewProps) {
 
     valid.forEach((listing) => {
       const label = priceLabel(listing);
-      const color = TYPE_COLOR[listing.listing_type] ?? "#1d4ed8";
+      const color = TYPE_COLOR[listing.listing_type] ?? "#f97316";
       const icon = L.divIcon({
         className: "",
-        html: `<div class="map-price-marker" style="border-color:${color};color:${color}">${label}</div>`,
+        html: `
+          <div class="map-pin-wrap">
+            <div class="map-pin-bubble" style="background:${color}">${label}</div>
+            <svg class="map-pin-tail" width="14" height="10" viewBox="0 0 14 10" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="7,10 0,0 14,0" fill="${color}"/>
+            </svg>
+          </div>`,
         iconAnchor: [0, 0],
+        iconSize: [0, 0],
       });
       const marker = L.marker([listing.latitude, listing.longitude], { icon });
       marker.addTo(map);
@@ -172,22 +179,30 @@ export function MapView({ listings }: MapViewProps) {
   return (
     <div className="relative w-full h-full">
       <style>{`
-        .map-price-marker {
-          background: white;
-          border: 1.5px solid currentColor;
-          border-radius: 9999px;
-          padding: 5px 11px;
+        .map-pin-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          cursor: pointer;
+          transition: transform 0.12s;
+          transform-origin: bottom center;
+        }
+        .map-pin-wrap:hover { transform: scale(1.12); }
+        .map-pin-bubble {
+          color: white;
+          border-radius: 8px;
+          padding: 4px 10px;
           font-size: 12px;
           font-weight: 700;
           white-space: nowrap;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 0 0 1.5px rgba(255,255,255,0.7);
-          cursor: pointer;
-          transition: transform 0.12s, box-shadow 0.12s;
-          letter-spacing: -0.2px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.28);
+          letter-spacing: -0.3px;
+          line-height: 1.4;
         }
-        .map-price-marker:hover {
-          transform: scale(1.1);
-          box-shadow: 0 4px 14px rgba(0,0,0,0.22), 0 0 0 2px rgba(255,255,255,0.9);
+        .map-pin-tail {
+          display: block;
+          margin-top: -1px;
+          filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15));
         }
         .leaflet-container { font-family: inherit; }
         .leaflet-control-attribution { font-size: 9px !important; }
