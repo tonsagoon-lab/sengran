@@ -42,9 +42,10 @@ const TYPE_COLOR: Record<string, string> = {
 
 interface MapViewProps {
   listings: MapListing[];
+  onUserLocation?: (lat: number, lng: number) => void;
 }
 
-export function MapView({ listings }: MapViewProps) {
+export function MapView({ listings, onUserLocation }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
   const markersRef = useRef<import("leaflet").Marker[]>([]);
@@ -123,7 +124,10 @@ export function MapView({ listings }: MapViewProps) {
     }
 
     navigator.geolocation?.getCurrentPosition(
-      (pos) => centerOnUser(pos.coords.latitude, pos.coords.longitude),
+      (pos) => {
+        centerOnUser(pos.coords.latitude, pos.coords.longitude);
+        onUserLocation?.(pos.coords.latitude, pos.coords.longitude);
+      },
       () => fallbackFit(),
       { timeout: 5000, enableHighAccuracy: false }
     );
