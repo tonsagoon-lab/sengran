@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function getAdminStats() {
@@ -249,3 +250,26 @@ export async function getRecentSold(limit = 10) {
     .limit(limit);
   return data ?? [];
 }
+
+export const getSiteSetting = unstable_cache(
+  async (key: string): Promise<string | null> => {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", key)
+      .single();
+    return (data as { value: string } | null)?.value ?? null;
+  },
+  ["site_settings"],
+  { revalidate: 60, tags: ["site_settings"] }
+);
+
+export async function setSiteSetting(key: string, value: string) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("site_settings")
+    .upsert({ key, value }, { onConflict: "key" });
+  if (error) throw error;
+}
+

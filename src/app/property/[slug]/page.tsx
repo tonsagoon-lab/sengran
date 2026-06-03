@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Phone, MessageCircle, MapPin, Tag, Eye, Calendar, ExternalLink, UserCircle } from "lucide-react";
 import { getListingBySlug, getRelatedListings } from "@/lib/db/listings";
+import { getSiteSetting } from "@/lib/db/admin";
 import { createClient } from "@/lib/supabase/server";
 import { startConversationAction } from "@/lib/actions/messages";
 import { ImageGallery } from "@/components/listings/image-gallery";
@@ -70,7 +71,11 @@ export default async function ListingDetailPage({ params }: Props) {
     (a, b) => a.display_order - b.display_order
   );
 
-  const related = await getRelatedListings(slug, listing.province_id, listing.category_id);
+  const [related, showViewCountSetting] = await Promise.all([
+    getRelatedListings(slug, listing.province_id, listing.category_id),
+    getSiteSetting("show_view_count"),
+  ]);
+  const showViewCount = showViewCountSetting !== "false";
 
   const coverImage = sortedImages[0];
   const coverUrl = coverImage ? resolveImageUrl(coverImage.storage_path) : undefined;
@@ -281,10 +286,12 @@ export default async function ListingDetailPage({ params }: Props) {
 
         {/* Meta footer */}
         <div className="flex items-center gap-4 text-xs text-neutral-400 pt-2">
-          <div className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            <span>{listing.view_count} ครั้ง</span>
-          </div>
+          {showViewCount && (
+            <div className="flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              <span>{listing.view_count} ครั้ง</span>
+            </div>
+          )}
           {listing.published_at && (
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />

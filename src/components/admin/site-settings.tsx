@@ -7,9 +7,11 @@ import { ProvincesManager } from "./provinces-manager";
 import { BoostPackagesManager } from "./boost-packages-manager";
 import { AnnouncementManager } from "./announcement-manager";
 import { FaviconManager } from "./favicon-manager";
+import { GeneralSettingsManager } from "./general-settings-manager";
 import { cn } from "@/lib/utils";
 
 const TABS = [
+  { key: "general", label: "ทั่วไป" },
   { key: "categories", label: "หมวดหมู่" },
   { key: "banners", label: "แบนเนอร์" },
   { key: "provinces", label: "จังหวัด" },
@@ -21,8 +23,12 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
-export function SiteSettings() {
-  const [tab, setTab] = useState<TabKey>("categories");
+interface SiteSettingsProps {
+  showViewCount: boolean;
+}
+
+export function SiteSettings({ showViewCount }: SiteSettingsProps) {
+  const [tab, setTab] = useState<TabKey>("general");
 
   return (
     <div className="rounded-xl border bg-white p-5 space-y-4">
@@ -48,6 +54,7 @@ export function SiteSettings() {
 
       {/* Panels */}
       <div className="pt-1">
+        {tab === "general" && <GeneralSettingsManager showViewCount={showViewCount} />}
         {tab === "categories" && <CategoriesManager />}
         {tab === "banners" && <BannersManager />}
         {tab === "provinces" && <ProvincesManager />}

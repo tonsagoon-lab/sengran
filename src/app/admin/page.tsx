@@ -13,6 +13,7 @@ import {
   getTodayPageViews,
   getPendingReports,
   getPendingReportCount,
+  getSiteSetting,
 } from "@/lib/db/admin";
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { ChartSection } from "@/components/admin/chart-section";
@@ -97,6 +98,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     todayViews,
     allReports,
     pendingReportCount,
+    showViewCountSetting,
   ] = await Promise.all([
     getAdminStats(),
     getTopListings(10),
@@ -109,7 +111,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     getTodayPageViews(),
     getPendingReports(),
     getPendingReportCount(),
+    getSiteSetting("show_view_count"),
   ]);
+  const showViewCount = showViewCountSetting !== "false";
 
   const maxCat = Math.max(...byCategory.map((c) => c.count), 1);
   const maxProv = Math.max(...byProvince.map((p) => p.count), 1);
@@ -138,7 +142,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {activeTab === "articles" && <ArticlesManager />}
 
         {/* ── Settings tab ─────────────────────────────────── */}
-        {activeTab === "settings" && isAdmin && <SiteSettings />}
+        {activeTab === "settings" && isAdmin && <SiteSettings showViewCount={showViewCount} />}
         {activeTab === "settings" && !isAdmin && (
           <p className="text-sm text-neutral-500">คุณไม่มีสิทธิ์เข้าถึงส่วนนี้</p>
         )}
