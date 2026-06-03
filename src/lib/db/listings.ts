@@ -573,7 +573,7 @@ export async function getMapListings(): Promise<MapListing[]> {
     .eq("status", "published")
     .not("latitude", "is", null)
     .not("longitude", "is", null)
-    .limit(500);
+    .limit(10);
   return (data ?? []) as unknown as MapListing[];
 }
 
