@@ -88,6 +88,7 @@ export function MapLoader({ categories, provinces }: MapLoaderProps) {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [panelOpen, setPanelOpen] = useState(false);
+  const autoGpsFired = useRef(false);
 
   // fetch listings based on mode
   const fetchListings = useCallback(async (
@@ -122,7 +123,23 @@ export function MapLoader({ categories, provinces }: MapLoaderProps) {
     }
   }, [loading]);
 
-  // GPS button
+  // Auto GPS from MapView (fires once on map load)
+  const onUserLocation = useCallback(async (lat: number, lng: number) => {
+    if (autoGpsFired.current) return;
+    autoGpsFired.current = true;
+    const loc = { lat, lng };
+    setUserLoc(loc);
+    setMode("gps");
+    setAllListings([]);
+    setLoading(true);
+    const data = await loadMapListingsByDistance(lat, lng, 0);
+    setAllListings(data);
+    setOffset(data.length);
+    setHasMore(data.length === 10);
+    setLoading(false);
+  }, []);
+
+  // GPS button (manual retry)
   const requestGPS = useCallback(() => {
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
@@ -186,7 +203,11 @@ export function MapLoader({ categories, provinces }: MapLoaderProps) {
     <div className="flex h-full">
       {/* ── Left: Map ── */}
       <div className="relative flex-1 min-w-0">
-        <MapView listings={filtered} />
+        <MapView
+          listings={filtered}
+          onUserLocation={onUserLocation}
+          onGpsDenied={() => { if (!autoGpsFired.current) setMode("province"); }}
+        />
 
         {/* Back */}
         <div className="absolute top-3 left-3 z-[1000]">
