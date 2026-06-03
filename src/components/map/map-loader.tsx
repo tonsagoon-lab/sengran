@@ -138,8 +138,10 @@ export function MapLoader({ listings, categories }: MapLoaderProps) {
 
   return (
     <div className="relative h-full">
-      {/* Map — full screen */}
-      <MapView listings={filtered} targetCenter={targetCenter} />
+      {/* Map — clipped to rounded container */}
+      <div className="absolute inset-0 rounded-2xl overflow-hidden">
+        <MapView listings={filtered} targetCenter={targetCenter} />
+      </div>
 
       {/* Top-left: Back */}
       <div className="absolute top-3 left-3 z-[1000]">
