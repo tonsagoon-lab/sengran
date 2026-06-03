@@ -247,7 +247,7 @@ export function MapLoader({ listings, categories }: MapLoaderProps) {
         {/* Header */}
         <div className="px-4 py-3 border-b bg-orange-500">
           <p className="text-sm font-bold text-white">
-            {sorted.length} ประกาศ{userLoc ? " · เรียงตามระยะทาง" : ""}
+            {userLoc ? "เรียงตามระยะทาง" : "ประกาศทั้งหมด"}
           </p>
         </div>
 
