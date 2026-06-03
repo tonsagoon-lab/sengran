@@ -557,7 +557,7 @@ export type MapListing = {
   district: string | null;
   listing_images: Array<{ storage_path: string; display_order: number }>;
   provinces: { name_th: string } | null;
-  categories: { name_th: string } | null;
+  categories: { name_th: string; slug: string } | null;
 };
 
 export async function getMapListings(): Promise<MapListing[]> {
@@ -568,7 +568,7 @@ export async function getMapListings(): Promise<MapListing[]> {
       id, slug, title, listing_type, sale_price, rent_price, latitude, longitude, district,
       listing_images(storage_path, display_order),
       provinces(name_th),
-      categories(name_th)
+      categories(name_th, slug)
     `)
     .eq("status", "published")
     .not("latitude", "is", null)

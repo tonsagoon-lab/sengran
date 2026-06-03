@@ -1,6 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { getMapListings } from "@/lib/db/listings";
+import { getMapListings, getAllCategoriesPublic } from "@/lib/db/listings";
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { MapLoader } from "@/components/map/map-loader";
 import type { Metadata } from "next";
@@ -13,26 +11,16 @@ export const metadata: Metadata = {
 export const revalidate = 120;
 
 export default async function MapPage() {
-  const listings = await getMapListings();
+  const [listings, categories] = await Promise.all([
+    getMapListings(),
+    getAllCategoriesPublic(),
+  ]);
 
   return (
     <div className="flex flex-col h-screen">
       <TopMenuBar />
-
-      {/* Header bar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-white shrink-0">
-        <Link href="/listings" className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-800 transition-colors">
-          <ArrowLeft className="h-4 w-4" />
-          กลับ
-        </Link>
-        <div className="h-4 w-px bg-neutral-200" />
-        <h1 className="text-sm font-semibold text-neutral-800">แผนที่ประกาศ</h1>
-        <span className="text-xs text-neutral-400">(เฉพาะที่มีพิกัด)</span>
-      </div>
-
-      {/* Map fills remaining height */}
       <div className="flex-1 min-h-0">
-        <MapLoader listings={listings} />
+        <MapLoader listings={listings} categories={categories} />
       </div>
     </div>
   );

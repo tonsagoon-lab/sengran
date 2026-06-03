@@ -11,10 +11,34 @@ const fmt = new Intl.NumberFormat("th-TH");
 
 function priceLabel(listing: MapListing): string {
   if (listing.listing_type === "rent" && listing.rent_price)
-    return `฿${fmt.format(listing.rent_price)}`;
+    return `฿${fmt.format(listing.rent_price)}/ด.`;
   if (listing.sale_price) return `฿${fmt.format(listing.sale_price)}`;
   return "ติดต่อ";
 }
+
+const THAILAND = { minLat: 5.5, maxLat: 20.5, minLng: 97.3, maxLng: 105.7 };
+const THAILAND_BOUNDS: [[number, number], [number, number]] = [[5.5, 97.3], [20.5, 105.7]];
+const BANGKOK: [number, number] = [13.7563, 100.5018];
+
+function inThailand(lat: number, lng: number) {
+  return lat >= THAILAND.minLat && lat <= THAILAND.maxLat &&
+    lng >= THAILAND.minLng && lng <= THAILAND.maxLng;
+}
+
+function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+const TYPE_COLOR: Record<string, string> = {
+  sale: "#1d4ed8",
+  rent: "#15803d",
+  both: "#7c3aed",
+};
 
 interface MapViewProps {
   listings: MapListing[];
@@ -23,36 +47,19 @@ interface MapViewProps {
 export function MapView({ listings }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
+  const markersRef = useRef<import("leaflet").Marker[]>([]);
+  const leafletRef = useRef<typeof import("leaflet") | null>(null);
   const [selected, setSelected] = useState<MapListing | null>(null);
+  const [ready, setReady] = useState(false);
 
+  // Init map once
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
-
-    // Thailand bounding box — filter out bad coordinates
-    const THAILAND = { minLat: 5.5, maxLat: 20.5, minLng: 97.3, maxLng: 105.7 };
-    const THAILAND_BOUNDS: [[number, number], [number, number]] = [[5.5, 97.3], [20.5, 105.7]];
-    const BANGKOK: [number, number] = [13.7563, 100.5018];
-
-    function inThailand(lat: number, lng: number) {
-      return lat >= THAILAND.minLat && lat <= THAILAND.maxLat &&
-             lng >= THAILAND.minLng && lng <= THAILAND.maxLng;
-    }
-
-    function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
-      const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) ** 2 +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
 
     async function init() {
       const L = (await import("leaflet")).default;
       await import("leaflet/dist/leaflet.css");
-
-      // Only listings inside Thailand
-      const valid = listings.filter((l) => inThailand(l.latitude, l.longitude));
+      leafletRef.current = L;
 
       const map = L.map(mapRef.current!, {
         zoomControl: false,
@@ -68,64 +75,88 @@ export function MapView({ listings }: MapViewProps) {
       }).addTo(map);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
-
-      valid.forEach((listing) => {
-        const label = priceLabel(listing);
-        const icon = L.divIcon({
-          className: "",
-          html: `<div class="map-price-marker">${label}</div>`,
-          iconAnchor: [0, 0],
-        });
-        const marker = L.marker([listing.latitude, listing.longitude], { icon });
-        marker.addTo(map);
-        marker.on("click", () => setSelected(listing));
-      });
-
-      // Try GPS → zoom near user, else fitBounds of all listings
-      function centerOnUser(userLat: number, userLng: number) {
-        const RADII = [10, 30, 80, 300]; // km steps
-        for (const r of RADII) {
-          const nearby = valid.filter((l) => distanceKm(userLat, userLng, l.latitude, l.longitude) <= r);
-          if (nearby.length > 0) {
-            if (nearby.length === 1) {
-              map.setView([userLat, userLng], r <= 10 ? 13 : r <= 30 ? 11 : 9);
-            } else {
-              const bounds = L.latLngBounds(nearby.map((l) => [l.latitude, l.longitude]));
-              map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
-            }
-            return;
-          }
-        }
-        // No listings near user at all — show all Thailand listings
-        fallbackFit();
-      }
-
-      function fallbackFit() {
-        if (valid.length > 1) {
-          const bounds = L.latLngBounds(valid.map((l) => [l.latitude, l.longitude]));
-          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
-        } else if (valid.length === 1) {
-          map.setView([valid[0].latitude, valid[0].longitude], 13);
-        } else {
-          map.fitBounds(THAILAND_BOUNDS, { padding: [20, 20] });
-        }
-      }
-
-      navigator.geolocation?.getCurrentPosition(
-        (pos) => centerOnUser(pos.coords.latitude, pos.coords.longitude),
-        () => fallbackFit(),
-        { timeout: 5000, enableHighAccuracy: false }
-      );
-      if (!navigator.geolocation) fallbackFit();
+      setReady(true);
     }
 
     init();
-
     return () => {
       mapInstanceRef.current?.remove();
       mapInstanceRef.current = null;
+      leafletRef.current = null;
     };
-  }, [listings]);
+  }, []);
+
+  // GPS centering — run once after map is ready
+  useEffect(() => {
+    if (!ready || !mapInstanceRef.current || !leafletRef.current) return;
+    const map = mapInstanceRef.current;
+    const L = leafletRef.current;
+
+    const valid = listings.filter((l) => inThailand(l.latitude, l.longitude));
+
+    function fallbackFit() {
+      if (valid.length > 1) {
+        const bounds = L.latLngBounds(valid.map((l) => [l.latitude, l.longitude]));
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+      } else if (valid.length === 1) {
+        map.setView([valid[0].latitude, valid[0].longitude], 13);
+      } else {
+        map.fitBounds(THAILAND_BOUNDS, { padding: [20, 20] });
+      }
+    }
+
+    function centerOnUser(userLat: number, userLng: number) {
+      const RADII = [10, 30, 80, 300];
+      for (const r of RADII) {
+        const nearby = valid.filter((l) => distanceKm(userLat, userLng, l.latitude, l.longitude) <= r);
+        if (nearby.length > 0) {
+          if (nearby.length === 1) {
+            map.setView([userLat, userLng], r <= 10 ? 13 : r <= 30 ? 11 : 9);
+          } else {
+            const bounds = L.latLngBounds(nearby.map((l) => [l.latitude, l.longitude]));
+            map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+          }
+          return;
+        }
+      }
+      fallbackFit();
+    }
+
+    navigator.geolocation?.getCurrentPosition(
+      (pos) => centerOnUser(pos.coords.latitude, pos.coords.longitude),
+      () => fallbackFit(),
+      { timeout: 5000, enableHighAccuracy: false }
+    );
+    if (!navigator.geolocation) fallbackFit();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  // Re-render markers when listings (filter) changes
+  useEffect(() => {
+    if (!ready || !mapInstanceRef.current || !leafletRef.current) return;
+    const map = mapInstanceRef.current;
+    const L = leafletRef.current;
+
+    // Clear old markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
+    const valid = listings.filter((l) => inThailand(l.latitude, l.longitude));
+
+    valid.forEach((listing) => {
+      const label = priceLabel(listing);
+      const color = TYPE_COLOR[listing.listing_type] ?? "#1d4ed8";
+      const icon = L.divIcon({
+        className: "",
+        html: `<div class="map-price-marker" style="border-color:${color};color:${color}">${label}</div>`,
+        iconAnchor: [0, 0],
+      });
+      const marker = L.marker([listing.latitude, listing.longitude], { icon });
+      marker.addTo(map);
+      marker.on("click", () => setSelected(listing));
+      markersRef.current.push(marker);
+    });
+  }, [listings, ready]);
 
   const cover = selected?.listing_images
     .slice()
@@ -143,23 +174,23 @@ export function MapView({ listings }: MapViewProps) {
       <style>{`
         .map-price-marker {
           background: white;
-          border: 2px solid #374151;
+          border: 1.5px solid currentColor;
           border-radius: 9999px;
-          padding: 4px 10px;
+          padding: 5px 11px;
           font-size: 12px;
           font-weight: 700;
-          color: #111827;
           white-space: nowrap;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 0 0 1.5px rgba(255,255,255,0.7);
           cursor: pointer;
-          transition: all 0.15s;
+          transition: transform 0.12s, box-shadow 0.12s;
+          letter-spacing: -0.2px;
         }
         .map-price-marker:hover {
-          background: #111827;
-          color: white;
-          transform: scale(1.08);
+          transform: scale(1.1);
+          box-shadow: 0 4px 14px rgba(0,0,0,0.22), 0 0 0 2px rgba(255,255,255,0.9);
         }
         .leaflet-container { font-family: inherit; }
+        .leaflet-control-attribution { font-size: 9px !important; }
       `}</style>
 
       <div ref={mapRef} className="w-full h-full" />
@@ -176,7 +207,6 @@ export function MapView({ listings }: MapViewProps) {
             </button>
 
             <Link href={`/property/${selected.slug}`} className="flex gap-3 p-3">
-              {/* Image */}
               <div className="relative w-24 h-24 shrink-0 rounded-xl overflow-hidden bg-neutral-100">
                 {coverUrl ? (
                   <Image src={coverUrl} alt={selected.title} fill className="object-cover" sizes="96px" />
@@ -184,8 +214,6 @@ export function MapView({ listings }: MapViewProps) {
                   <div className="flex h-full items-center justify-center text-neutral-300 text-xs">ไม่มีรูป</div>
                 )}
               </div>
-
-              {/* Info */}
               <div className="flex flex-col justify-center gap-1 min-w-0">
                 <p className="text-base font-bold text-neutral-900">{priceLabel(selected)}</p>
                 <p className="text-sm text-neutral-700 line-clamp-2 leading-snug">{selected.title}</p>
@@ -201,7 +229,6 @@ export function MapView({ listings }: MapViewProps) {
               </div>
             </Link>
 
-            {/* Navigate button */}
             <div className="px-3 pb-3">
               <a
                 href={navUrl}
@@ -216,11 +243,6 @@ export function MapView({ listings }: MapViewProps) {
           </div>
         </div>
       )}
-
-      {/* Count badge */}
-      <div className="absolute top-3 left-3 z-[1000] rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 shadow">
-        {listings.length} ประกาศ
-      </div>
     </div>
   );
 }
