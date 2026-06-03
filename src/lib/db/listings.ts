@@ -545,6 +545,38 @@ export async function getActiveBanners(): Promise<Banner[]> {
   return (data ?? []) as Banner[];
 }
 
+export type MapListing = {
+  id: string;
+  slug: string;
+  title: string;
+  listing_type: string;
+  sale_price: number | null;
+  rent_price: number | null;
+  latitude: number;
+  longitude: number;
+  district: string | null;
+  listing_images: Array<{ storage_path: string; display_order: number }>;
+  provinces: { name_th: string } | null;
+  categories: { name_th: string } | null;
+};
+
+export async function getMapListings(): Promise<MapListing[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("listings")
+    .select(`
+      id, slug, title, listing_type, sale_price, rent_price, latitude, longitude, district,
+      listing_images(storage_path, display_order),
+      provinces(name_th),
+      categories(name_th)
+    `)
+    .eq("status", "published")
+    .not("latitude", "is", null)
+    .not("longitude", "is", null)
+    .limit(500);
+  return (data ?? []) as unknown as MapListing[];
+}
+
 export const getTotalListingCount = unstable_cache(
   async () => {
     const supabase = createAnonClient(

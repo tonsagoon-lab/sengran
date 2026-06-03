@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { SlidersHorizontal, X, Check, ChevronsUpDown, ChevronDown } from "lucide-react";
+import { SlidersHorizontal, X, Check, ChevronsUpDown, ChevronDown, Map } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -263,6 +264,14 @@ export function FilterBar({ categories, provinces, lockedCategory, lockedProvinc
               <X className="h-3.5 w-3.5" /> ล้างตัวกรอง
             </button>
           )}
+
+          <Link
+            href="/map"
+            className="ml-auto flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:border-orange-300 hover:text-orange-600 transition-colors shrink-0"
+          >
+            <Map className="h-4 w-4" />
+            แผนที่
+          </Link>
         </div>
 
         {/* Mobile filter row */}
@@ -332,6 +341,9 @@ export function FilterBar({ categories, provinces, lockedCategory, lockedProvinc
           {activeFilterCount > 0 && (
             <button onClick={clearAll} className="text-sm text-orange-600 shrink-0">ล้าง</button>
           )}
+          <Link href="/map" className="flex items-center gap-1 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:border-orange-300 hover:text-orange-600 transition-colors shrink-0">
+            <Map className="h-4 w-4" />
+          </Link>
           </div>
         </div>
       </div>
