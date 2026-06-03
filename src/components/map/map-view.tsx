@@ -42,11 +42,9 @@ const TYPE_COLOR: Record<string, string> = {
 
 interface MapViewProps {
   listings: MapListing[];
-  onUserLocation?: (lat: number, lng: number) => void;
-  onGpsDenied?: () => void;
 }
 
-export function MapView({ listings, onUserLocation, onGpsDenied }: MapViewProps) {
+export function MapView({ listings }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
   const markersRef = useRef<import("leaflet").Marker[]>([]);
@@ -125,14 +123,11 @@ export function MapView({ listings, onUserLocation, onGpsDenied }: MapViewProps)
     }
 
     navigator.geolocation?.getCurrentPosition(
-      (pos) => {
-        centerOnUser(pos.coords.latitude, pos.coords.longitude);
-        onUserLocation?.(pos.coords.latitude, pos.coords.longitude);
-      },
-      () => { fallbackFit(); onGpsDenied?.(); },
+      (pos) => centerOnUser(pos.coords.latitude, pos.coords.longitude),
+      () => fallbackFit(),
       { timeout: 5000, enableHighAccuracy: false }
     );
-    if (!navigator.geolocation) { fallbackFit(); onGpsDenied?.(); }
+    if (!navigator.geolocation) fallbackFit();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 

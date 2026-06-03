@@ -1,4 +1,4 @@
-import { getAllCategoriesPublic, getAllProvincesPublic } from "@/lib/db/listings";
+import { getMapListings, getAllCategoriesPublic } from "@/lib/db/listings";
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { MapLoader } from "@/components/map/map-loader";
 import type { Metadata } from "next";
@@ -11,16 +11,16 @@ export const metadata: Metadata = {
 export const revalidate = 120;
 
 export default async function MapPage() {
-  const [categories, provinces] = await Promise.all([
+  const [listings, categories] = await Promise.all([
+    getMapListings(0, 200),
     getAllCategoriesPublic(),
-    getAllProvincesPublic(),
   ]);
 
   return (
     <div className="flex flex-col h-screen">
       <TopMenuBar />
       <div className="flex-1 min-h-0 relative">
-        <MapLoader categories={categories} provinces={provinces} />
+        <MapLoader listings={listings} categories={categories} />
       </div>
     </div>
   );
