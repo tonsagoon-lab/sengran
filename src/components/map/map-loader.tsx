@@ -1,11 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, SlidersHorizontal, X, ChevronDown, MapPin, Navigation } from "lucide-react";
+import { ArrowLeft, SlidersHorizontal, X, ChevronDown, MapPin, Navigation, Loader2 } from "lucide-react";
 import { resolveImageUrl } from "@/lib/utils/image-url";
+import { loadMoreMapListings } from "@/lib/actions/map";
 import type { MapListing } from "@/lib/db/listings";
 
 const MapView = dynamic(
@@ -61,7 +62,13 @@ interface MapLoaderProps {
   categories: Category[];
 }
 
-export function MapLoader({ listings, categories }: MapLoaderProps) {
+export function MapLoader({ listings: initial, categories }: MapLoaderProps) {
+  const [allListings, setAllListings] = useState<MapListing[]>(initial);
+  const [offset, setOffset] = useState(initial.length);
+  const [hasMore, setHasMore] = useState(initial.length === 10);
+  const [loading, setLoading] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
   const [typeFilter, setTypeFilter] = useState("");
   const [catFilter, setCatFilter] = useState("");
   const [provinceFilter, setProvinceFilter] = useState("");
@@ -74,17 +81,43 @@ export function MapLoader({ listings, categories }: MapLoaderProps) {
     setUserLoc({ lat, lng });
   }, []);
 
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      async (entries) => {
+        if (!entries[0].isIntersecting || loading || !hasMore) return;
+        setLoading(true);
+        const more = await loadMoreMapListings(offset);
+        if (more.length === 0) {
+          setHasMore(false);
+        } else {
+          setAllListings((prev) => {
+            const ids = new Set(prev.map((l) => l.id));
+            return [...prev, ...more.filter((l) => !ids.has(l.id))];
+          });
+          setOffset((prev) => prev + more.length);
+          if (more.length < 10) setHasMore(false);
+        }
+        setLoading(false);
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [offset, loading, hasMore]);
+
   // Unique provinces from listings
   const provinces = useMemo(() => {
     const map = new Map<string, string>();
-    listings.forEach((l) => {
+    allListings.forEach((l) => {
       if (l.provinces?.name_th) map.set(l.provinces.name_th, l.provinces.name_th);
     });
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], "th"));
-  }, [listings]);
+  }, [allListings]);
 
   const filtered = useMemo(() => {
-    return listings.filter((l) => {
+    return allListings.filter((l) => {
       if (typeFilter && l.listing_type !== typeFilter) return false;
       if (catFilter && l.categories?.slug !== catFilter) return false;
       if (provinceFilter && l.provinces?.name_th !== provinceFilter) return false;
@@ -93,7 +126,7 @@ export function MapLoader({ listings, categories }: MapLoaderProps) {
       if (maxPrice && (price ?? 0) > Number(maxPrice)) return false;
       return true;
     });
-  }, [listings, typeFilter, catFilter, provinceFilter, minPrice, maxPrice]);
+  }, [allListings, typeFilter, catFilter, provinceFilter, minPrice, maxPrice]);
 
   const sorted = useMemo(() => {
     if (!userLoc) return filtered;
@@ -305,6 +338,14 @@ export function MapLoader({ listings, categories }: MapLoaderProps) {
               );
             })
           )}
+
+          {/* Sentinel for infinite scroll */}
+          <div ref={sentinelRef} className="py-3 flex items-center justify-center">
+            {loading && <Loader2 className="h-5 w-5 animate-spin text-orange-400" />}
+            {!hasMore && allListings.length > 0 && (
+              <p className="text-xs text-neutral-400">แสดงทั้งหมดแล้ว</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

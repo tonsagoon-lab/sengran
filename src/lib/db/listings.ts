@@ -560,7 +560,7 @@ export type MapListing = {
   categories: { name_th: string; slug: string } | null;
 };
 
-export async function getMapListings(): Promise<MapListing[]> {
+export async function getMapListings(offset = 0, limit = 10): Promise<MapListing[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("listings")
@@ -573,7 +573,8 @@ export async function getMapListings(): Promise<MapListing[]> {
     .eq("status", "published")
     .not("latitude", "is", null)
     .not("longitude", "is", null)
-    .limit(10);
+    .order("published_at", { ascending: false })
+    .range(offset, offset + limit - 1);
   return (data ?? []) as unknown as MapListing[];
 }
 
