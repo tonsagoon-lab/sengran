@@ -19,7 +19,7 @@ export default async function MapPage() {
   return (
     <div className="flex flex-col min-h-screen bg-neutral-100">
       <TopMenuBar />
-      <div className="flex-1 px-4 py-3 pb-3">
+      <div className="flex-1 px-4 pt-3 pb-1">
         <div className="relative h-[68vh] rounded-2xl shadow-lg border border-neutral-200">
           <MapLoader listings={listings} categories={categories} />
         </div>
