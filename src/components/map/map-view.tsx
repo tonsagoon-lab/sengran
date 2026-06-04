@@ -48,7 +48,8 @@ interface MapViewProps {
 export function MapView({ listings, targetCenter }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
-  const markersRef = useRef<import("leaflet").Marker[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clusterGroupRef = useRef<any>(null);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
   const [selected, setSelected] = useState<MapListing | null>(null);
   const [ready, setReady] = useState(false);
@@ -60,6 +61,9 @@ export function MapView({ listings, targetCenter }: MapViewProps) {
     async function init() {
       const L = (await import("leaflet")).default;
       await import("leaflet/dist/leaflet.css");
+      await import("leaflet.markercluster");
+      await import("leaflet.markercluster/dist/MarkerCluster.css");
+      await import("leaflet.markercluster/dist/MarkerCluster.Default.css");
       leafletRef.current = L;
 
       const map = L.map(mapRef.current!, {
@@ -76,6 +80,27 @@ export function MapView({ listings, targetCenter }: MapViewProps) {
       }).addTo(map);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cluster = (L as any).markerClusterGroup({
+        maxClusterRadius: 60,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        iconCreateFunction: (c: { getChildCount: () => number }) => {
+          const count = c.getChildCount();
+          const size = count < 10 ? 36 : count < 50 ? 42 : 50;
+          return L.divIcon({
+            html: `<div class="cluster-bubble" style="width:${size}px;height:${size}px">${count}</div>`,
+            className: "",
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2],
+          });
+        },
+      });
+      clusterGroupRef.current = cluster;
+      map.addLayer(cluster);
+
       setReady(true);
     }
 
@@ -83,6 +108,7 @@ export function MapView({ listings, targetCenter }: MapViewProps) {
     return () => {
       mapInstanceRef.current?.remove();
       mapInstanceRef.current = null;
+      clusterGroupRef.current = null;
       leafletRef.current = null;
     };
   }, []);
@@ -140,13 +166,11 @@ export function MapView({ listings, targetCenter }: MapViewProps) {
 
   // Re-render markers when listings (filter) changes
   useEffect(() => {
-    if (!ready || !mapInstanceRef.current || !leafletRef.current) return;
-    const map = mapInstanceRef.current;
+    if (!ready || !clusterGroupRef.current || !leafletRef.current) return;
     const L = leafletRef.current;
+    const cluster = clusterGroupRef.current;
 
-    // Clear old markers
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    cluster.clearLayers();
 
     const valid = listings.filter((l) => inThailand(l.latitude, l.longitude));
 
@@ -166,9 +190,8 @@ export function MapView({ listings, targetCenter }: MapViewProps) {
         iconSize: [0, 0],
       });
       const marker = L.marker([listing.latitude, listing.longitude], { icon });
-      marker.addTo(map);
       marker.on("click", () => setSelected(listing));
-      markersRef.current.push(marker);
+      cluster.addLayer(marker);
     });
   }, [listings, ready]);
 
@@ -210,6 +233,18 @@ export function MapView({ listings, targetCenter }: MapViewProps) {
           display: block;
           margin-top: -1px;
           filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15));
+        }
+        .cluster-bubble {
+          background: #f97316;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: 700;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          border: 3px solid white;
         }
         .leaflet-container { font-family: inherit; }
         .leaflet-control-attribution { font-size: 9px !important; }
