@@ -143,6 +143,7 @@ export default function ListingDetailScreen() {
   }
 
   function handleMessage() {
+    if (!listing) return;
     router.push(`/messages/${listing.id}`);
   }
 

@@ -44,6 +44,14 @@ function priceUnit(item: Listing): string {
   return "";
 }
 
+function getAgeBadge(published_at: string | null | undefined): string | null {
+  if (!published_at) return null;
+  const days = Math.floor((Date.now() - new Date(published_at).getTime()) / 86_400_000);
+  if (days <= 10) return `ลงได้ ${Math.max(days, 1)} วัน`;
+  if (days <= 30) return "ประกาศใหม่";
+  return null;
+}
+
 type BadgeType = "sale" | "rent" | "both";
 function TypeBadge({ type }: { type: BadgeType }) {
   const cfg = {
@@ -64,9 +72,7 @@ function ListingRow({ item, onPress }: { item: Listing; onPress: () => void }) {
     .sort((a, b) => a.display_order - b.display_order)[0];
   const imageUrl = cover ? resolveImageUrl(cover.storage_path) : null;
   const [imgError, setImgError] = useState(false);
-  const postedDate = item.published_at
-    ? new Date(item.published_at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })
-    : "";
+  const ageBadge = getAgeBadge(item.published_at);
   return (
     <Pressable style={styles.row} onPress={onPress}>
       <View style={styles.rowImgWrap}>
@@ -81,7 +87,11 @@ function ListingRow({ item, onPress }: { item: Listing; onPress: () => void }) {
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
           <TypeBadge type={item.listing_type} />
-          <Text style={styles.rowDate}>{postedDate}</Text>
+          {ageBadge && (
+            <View style={styles.ageBadge}>
+              <Text style={styles.ageBadgeText}>{ageBadge}</Text>
+            </View>
+          )}
         </View>
         <Text style={styles.rowTitle} numberOfLines={2}>{item.title}</Text>
         {(item.district || item.provinces) && (
@@ -295,10 +305,15 @@ export default function BrowseScreen() {
             <Text style={styles.topBarSub}>พบ {resultCount.toLocaleString("th-TH")} รายการ</Text>
           )}
         </View>
-        <Pressable style={styles.filterIconBtn} onPress={() => setShowFilter(true)}>
-          <Ionicons name="options-outline" size={22} color={hasActiveFilter ? "#f97316" : "#374151"} />
-          {hasActiveFilter && <View style={styles.filterDot} />}
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Pressable style={styles.filterIconBtn} onPress={() => router.push("/map")}>
+            <Ionicons name="map-outline" size={22} color="#374151" />
+          </Pressable>
+          <Pressable style={styles.filterIconBtn} onPress={() => setShowFilter(true)}>
+            <Ionicons name="options-outline" size={22} color={hasActiveFilter ? "#f97316" : "#374151"} />
+            {hasActiveFilter && <View style={styles.filterDot} />}
+          </Pressable>
+        </View>
       </View>
 
       {/* Search */}
@@ -682,6 +697,14 @@ const styles = StyleSheet.create({
   rowBody: { flex: 1, gap: 4 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 6 },
   rowDate: { fontSize: 10, color: "#9ca3af", marginLeft: "auto" },
+  ageBadge: {
+    backgroundColor: "#fff7ed",
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: "auto",
+  },
+  ageBadgeText: { fontSize: 9, fontWeight: "600", color: "#ea580c" },
   rowTitle: { fontSize: 14, fontWeight: "600", color: "#111827", lineHeight: 20 },
   rowLoc: { flexDirection: "row", alignItems: "center", gap: 3 },
   rowLocText: { fontSize: 11, color: "#9ca3af", flex: 1 },

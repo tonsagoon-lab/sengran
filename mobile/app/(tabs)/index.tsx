@@ -40,6 +40,14 @@ function priceUnit(item: Listing): string {
   return "";
 }
 
+function getAgeBadge(published_at: string | null | undefined): string | null {
+  if (!published_at) return null;
+  const days = Math.floor((Date.now() - new Date(published_at).getTime()) / 86_400_000);
+  if (days <= 10) return `ลงได้ ${Math.max(days, 1)} วัน`;
+  if (days <= 30) return "ประกาศใหม่";
+  return null;
+}
+
 type BadgeType = "sale" | "rent" | "both";
 function TypeBadge({ type, featured }: { type: BadgeType; featured?: boolean | null }) {
   const cfg = {
@@ -90,6 +98,11 @@ function ListingCardV({
         )}
         <View style={styles.cardVBadgeWrap}>
           <TypeBadge type={item.listing_type} featured={item.is_featured} />
+          {getAgeBadge(item.published_at) && (
+            <View style={styles.ageBadge}>
+              <Text style={styles.ageBadgeText}>{getAgeBadge(item.published_at)}</Text>
+            </View>
+          )}
         </View>
       </View>
       <View style={styles.cardVBody}>
@@ -153,7 +166,7 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Building: "business-outline",
 };
 
-function getCatIcon(iconName: string | null): keyof typeof Ionicons.glyphMap {
+function getCatIcon(iconName: string | null | undefined): keyof typeof Ionicons.glyphMap {
   if (!iconName) return "storefront-outline";
   return CATEGORY_ICONS[iconName] ?? "storefront-outline";
 }
@@ -630,6 +643,14 @@ const styles = StyleSheet.create({
   },
   badgeStar: { fontSize: 9 },
   badgeText: { fontSize: 10, fontWeight: "600" },
+  ageBadge: {
+    backgroundColor: "#fff7ed",
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginTop: 3,
+  },
+  ageBadgeText: { fontSize: 9, fontWeight: "600", color: "#ea580c" },
 
   // CTA banner
   ctaBanner: {

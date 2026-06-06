@@ -36,6 +36,8 @@ export type ListingDetail = Listing & {
   contact_line: string | null;
   latitude: number | null;
   longitude: number | null;
+  revenue_amount: number | null;
+  revenue_period: "yearly" | "quarterly_avg" | "monthly_last" | null;
   profiles: {
     display_name: string | null;
     avatar_url: string | null;
