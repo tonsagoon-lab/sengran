@@ -16,12 +16,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.xn--72ch7bybxexd0cc.com";
 
 export const metadata: Metadata = {
-  title: "เซ้งร้าน.com — ขายกิจการ เซ้ง ให้เช่า ทำเลดีทั่วไทย",
+  title: "เซ้งร้าน.com — ประกาศเซ้งร้านฟรี ขายกิจการ ให้เช่า",
   description:
     "ประกาศเซ้งร้าน ขายกิจการ รับโอนกิจการ เซ้งร้านอาหาร เซ้งคาเฟ่ ร้านให้เช่าทั่วไทย ลงประกาศฟรี ติดต่อเจ้าของได้เลย",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "เซ้งร้าน.com — ขายกิจการ เซ้ง ให้เช่า ทำเลดีทั่วไทย",
+    title: "เซ้งร้าน.com — ประกาศเซ้งร้านฟรี ขายกิจการ ให้เช่า",
     description:
       "ประกาศเซ้งร้าน ขายกิจการ รับโอนกิจการ เซ้งร้านอาหาร เซ้งคาเฟ่ ร้านให้เช่าทั่วไทย ลงประกาศฟรี ติดต่อเจ้าของได้เลย",
     url: BASE_URL,
