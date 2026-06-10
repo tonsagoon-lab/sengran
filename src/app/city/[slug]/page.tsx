@@ -21,8 +21,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const prov = provinces.find((p) => p.slug === slug);
   if (!prov) return { title: "ไม่พบจังหวัด" };
 
-  const title = `ประกาศร้านใน${prov.name_th} เซ้งและให้เช่า — เซ้งร้าน.com`;
-  const description = `ค้นหาร้านเซ้งและให้เช่าใน${prov.name_th} ราคาโดนใจ ทำเลดี ติดต่อได้ทันที`;
+  const title = `เซ้งร้านใน${prov.name_th} ขายกิจการ และให้เช่า — เซ้งร้าน.com`;
+  const description = `ประกาศเซ้งร้าน ขายกิจการ รับโอนกิจการ และร้านให้เช่าใน${prov.name_th} ทำเลดีราคาโดนใจ ติดต่อเจ้าของได้เลย`;
 
   return {
     title,

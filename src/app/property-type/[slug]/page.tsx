@@ -21,8 +21,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cat = categories.find((c) => c.slug === slug);
   if (!cat) return { title: "ไม่พบหมวดหมู่" };
 
-  const title = `${cat.name_th} เซ้งและให้เช่า — เซ้งร้าน.com`;
-  const description = `ค้นหา${cat.name_th} เซ้งและให้เช่าทั่วประเทศไทย ราคาโดนใจ ติดต่อได้ทันที`;
+  const title = `เซ้ง${cat.name_th} ขายกิจการ และให้เช่า — เซ้งร้าน.com`;
+  const description = `ประกาศเซ้ง${cat.name_th} ขายกิจการ รับโอนกิจการ และให้เช่าทั่วประเทศไทย หาทำเลดีราคาโดนใจ ติดต่อเจ้าของได้เลย`;
 
   return {
     title,

@@ -26,8 +26,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const faviconUrl: string | undefined = data?.value ?? undefined;
 
   return {
-    title: "เซ้งร้าน.com — ซื้อ ขาย เซ้งร้าน ทำเลดี",
-    description: "ตลาดซื้อขายเซ้งร้านค้าและพื้นที่เชิงพาณิชย์ออนไลน์",
+    title: "เซ้งร้าน.com — ขายกิจการ เซ้ง ให้เช่า ทำเลดีทั่วไทย",
+    description: "ตลาดเซ้งร้าน ขายกิจการ รับโอนกิจการ และพื้นที่เชิงพาณิชย์ออนไลน์ ทำเลดีทั่วประเทศไทย",
     metadataBase: new URL(BASE_URL),
     openGraph: {
       siteName: "เซ้งร้าน.com",
