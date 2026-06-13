@@ -45,6 +45,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [lineLoading, setLineLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   // Handle deep link callback (Android Expo Go)
@@ -98,6 +99,30 @@ export default function LoginScreen() {
     setGoogleLoading(false);
   }
 
+  async function handleLineLogin() {
+    setLineLoading(true);
+    try {
+      const state = `mobile_${Date.now()}`;
+      const redirectUri = "https://www.xn--72ch7bybxexd0cc.com/auth/line/callback";
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: "2010387343",
+        redirect_uri: redirectUri,
+        state,
+        scope: "profile openid",
+      });
+      const lineUrl = `https://access.line.me/oauth2/v2.1/authorize?${params}`;
+      const result = await WebBrowser.openAuthSessionAsync(lineUrl, "sengran://");
+      if (result.type === "success" && result.url) {
+        const ok = await applyTokensFromUrl(result.url);
+        if (ok) router.replace("/(tabs)");
+      }
+    } catch {
+      Alert.alert("เกิดข้อผิดพลาด", "ลอง LINE login ใหม่อีกครั้ง");
+    }
+    setLineLoading(false);
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -129,6 +154,22 @@ export default function LoginScreen() {
             <>
               <Text style={styles.googleIcon}>G</Text>
               <Text style={styles.googleBtnText}>เข้าสู่ระบบด้วย Google</Text>
+            </>
+          )}
+        </Pressable>
+
+        {/* LINE login */}
+        <Pressable
+          style={[styles.lineBtn, lineLoading && styles.btnDisabled]}
+          onPress={handleLineLogin}
+          disabled={lineLoading}
+        >
+          {lineLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Text style={styles.lineIcon}>L</Text>
+              <Text style={styles.lineBtnText}>เข้าสู่ระบบด้วย LINE</Text>
             </>
           )}
         </Pressable>
@@ -223,6 +264,23 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   googleBtnText: { fontSize: 15, fontWeight: "600", color: "#374151" },
+  lineBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#06C755",
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 10,
+    shadowColor: "#06C755",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  lineIcon: { fontSize: 16, fontWeight: "800", color: "#fff" },
+  lineBtnText: { fontSize: 15, fontWeight: "600", color: "#fff" },
 
   dividerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 20 },
   dividerLine: { flex: 1, height: 1, backgroundColor: "#e5e7eb" },

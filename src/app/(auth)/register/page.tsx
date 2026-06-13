@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthForm } from "@/components/shared/auth-form";
 import { GoogleLoginButton } from "@/components/shared/google-login-button";
+import { LineLoginButton } from "@/components/shared/line-login-button";
 import { registerAction } from "@/lib/actions/auth";
 
 export const metadata = { title: "สมัครสมาชิก — เซ้งร้าน.com", robots: { index: false, follow: false } };
@@ -25,6 +26,7 @@ export default function RegisterPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <GoogleLoginButton />
+            <LineLoginButton />
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
