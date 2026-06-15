@@ -1,143 +1,92 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, X, CheckCircle2, CreditCard, QrCode, Clock } from "lucide-react";
+import { FileText, X, CheckCircle2, Upload } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { QUOTA_PACKAGES, type QuotaPackageKey } from "@/lib/payment-packages";
 
 interface QuotaUpgradeModalProps {
   currentQuota: number;
   onClose: () => void;
 }
 
-const PACKAGES = [
-  { key: "quota_20", label: "20 ประกาศ", baht: 300, listings: 20 },
-  { key: "quota_50", label: "50 ประกาศ", baht: 500, listings: 50 },
-  { key: "quota_1200", label: "120 ประกาศ", baht: 1000, listings: 120 },
-];
+const PACKAGES_LIST = Object.entries(QUOTA_PACKAGES).map(([key, pkg]) => ({ key: key as QuotaPackageKey, ...pkg }));
 
-const OMISE_PUBLIC_KEY = process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY || "pkey_test_67orguspr2347ve5biw";
-const QR_EXPIRE_MIN = 15;
-
-declare global {
-  interface Window { Omise: { setPublicKey: (k: string) => void; createToken: (...a: unknown[]) => void }; }
-}
-
-interface CardInfo { number: string; name: string; expiry: string; cvv: string; }
-interface QrData { chargeId: string; qrImageUrl: string | null; }
+type Step = "select" | "payment" | "submitted";
 
 export function QuotaUpgradeModal({ currentQuota, onClose }: QuotaUpgradeModalProps) {
   const router = useRouter();
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [payMethod, setPayMethod] = useState<"promptpay" | "card">("promptpay");
-  const [cardInfo, setCardInfo] = useState<CardInfo>({ number: "", name: "", expiry: "", cvv: "" });
-  const [omiseReady, setOmiseReady] = useState(false);
+  const [selectedKey, setSelectedKey] = useState<QuotaPackageKey | null>(null);
+  const [step, setStep] = useState<Step>("select");
+  const [reference, setReference] = useState<string | null>(null);
+  const [amountBaht, setAmountBaht] = useState<number | null>(null);
+  const [slipFile, setSlipFile] = useState<File | null>(null);
+  const [slipPreview, setSlipPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [qrData, setQrData] = useState<QrData | null>(null);
-  const [qrMinLeft, setQrMinLeft] = useState(QR_EXPIRE_MIN);
-  const scriptLoaded = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (scriptLoaded.current) return;
-    scriptLoaded.current = true;
-    const s = document.createElement("script");
-    s.src = "https://cdn.omise.co/omise.js";
-    s.onload = () => { window.Omise?.setPublicKey(OMISE_PUBLIC_KEY); setOmiseReady(true); };
-    document.head.appendChild(s);
-  }, []);
+  const selectedPkg = selectedKey ? QUOTA_PACKAGES[selectedKey] : null;
 
-  // Poll when QR shown
-  useEffect(() => {
-    if (!qrData || success) return;
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/omise/check-charge/${qrData.chargeId}`);
-        const data = await res.json();
-        if (data.status === "successful") {
-          setSuccess(true);
-          setTimeout(() => { onClose(); router.refresh(); }, 2000);
-        } else if (data.status === "failed") {
-          setError("QR หมดอายุหรือการชำระเงินล้มเหลว"); setQrData(null);
-        }
-      } catch { /* ignore */ }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [qrData, success, onClose, router]);
-
-  // QR countdown
-  useEffect(() => {
-    if (!qrData || success) return;
-    const interval = setInterval(() => {
-      setQrMinLeft((p) => { if (p <= 1) { setError("QR หมดอายุแล้ว"); setQrData(null); return 0; } return p - 1; });
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [qrData, success]);
-
-  const selectedPkg = PACKAGES.find((p) => p.key === selectedKey);
-  const cardFilled = cardInfo.number.replace(/\s/g, "").length === 16 && cardInfo.name.trim() && cardInfo.expiry.length === 5 && cardInfo.cvv.length >= 3;
-  const canConfirm = selectedKey && (payMethod === "promptpay" || cardFilled);
-
-  function formatCardNumber(v: string) { return v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim(); }
-  function formatExpiry(v: string) { const d = v.replace(/\D/g, "").slice(0, 4); return d.length >= 3 ? d.slice(0, 2) + "/" + d.slice(2) : d; }
-
-  function tokenizeCard(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const [em, ey] = cardInfo.expiry.split("/");
-      window.Omise.createToken("card", {
-        number: cardInfo.number.replace(/\s/g, ""),
-        expiration_month: Number(em),
-        expiration_year: Number("20" + ey),
-        security_code: cardInfo.cvv,
-        name: cardInfo.name,
-      }, (status: number, res: { id?: string; message?: string }) => {
-        if (status === 200 && res.id) resolve(res.id);
-        else reject(new Error(res.message ?? "Card error"));
-      });
-    });
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setSlipFile(file);
+    if (file) {
+      setSlipPreview(URL.createObjectURL(file));
+    } else {
+      setSlipPreview(null);
+    }
   }
 
-  async function handleConfirm() {
-    if (!selectedPkg) return;
-    if (payMethod === "card" && !omiseReady) { setError("ระบบบัตรยังไม่พร้อม"); return; }
+  async function handleConfirmPackage() {
+    if (!selectedKey || !selectedPkg) return;
     setError(null);
     setLoading(true);
     try {
-      let tokenId: string | undefined;
-      if (payMethod === "card") tokenId = await tokenizeCard();
-
       const res = await fetch("/api/profile/quota-upgrade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageKey: selectedKey, paymentMethod: payMethod, tokenId }),
+        body: JSON.stringify({ packageKey: selectedKey }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "เกิดข้อผิดพลาด"); setLoading(false); return; }
-
-      if (payMethod === "promptpay") {
-        setQrData({ chargeId: data.chargeId, qrImageUrl: data.qrImageUrl });
-        setQrMinLeft(QR_EXPIRE_MIN);
-      } else {
-        setSuccess(true);
-        setTimeout(() => { onClose(); router.refresh(); }, 2000);
-      }
+      setReference(data.reference);
+      setAmountBaht(data.amount_baht);
+      setStep("payment");
+    } catch {
+      setError("เกิดข้อผิดพลาด");
+    } finally {
       setLoading(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด");
+    }
+  }
+
+  async function handleSubmitSlip() {
+    if (!slipFile || !reference) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append("slip", slipFile);
+      const res = await fetch(`/api/orders/${reference}/slip`, { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "เกิดข้อผิดพลาด"); setLoading(false); return; }
+      setStep("submitted");
+    } catch {
+      setError("เกิดข้อผิดพลาด");
+    } finally {
       setLoading(false);
     }
   }
 
   return (
     <>
-      <div className="fixed inset-0 z-[100] bg-black/50" onClick={(qrData || success) ? undefined : onClose} />
+      <div className="fixed inset-0 z-[100] bg-black/50" onClick={step === "select" ? onClose : undefined} />
       <div className="fixed inset-0 z-[101] flex items-center justify-center px-4 pointer-events-none">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm pointer-events-auto max-h-[90vh] overflow-y-auto">
 
+          {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b">
             <div>
               <h2 className="text-base font-bold text-neutral-900">เพิ่มจำนวนประกาศ</h2>
@@ -146,53 +95,14 @@ export function QuotaUpgradeModal({ currentQuota, onClose }: QuotaUpgradeModalPr
             <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 p-1"><X className="h-5 w-5" /></button>
           </div>
 
-          {/* QR view */}
-          {qrData && !success && (
-            <div className="flex flex-col items-center p-6 gap-4 text-center">
-              <div>
-                <p className="font-semibold text-neutral-900">สแกน QR เพื่อชำระเงิน</p>
-                <p className="text-xs text-neutral-500 mt-0.5">ใช้แอปธนาคารสแกน PromptPay</p>
-              </div>
-              <div className="rounded-2xl border-2 border-neutral-200 bg-white p-4 shadow-sm">
-                {qrData.qrImageUrl ? (
-                  <Image src={qrData.qrImageUrl} alt="PromptPay QR" width={200} height={200} unoptimized className="rounded-lg" />
-                ) : (
-                  <div className="h-[200px] w-[200px] flex items-center justify-center"><QrCode className="h-16 w-16 text-neutral-300" /></div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-neutral-600">
-                <Clock className="h-4 w-4 text-orange-400" />
-                <span>QR หมดอายุใน <span className="font-semibold text-orange-600">{qrMinLeft} นาที</span></span>
-              </div>
-              <p className="text-sm font-semibold text-neutral-800">
-                ยอดชำระ {selectedPkg?.baht.toLocaleString("th-TH")} บาท
-              </p>
-              <div className="flex items-center gap-2 text-xs text-neutral-400">
-                <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-                กำลังรอการชำระเงิน...
-              </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
-              <button onClick={() => setQrData(null)} className="text-sm text-neutral-400 underline underline-offset-2">ยกเลิก / เปลี่ยนวิธีชำระ</button>
-            </div>
-          )}
-
-          {/* Success */}
-          {success && (
-            <div className="flex flex-col items-center py-10 px-5 text-center gap-3">
-              <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 className="h-8 w-8 text-green-500" /></div>
-              <p className="font-bold text-neutral-900">เพิ่มสิทธิ์สำเร็จ!</p>
-              <p className="text-sm text-neutral-500">จำนวนประกาศของคุณถูกอัปเดตแล้ว</p>
-            </div>
-          )}
-
-          {/* Form */}
-          {!qrData && !success && (
+          {/* Step 1: Select package */}
+          {step === "select" && (
             <div className="p-5 space-y-4">
               <div className="space-y-2">
-                {PACKAGES.map((pkg) => {
-                  const isSelected = selectedKey === pkg.key;
+                {PACKAGES_LIST.map(({ key, label, baht }) => {
+                  const isSelected = selectedKey === key;
                   return (
-                    <button key={pkg.key} onClick={() => setSelectedKey(pkg.key)}
+                    <button key={key} onClick={() => setSelectedKey(key)}
                       className={`w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-left transition-all ${
                         isSelected ? "border-orange-500 bg-orange-50" : "border-neutral-200 hover:border-orange-300"
                       }`}
@@ -202,85 +112,129 @@ export function QuotaUpgradeModal({ currentQuota, onClose }: QuotaUpgradeModalPr
                           <FileText className={`h-4 w-4 ${isSelected ? "text-white" : "text-neutral-500"}`} />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-neutral-900">{pkg.label}</p>
+                          <p className="text-sm font-semibold text-neutral-900">{label}</p>
                           <p className="text-xs text-neutral-500">ราคาต่อปี</p>
                         </div>
                       </div>
-                      <p className="text-sm font-bold text-orange-600">{pkg.baht.toLocaleString("th-TH")} บาท</p>
+                      <p className="text-sm font-bold text-orange-600">{baht.toLocaleString("th-TH")} บาท</p>
                     </button>
                   );
                 })}
               </div>
 
-              {selectedPkg && (
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-neutral-700">วิธีชำระเงิน</p>
-                  <div className="flex gap-2">
-                    <button onClick={() => setPayMethod("promptpay")}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-medium transition-all ${
-                        payMethod === "promptpay" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-neutral-200 text-neutral-600 hover:border-orange-300"
-                      }`}
-                    >
-                      <QrCode className="h-4 w-4" />PromptPay QR
-                    </button>
-                    <button onClick={() => setPayMethod("card")}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-medium transition-all ${
-                        payMethod === "card" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-neutral-200 text-neutral-600 hover:border-orange-300"
-                      }`}
-                    >
-                      <CreditCard className="h-4 w-4" />บัตรเครดิต
-                    </button>
-                  </div>
-
-                  {payMethod === "card" && (
-                    <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                      <p className="text-xs text-neutral-500 font-medium">ชำระ {selectedPkg.baht.toLocaleString("th-TH")} บาท</p>
-                      <div>
-                        <Label className="text-xs text-neutral-600">หมายเลขบัตร</Label>
-                        <Input placeholder="0000 0000 0000 0000" value={cardInfo.number}
-                          onChange={(e) => setCardInfo((p) => ({ ...p, number: formatCardNumber(e.target.value) }))}
-                          maxLength={19} inputMode="numeric" className="mt-1 font-mono" />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-neutral-600">ชื่อบนบัตร</Label>
-                        <Input placeholder="SOMCHAI JAIDEE" value={cardInfo.name}
-                          onChange={(e) => setCardInfo((p) => ({ ...p, name: e.target.value.toUpperCase() }))} className="mt-1" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-xs text-neutral-600">วันหมดอายุ</Label>
-                          <Input placeholder="MM/YY" value={cardInfo.expiry}
-                            onChange={(e) => setCardInfo((p) => ({ ...p, expiry: formatExpiry(e.target.value) }))}
-                            maxLength={5} inputMode="numeric" className="mt-1" />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-neutral-600">CVV</Label>
-                          <Input placeholder="123" value={cardInfo.cvv}
-                            onChange={(e) => setCardInfo((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
-                            maxLength={4} inputMode="numeric" type="password" className="mt-1" />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {error && <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
 
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={onClose}>ยกเลิก</Button>
-                <a
-                  href="https://line.me/R/ti/p/~salebiz"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#06C755] py-2.5 text-white font-semibold hover:bg-[#05a847] transition-colors text-sm"
+                <Button
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                  disabled={!selectedKey || loading}
+                  onClick={handleConfirmPackage}
                 >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M19.952 12.477c0-4.185-4.194-7.588-9.352-7.588S1.248 8.292 1.248 12.477c0 3.752 3.327 6.893 7.822 7.49.305.066.72.2.825.46.094.236.062.606.03.845l-.133.8c-.041.236-.188.923.809.503 1-.42 5.374-3.165 7.33-5.418 1.351-1.482 2.021-2.987 2.021-4.68z"/></svg>
-                  ติดต่อสั่งซื้อผ่าน LINE
-                  {selectedPkg && <span className="text-white/80">({selectedPkg.baht.toLocaleString("th-TH")} บาท)</span>}
-                </a>
+                  {loading ? "กำลังดำเนินการ..." : `ยืนยัน ${selectedPkg ? selectedPkg.baht.toLocaleString("th-TH") + " บาท" : ""}`}
+                </Button>
               </div>
-              <p className="text-center text-xs text-neutral-400">ทีมงานจะติดต่อกลับเพื่อยืนยันและรับชำระเงิน</p>
+            </div>
+          )}
+
+          {/* Step 2: Payment */}
+          {step === "payment" && reference && amountBaht !== null && (
+            <div className="p-5 space-y-4">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <p className="text-sm font-semibold text-neutral-800">สแกน QR หรือโอนเงินตามข้อมูลด้านล่าง</p>
+                <div className="rounded-2xl border-2 border-neutral-200 bg-white p-3 shadow-sm">
+                  <Image
+                    src="/promptpay-qr.jpg"
+                    alt="PromptPay QR"
+                    width={200}
+                    height={200}
+                    unoptimized
+                    className="rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-600">ธนาคาร</span>
+                  <span className="font-semibold text-neutral-900">กสิกรไทย</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-600">เลขบัญชี</span>
+                  <span className="font-semibold text-neutral-900 font-mono">497-2-52835-3</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-600">ชื่อบัญชี</span>
+                  <span className="font-semibold text-neutral-900">นายต้นสกุล จอมดวง</span>
+                </div>
+                <div className="border-t border-neutral-200 pt-2 flex justify-between items-center">
+                  <span className="text-neutral-600">ยอดชำระ</span>
+                  <span className="text-lg font-bold text-orange-600">{amountBaht.toLocaleString("th-TH")} บาท</span>
+                </div>
+                <div className="flex justify-between items-center bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-1">
+                  <span className="text-amber-700 text-xs">อ้างอิง (ระบุในหมายเหตุ)</span>
+                  <span className="font-bold text-amber-800 font-mono text-sm">{reference}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-neutral-700">อัปโหลดสลิปการโอน</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                {slipPreview ? (
+                  <div className="relative rounded-xl overflow-hidden border-2 border-orange-300">
+                    <Image src={slipPreview} alt="slip preview" width={400} height={300} unoptimized className="w-full object-cover max-h-48" />
+                    <button
+                      onClick={() => { setSlipFile(null); setSlipPreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                      className="absolute top-2 right-2 rounded-full bg-white/80 p-1 text-neutral-600 hover:text-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-neutral-300 py-6 text-neutral-500 hover:border-orange-400 hover:text-orange-500 transition-colors"
+                  >
+                    <Upload className="h-8 w-8" />
+                    <span className="text-sm font-medium">แตะเพื่อเลือกรูปสลิป</span>
+                    <span className="text-xs text-neutral-400">รองรับ JPG, PNG</span>
+                  </button>
+                )}
+              </div>
+
+              {error && <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
+
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" className="flex-1" onClick={onClose}>ยกเลิก</Button>
+                <Button
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                  disabled={!slipFile || loading}
+                  onClick={handleSubmitSlip}
+                >
+                  {loading ? "กำลังส่ง..." : "ส่งสลิป"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Submitted */}
+          {step === "submitted" && (
+            <div className="flex flex-col items-center py-10 px-5 text-center gap-3">
+              <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle2 className="h-8 w-8 text-green-500" />
+              </div>
+              <p className="font-bold text-neutral-900">รอการยืนยัน</p>
+              <p className="text-sm text-neutral-500 leading-relaxed">
+                ทีมงานจะตรวจสอบสลิปและเพิ่มจำนวนประกาศให้<br />
+                ภายใน <span className="font-semibold">1 วันทำการ</span>
+              </p>
+              <Button className="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-white" onClick={() => { onClose(); router.refresh(); }}>ปิด</Button>
             </div>
           )}
         </div>

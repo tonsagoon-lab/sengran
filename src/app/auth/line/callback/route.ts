@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/types/database";
 
 const CHANNEL_ID = process.env.LINE_CHANNEL_ID!;
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET!;
@@ -30,12 +31,27 @@ async function getLineProfile(accessToken: string) {
   return res.json() as Promise<{ userId: string; displayName: string; pictureUrl?: string }>;
 }
 
+/** Create a Supabase client that collects cookies into an array we control */
+function makeCollectingClient(cookieSink: Array<{ name: string; value: string; options: Record<string, unknown> }>) {
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => [],
+        setAll: (cs) => { cookieSink.push(...cs); },
+      },
+    }
+  );
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const state = searchParams.get("state") ?? "";
   const isMobile = state.startsWith("mobile_");
   const redirectUri = `${SITE_URL}/auth/line/callback`;
+  console.log("[LINE callback] request.url:", request.url, "| redirectUri:", redirectUri, "| has code:", !!code);
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=line_no_code`);
@@ -50,13 +66,14 @@ export async function GET(request: Request) {
     const password = `LINE_${profile.userId}_${CHANNEL_SECRET.slice(0, 12)}`;
 
     const admin = createAdminClient();
-    const supabase = await createClient();
+    const cookieSink: Array<{ name: string; value: string; options: Record<string, unknown> }> = [];
+    const supabase = makeCollectingClient(cookieSink);
 
     // Try sign in (existing user)
-    let { data: session, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    let { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (signInError) {
-      // First time — create user then sign in
+      // First time — create user via admin then sign in
       const { data: created, error: createError } = await admin.auth.admin.createUser({
         email,
         password,
@@ -70,10 +87,10 @@ export async function GET(request: Request) {
       });
       if (createError) throw createError;
 
-      const { data: signIn } = await supabase.auth.signInWithPassword({ email, password });
-      session = signIn;
+      const { data: signIn, error: signIn2Error } = await supabase.auth.signInWithPassword({ email, password });
+      if (signIn2Error) throw signIn2Error;
+      sessionData = signIn;
 
-      // Set display name + avatar in profiles table
       if (created.user) {
         await admin.from("profiles").upsert({
           id: created.user.id,
@@ -84,15 +101,20 @@ export async function GET(request: Request) {
       }
     }
 
-    if (!session?.session) throw new Error("No session after LINE login");
+    if (!sessionData?.session) throw new Error("No session after LINE login");
 
     if (isMobile) {
-      const at = encodeURIComponent(session.session.access_token);
-      const rt = encodeURIComponent(session.session.refresh_token);
+      const at = encodeURIComponent(sessionData.session.access_token);
+      const rt = encodeURIComponent(sessionData.session.refresh_token);
       return NextResponse.redirect(`sengran://auth?access_token=${at}&refresh_token=${rt}`);
     }
 
-    return NextResponse.redirect(`${origin}/`);
+    // Web: build redirect and attach session cookies to it
+    const response = NextResponse.redirect(`${origin}/`);
+    for (const { name, value, options } of cookieSink) {
+      response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2]);
+    }
+    return response;
   } catch (err) {
     console.error("LINE callback error:", err);
     return NextResponse.redirect(`${origin}/login?error=line_failed`);

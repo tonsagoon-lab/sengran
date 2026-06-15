@@ -9,7 +9,8 @@ export function LineLoginButton() {
   function handleLineLogin() {
     setLoading(true);
     const state = `web_${crypto.randomUUID()}`;
-    const redirectUri = `${window.location.origin}/auth/line/callback`;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.xn--72ch7bybxexd0cc.com";
+    const redirectUri = `${siteUrl}/auth/line/callback`;
     const params = new URLSearchParams({
       response_type: "code",
       client_id: process.env.NEXT_PUBLIC_LINE_CHANNEL_ID!,

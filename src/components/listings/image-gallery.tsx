@@ -34,7 +34,8 @@ export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
     );
   }
 
-  const url = (path: string) => resolveImageUrl(path);
+  const thumb = (path: string) => resolveImageUrl(path, 128, 65, "cover");
+  const main = (path: string) => resolveImageUrl(path, 800, 75, "contain");
 
   const prev = () => setActive((a) => (a - 1 + validImages.length) % validImages.length);
   const next = () => setActive((a) => (a + 1) % validImages.length);
@@ -44,7 +45,7 @@ export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
       {/* Main image */}
       <div className="relative w-full aspect-[16/9] max-h-96 rounded-xl overflow-hidden bg-neutral-100 group">
         <Image
-          src={url(validImages[safeActive].storage_path)}
+          src={main(validImages[safeActive].storage_path)}
           alt={validImages[safeActive].alt_text ?? `รูปที่ ${safeActive + 1}`}
           fill
           className="object-contain"
@@ -128,7 +129,7 @@ export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={url(images[active].storage_path)}
+              src={main(images[active].storage_path)}
               alt={images[active].alt_text ?? `รูปที่ ${active + 1}`}
               className="w-full h-full object-contain max-h-[90vh]"
             />
@@ -153,7 +154,7 @@ export function ImageGallery({ images, supabaseUrl }: ImageGalleryProps) {
               }`}
             >
               <Image
-                src={url(img.storage_path)}
+                src={thumb(img.storage_path)}
                 alt={img.alt_text ?? `รูปที่ ${idx + 1}`}
                 fill
                 className="object-cover"

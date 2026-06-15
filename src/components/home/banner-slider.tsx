@@ -46,7 +46,8 @@ export function BannerSliderClient({ banners }: BannerSliderClientProps) {
                   alt={banner.title ?? "ประกาศ"}
                   fill
                   className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 1280px"
+                  sizes="(max-width: 768px) 100vw, 672px"
+                  quality={70}
                   priority
                 />
               </div>

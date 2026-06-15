@@ -80,7 +80,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
   const cover = listing.listing_images
     .slice()
     .sort((a, b) => a.display_order - b.display_order)[0];
-  const coverUrl = cover ? resolveImageUrl(cover.storage_path) : null;
+  const coverUrl = cover ? resolveImageUrl(cover.storage_path, 400, 65, "cover", 225) : null;
 
   const typeBadge = TYPE_BADGE[listing.listing_type];
   const ageSuffix = getAgeSuffix(listing.published_at ?? null);
@@ -92,14 +92,14 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
       className="group flex flex-col rounded-xl border bg-white overflow-hidden hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
     >
       {/* Image */}
-      <div className="relative aspect-[4/3] bg-neutral-100 shrink-0">
+      <div className="relative aspect-video bg-neutral-100 shrink-0">
         {coverUrl && !imgError ? (
           <Image
             src={coverUrl}
             alt={listing.title}
             fill
             className="object-cover"
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
             priority={priority}
             onError={() => setImgError(true)}
           />

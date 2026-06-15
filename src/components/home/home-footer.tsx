@@ -41,6 +41,7 @@ export function HomeFooter() {
                 allowFullScreen
                 allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                 title="เซ้งร้าน.com Facebook"
+                loading="lazy"
               />
             </div>
           </div>

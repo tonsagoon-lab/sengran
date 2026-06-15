@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Sarabun } from "next/font/google";
 import "./globals.css";
 import { Suspense } from "react";
+import { unstable_cache } from "next/cache";
 import { Navbar } from "@/components/shared/navbar";
 import { HomeFooter } from "@/components/home/home-footer";
 import { SystemAnnouncementBar } from "@/components/system-announcement-bar";
@@ -15,15 +16,24 @@ const sarabun = Sarabun({
   variable: "--font-sarabun",
   subsets: ["thai", "latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.xn--72ch7bybxexd0cc.com";
 
+const getFaviconUrl = unstable_cache(
+  async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = createAdminClient() as any;
+    const { data } = await admin.from("site_settings").select("value").eq("key", "favicon_url").single();
+    return (data?.value ?? null) as string | null;
+  },
+  ["favicon_url"],
+  { revalidate: 3600 }
+);
+
 export async function generateMetadata(): Promise<Metadata> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const admin = createAdminClient() as any;
-  const { data } = await admin.from("site_settings").select("value").eq("key", "favicon_url").single();
-  const faviconUrl: string | undefined = data?.value ?? undefined;
+  const faviconUrl = await getFaviconUrl();
 
   return {
     title: "เซ้งร้าน.com — ขายกิจการ เซ้ง ให้เช่า ทำเลดีทั่วไทย",
@@ -34,13 +44,13 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: "th_TH",
       type: "website",
     },
-    ...(faviconUrl && {
+    ...(faviconUrl ? {
       icons: {
         icon: faviconUrl,
         shortcut: faviconUrl,
         apple: faviconUrl,
       },
-    }),
+    } : {}),
   };
 }
 
