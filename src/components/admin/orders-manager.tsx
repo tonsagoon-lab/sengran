@@ -127,61 +127,59 @@ export function OrdersManager({ orders: initialOrders, siteUrl }: { orders: Orde
               const typeLabel = ORDER_TYPE_MAP[order.order_type] ?? order.order_type;
               return (
                 <li key={order.id} className="px-5 py-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-sm font-semibold text-neutral-800">{order.reference}</span>
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusInfo.cls}`}>
-                          {statusInfo.icon}{statusInfo.label}
-                        </span>
-                      </div>
-                      <p className="text-sm text-neutral-700">
-                        {typeLabel} · <span className="font-semibold text-orange-600">฿{order.amount_baht.toLocaleString("th-TH")}</span>
-                        <span className="ml-1 text-xs text-neutral-400">({order.package_key})</span>
-                      </p>
-                      {order.user && (
-                        <p className="text-xs text-neutral-500">
-                          👤 {order.user.display_name ?? order.user_id.slice(0, 8) + "…"}
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-sm font-semibold text-neutral-800">{order.reference}</span>
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusInfo.cls}`}>
+                            {statusInfo.icon}{statusInfo.label}
+                          </span>
+                        </div>
+                        <p className="text-sm text-neutral-700">
+                          {typeLabel} · <span className="font-semibold text-orange-600">฿{order.amount_baht.toLocaleString("th-TH")}</span>
+                          <span className="ml-1 text-xs text-neutral-400">({order.package_key})</span>
                         </p>
-                      )}
-                      {order.listing && (
-                        <p className="text-xs text-neutral-500 truncate">
-                          📋{" "}
-                          <a href={`/property/${order.listing.slug}`} target="_blank" rel="noopener noreferrer"
-                            className="underline hover:text-orange-600">{order.listing.title}</a>
-                        </p>
-                      )}
-                      <p className="text-[11px] text-neutral-400">
-                        {new Date(order.created_at).toLocaleString("th-TH", { day: "numeric", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                        {order.processed_at && (
-                          <span className="ml-2">· {order.status === "approved" ? "อนุมัติ" : "ปฏิเสธ"} {new Date(order.processed_at).toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                        {order.user && (
+                          <p className="text-xs text-neutral-500">👤 {order.user.display_name ?? order.user_id.slice(0, 8) + "…"}</p>
                         )}
-                      </p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex flex-col gap-2 shrink-0">
+                        {order.listing && (
+                          <p className="text-xs text-neutral-500 truncate">
+                            📋{" "}
+                            <a href={`/property/${order.listing.slug}`} target="_blank" rel="noopener noreferrer"
+                              className="underline hover:text-orange-600">{order.listing.title}</a>
+                          </p>
+                        )}
+                        <p className="text-[11px] text-neutral-400">
+                          {new Date(order.created_at).toLocaleString("th-TH", { day: "numeric", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                          {order.processed_at && (
+                            <span className="ml-2">· {order.status === "approved" ? "อนุมัติ" : "ปฏิเสธ"} {new Date(order.processed_at).toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                          )}
+                        </p>
+                      </div>
                       {order.slip_storage_path && (
-                        <Button size="sm" variant="outline" className="text-xs h-8 gap-1.5"
+                        <Button size="sm" variant="outline" className="text-xs h-8 gap-1.5 shrink-0"
                           onClick={() => setSlipModal(slipUrl(order.slip_storage_path!))}>
                           <ImageIcon className="h-3.5 w-3.5" />ดูสลิป
                         </Button>
                       )}
-                      {order.status === "slip_submitted" && (
-                        <>
-                          <Button size="sm"
-                            className="text-xs h-8 gap-1.5 bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => openAction(order, "approve")}>
-                            <CheckCircle2 className="h-3.5 w-3.5" />อนุมัติ
-                          </Button>
-                          <Button size="sm" variant="outline"
-                            className="text-xs h-8 gap-1.5 border-red-300 text-red-600 hover:bg-red-50"
-                            onClick={() => openAction(order, "reject")}>
-                            <XCircle className="h-3.5 w-3.5" />ปฏิเสธ
-                          </Button>
-                        </>
-                      )}
                     </div>
+
+                    {/* Approve / Reject buttons — full width row */}
+                    {order.status === "slip_submitted" && (
+                      <div className="flex gap-2">
+                        <Button size="sm"
+                          className="flex-1 gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => openAction(order, "approve")}>
+                          <CheckCircle2 className="h-3.5 w-3.5" />อนุมัติ
+                        </Button>
+                        <Button size="sm" variant="outline"
+                          className="flex-1 gap-1.5 border-red-300 text-red-600 hover:bg-red-50"
+                          onClick={() => openAction(order, "reject")}>
+                          <XCircle className="h-3.5 w-3.5" />ไม่อนุมัติ
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </li>
               );
