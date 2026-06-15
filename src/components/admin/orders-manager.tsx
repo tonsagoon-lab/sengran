@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { CheckCircle2, XCircle, Clock, ImageIcon, ExternalLink, Send, CalendarIcon } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, ImageIcon, ExternalLink, Send, CalendarIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
@@ -39,6 +39,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const fmt = new Intl.NumberFormat("th-TH");
 
 type ActionModal = { order: Order; action: "approve" | "reject" };
+type DeleteModal = { order: Order };
 
 export function OrdersManager({ orders: initialOrders }: { orders: Order[]; siteUrl: string }) {
   const router = useRouter();
@@ -51,6 +52,10 @@ export function OrdersManager({ orders: initialOrders }: { orders: Order[]; site
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<DeleteModal | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const dateFiltered = useMemo(() => {
     let result = orders;
@@ -108,6 +113,28 @@ export function OrdersManager({ orders: initialOrders }: { orders: Order[]; site
       setActionError("เกิดข้อผิดพลาด");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function submitDelete() {
+    if (!deleteModal) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${deleteModal.order.reference}/delete`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setDeleteError(data.error ?? "เกิดข้อผิดพลาด"); return; }
+      setOrders((prev) => prev.filter((o) => o.reference !== deleteModal.order.reference));
+      setDeleteModal(null);
+      setDeletePassword("");
+    } catch {
+      setDeleteError("เกิดข้อผิดพลาด");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -220,12 +247,19 @@ export function OrdersManager({ orders: initialOrders }: { orders: Order[]; site
                           </p>
                         )}
                       </div>
-                      {order.slip_storage_path && (
-                        <Button size="sm" variant="outline" className="text-xs h-8 gap-1.5 shrink-0"
-                          onClick={() => setSlipModal(slipUrl(order.slip_storage_path!))}>
-                          <ImageIcon className="h-3.5 w-3.5" />ดูสลิป
+                      <div className="flex gap-1.5 shrink-0">
+                        {order.slip_storage_path && (
+                          <Button size="sm" variant="outline" className="text-xs h-8 gap-1.5"
+                            onClick={() => setSlipModal(slipUrl(order.slip_storage_path!))}>
+                            <ImageIcon className="h-3.5 w-3.5" />ดูสลิป
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline"
+                          className="text-xs h-8 w-8 p-0 border-red-200 text-red-400 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => { setDeletePassword(""); setDeleteError(null); setDeleteModal({ order }); }}>
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                      )}
+                      </div>
                     </div>
                     {order.status === "slip_submitted" && (
                       <div className="flex gap-2">
@@ -262,6 +296,44 @@ export function OrdersManager({ orders: initialOrders }: { orders: Order[]; site
                   </Button>
                 </a>
                 <Button variant="outline" className="bg-white text-xs" onClick={() => setSlipModal(null)}>ปิด</Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Delete modal */}
+      {deleteModal && (
+        <>
+          <div className="fixed inset-0 z-[200] bg-black/50" onClick={() => !deleting && setDeleteModal(null)} />
+          <div className="fixed inset-0 z-[201] flex items-center justify-center p-4 pointer-events-none">
+            <div className="pointer-events-auto bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-bold text-red-600">🗑 ลบคำสั่งซื้อ</h3>
+                <p className="text-sm text-neutral-500 mt-0.5 font-mono">{deleteModal.order.reference}</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-neutral-700">ใส่รหัสผ่านเพื่อยืนยัน</label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitDelete()}
+                  placeholder="รหัสผ่าน"
+                  autoFocus
+                  className="w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+                />
+              </div>
+              {deleteError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{deleteError}</div>
+              )}
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setDeleteModal(null)} disabled={deleting}>ยกเลิก</Button>
+                <Button className="flex-1 gap-1.5 bg-red-500 hover:bg-red-600 text-white"
+                  onClick={submitDelete} disabled={deleting || !deletePassword}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {deleting ? "กำลังลบ..." : "ยืนยันลบ"}
+                </Button>
               </div>
             </div>
           </div>
