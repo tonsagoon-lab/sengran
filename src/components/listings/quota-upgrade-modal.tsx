@@ -127,11 +127,11 @@ export function QuotaUpgradeModal({ currentQuota, onClose }: QuotaUpgradeModalPr
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={onClose}>ยกเลิก</Button>
                 <Button
-                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-40"
                   disabled={!selectedKey || loading}
                   onClick={handleConfirmPackage}
                 >
-                  {loading ? "กำลังดำเนินการ..." : `ยืนยัน ${selectedPkg ? selectedPkg.baht.toLocaleString("th-TH") + " บาท" : ""}`}
+                  {loading ? "กำลังดำเนินการ..." : selectedKey ? `กดสั่งซื้อเลย ${selectedPkg!.baht.toLocaleString("th-TH")} บาท` : "เลือกแพ็กเกจ"}
                 </Button>
               </div>
             </div>
