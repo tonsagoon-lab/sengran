@@ -142,6 +142,11 @@ export function QuotaUpgradeModal({ currentQuota, onClose }: QuotaUpgradeModalPr
             <div className="p-5 space-y-4">
               <div className="flex flex-col items-center gap-3 text-center">
                 <p className="text-sm font-semibold text-neutral-800">สแกน QR หรือโอนเงินตามข้อมูลด้านล่าง</p>
+                <a href="https://line.me/R/ti/p/~salebiz" target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#06C755] hover:bg-[#05a847] px-4 py-1.5 text-sm font-semibold text-white transition-colors">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-white"><path d="M19.952 12.477c0-4.185-4.194-7.588-9.352-7.588S1.248 8.292 1.248 12.477c0 3.752 3.327 6.893 7.822 7.49.305.066.72.2.825.46.094.236.062.606.03.845l-.133.8c-.041.236-.188.923.809.503 1-.42 5.374-3.165 7.33-5.418 1.351-1.482 2.021-2.987 2.021-4.68z"/></svg>
+                  หรือสั่งซื้อผ่าน Line = salebiz
+                </a>
                 <div className="rounded-2xl border-2 border-neutral-200 bg-white p-3 shadow-sm">
                   <Image
                     src="/promptpay-qr.jpg"
