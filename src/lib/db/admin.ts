@@ -152,14 +152,17 @@ export async function getTopSearches(limit = 10) {
 
 export async function getPageViewsPerDay(days = 30) {
   const supabase = createAdminClient();
+  const until = new Date();
+  until.setHours(23, 59, 59, 999);
   const since = new Date();
-  since.setDate(since.getDate() - days);
+  since.setDate(since.getDate() - (days - 1));
+  since.setHours(0, 0, 0, 0);
 
-  const { data } = await supabase
-    .from("page_views")
-    .select("created_at")
-    .gte("created_at", since.toISOString())
-    .order("created_at", { ascending: true });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any).rpc("get_pageviews_per_day", {
+    since_ts: since.toISOString(),
+    until_ts: until.toISOString(),
+  }) as { data: { day: string; cnt: number }[] | null };
 
   const map: Record<string, number> = {};
   for (let i = 0; i < days; i++) {
@@ -168,8 +171,8 @@ export async function getPageViewsPerDay(days = 30) {
     map[d.toISOString().slice(0, 10)] = 0;
   }
   for (const row of data ?? []) {
-    const key = (row.created_at as string).slice(0, 10);
-    if (key in map) map[key] = (map[key] ?? 0) + 1;
+    const key = (row.day as string).slice(0, 10);
+    if (key in map) map[key] = Number(row.cnt);
   }
 
   return Object.entries(map).map(([date, count]) => ({ date, count }));
@@ -179,23 +182,15 @@ export async function getTopReferrers(limit = 10) {
   const supabase = createAdminClient();
   const since = new Date();
   since.setDate(since.getDate() - 30);
+  since.setHours(0, 0, 0, 0);
 
-  const { data } = await supabase
-    .from("page_views")
-    .select("referrer_domain")
-    .gte("created_at", since.toISOString())
-    .not("referrer_domain", "is", null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any).rpc("get_top_referrers", {
+    since_ts: since.toISOString(),
+    limit_n: limit,
+  }) as { data: { domain: string; cnt: number }[] | null };
 
-  const map: Record<string, number> = {};
-  for (const row of data ?? []) {
-    const d = row.referrer_domain as string;
-    map[d] = (map[d] ?? 0) + 1;
-  }
-
-  return Object.entries(map)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([domain, count]) => ({ domain, count }));
+  return (data ?? []).map((r) => ({ domain: r.domain, count: Number(r.cnt) }));
 }
 
 export async function getTodayPageViews() {

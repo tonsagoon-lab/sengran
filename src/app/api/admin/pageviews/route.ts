@@ -37,12 +37,11 @@ export async function GET(req: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("page_views")
-    .select("created_at")
-    .gte("created_at", since.toISOString())
-    .lte("created_at", until.toISOString())
-    .order("created_at", { ascending: true });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (admin as any).rpc("get_pageviews_per_day", {
+    since_ts: since.toISOString(),
+    until_ts: until.toISOString(),
+  }) as { data: { day: string; cnt: number }[] | null };
 
   const map: Record<string, number> = {};
   const cursor = new Date(since);
@@ -51,8 +50,8 @@ export async function GET(req: NextRequest) {
     cursor.setDate(cursor.getDate() + 1);
   }
   for (const row of data ?? []) {
-    const key = (row.created_at as string).slice(0, 10);
-    if (key in map) map[key]++;
+    const key = (row.day as string).slice(0, 10);
+    if (key in map) map[key] = Number(row.cnt);
   }
 
   return NextResponse.json(Object.entries(map).map(([date, count]) => ({ date, count })));
