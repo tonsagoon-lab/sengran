@@ -9,9 +9,15 @@ interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
-  const provinces = await getAllProvincesPublic();
-  return provinces.map((p) => ({ slug: p.slug }));
+  try {
+    const provinces = await getAllProvincesPublic();
+    return provinces.map((p) => ({ slug: p.slug }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
