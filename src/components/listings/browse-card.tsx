@@ -116,7 +116,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
               typeBadge.className
             )}
           >
-            {listing.is_featured && <span className="mr-1">⭐</span>}
+            {listing.is_featured && (!listing.featured_until || new Date(listing.featured_until) > new Date()) && <span className="mr-1">⭐</span>}
             {typeBadge.label}
             {ageSuffix && <span className="ml-1 opacity-80">· {ageSuffix}</span>}
           </span>

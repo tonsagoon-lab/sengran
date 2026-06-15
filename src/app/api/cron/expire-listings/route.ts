@@ -9,6 +9,16 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
+  const now = new Date().toISOString();
+
+  // Reset is_featured for expired boosts
+  await supabase
+    .from("listings")
+    .update({ is_featured: false })
+    .eq("is_featured", true)
+    .not("featured_until", "is", null)
+    .lt("featured_until", now);
+
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - 1); // 365 days ago
 
