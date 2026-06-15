@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, XCircle, Clock, ImageIcon, ExternalLink, Send } from "lucide-react";
+import { useState, useMemo } from "react";
+import { CheckCircle2, XCircle, Clock, ImageIcon, ExternalLink, Send, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
@@ -35,20 +35,43 @@ const ORDER_TYPE_MAP: Record<string, string> = {
 };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const fmt = new Intl.NumberFormat("th-TH");
 
 type ActionModal = { order: Order; action: "approve" | "reject" };
 
-export function OrdersManager({ orders: initialOrders, siteUrl }: { orders: Order[]; siteUrl: string }) {
+export function OrdersManager({ orders: initialOrders }: { orders: Order[]; siteUrl: string }) {
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
   const [filter, setFilter] = useState<"all" | "slip_submitted" | "pending" | "approved" | "rejected">("slip_submitted");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [slipModal, setSlipModal] = useState<string | null>(null);
   const [actionModal, setActionModal] = useState<ActionModal | null>(null);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const dateFiltered = useMemo(() => {
+    let result = orders;
+    if (dateFrom) result = result.filter((o) => o.created_at >= dateFrom);
+    if (dateTo)   result = result.filter((o) => o.created_at <= dateTo + "T23:59:59");
+    return result;
+  }, [orders, dateFrom, dateTo]);
+
+  const filtered = filter === "all" ? dateFiltered : dateFiltered.filter((o) => o.status === filter);
+
+  // Summary per status within date range
+  const summary = useMemo(() => {
+    const counts: Record<string, { count: number; total: number }> = {};
+    for (const o of dateFiltered) {
+      if (!counts[o.status]) counts[o.status] = { count: 0, total: 0 };
+      counts[o.status].count++;
+      counts[o.status].total += o.amount_baht;
+    }
+    return counts;
+  }, [dateFiltered]);
+
+  const approvedTotal = summary["approved"]?.total ?? 0;
 
   function slipUrl(path: string) {
     return `${SUPABASE_URL}/storage/v1/object/public/listings/${path}`;
@@ -72,8 +95,6 @@ export function OrdersManager({ orders: initialOrders, siteUrl }: { orders: Orde
       });
       const data = await res.json();
       if (!res.ok) { setActionError(data.error ?? "เกิดข้อผิดพลาด"); return; }
-
-      // Update local state
       const newStatus = actionModal.action === "approve" ? "approved" : "rejected";
       setOrders((prev) => prev.map((o) =>
         o.reference === actionModal.order.reference
@@ -93,6 +114,40 @@ export function OrdersManager({ orders: initialOrders, siteUrl }: { orders: Orde
 
   return (
     <div className="space-y-4">
+      {/* Date range filter */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-white px-4 py-3">
+        <CalendarIcon className="h-4 w-4 text-neutral-400 shrink-0" />
+        <span className="text-sm text-neutral-600 shrink-0">ช่วงวันที่</span>
+        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+          className="rounded-lg border border-neutral-200 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+        <span className="text-neutral-400 text-sm">—</span>
+        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+          className="rounded-lg border border-neutral-200 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+        {(dateFrom || dateTo) && (
+          <button onClick={() => { setDateFrom(""); setDateTo(""); }}
+            className="text-xs text-neutral-400 hover:text-red-500 underline">ล้าง</button>
+        )}
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { key: "approved",       label: "รายได้ (อนุมัติ)", cls: "border-green-200 bg-green-50",  valCls: "text-green-700" },
+          { key: "slip_submitted", label: "รอยืนยันสลิป",     cls: "border-blue-200 bg-blue-50",   valCls: "text-blue-700" },
+          { key: "pending",        label: "รอชำระ",            cls: "border-yellow-200 bg-yellow-50", valCls: "text-yellow-700" },
+          { key: "rejected",       label: "ปฏิเสธ",            cls: "border-red-200 bg-red-50",     valCls: "text-red-600" },
+        ].map((s) => {
+          const d = summary[s.key] ?? { count: 0, total: 0 };
+          return (
+            <div key={s.key} className={`rounded-xl border p-3 ${s.cls}`}>
+              <p className="text-xs text-neutral-500">{s.label}</p>
+              <p className={`text-lg font-bold mt-0.5 ${s.valCls}`}>฿{fmt.format(d.total)}</p>
+              <p className="text-xs text-neutral-400">{d.count} รายการ</p>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Filter pills */}
       <div className="flex gap-2 flex-wrap">
         {[
@@ -101,19 +156,17 @@ export function OrdersManager({ orders: initialOrders, siteUrl }: { orders: Orde
           { key: "approved",       label: "อนุมัติแล้ว" },
           { key: "rejected",       label: "ปฏิเสธ" },
           { key: "all",            label: "ทั้งหมด" },
-        ].map((f) => (
-          <button key={f.key} onClick={() => setFilter(f.key as typeof filter)}
-            className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
-              filter === f.key ? "bg-orange-500 text-white border-orange-500" : "bg-white text-neutral-600 border-neutral-200 hover:border-orange-300"
-            }`}>
-            {f.label}
-            {f.key !== "all" && (
-              <span className="ml-1.5 text-[10px] opacity-70">
-                ({orders.filter((o) => o.status === f.key).length})
-              </span>
-            )}
-          </button>
-        ))}
+        ].map((f) => {
+          const count = f.key === "all" ? dateFiltered.length : (summary[f.key]?.count ?? 0);
+          return (
+            <button key={f.key} onClick={() => setFilter(f.key as typeof filter)}
+              className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                filter === f.key ? "bg-orange-500 text-white border-orange-500" : "bg-white text-neutral-600 border-neutral-200 hover:border-orange-300"
+              }`}>
+              {f.label}<span className="ml-1.5 text-[10px] opacity-70">({count})</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Order list */}
@@ -137,7 +190,7 @@ export function OrdersManager({ orders: initialOrders, siteUrl }: { orders: Orde
                           </span>
                         </div>
                         <p className="text-sm text-neutral-700">
-                          {typeLabel} · <span className="font-semibold text-orange-600">฿{order.amount_baht.toLocaleString("th-TH")}</span>
+                          {typeLabel} · <span className="font-semibold text-orange-600">฿{fmt.format(order.amount_baht)}</span>
                           <span className="ml-1 text-xs text-neutral-400">({order.package_key})</span>
                         </p>
                         {order.user && (
@@ -164,12 +217,9 @@ export function OrdersManager({ orders: initialOrders, siteUrl }: { orders: Orde
                         </Button>
                       )}
                     </div>
-
-                    {/* Approve / Reject buttons — full width row */}
                     {order.status === "slip_submitted" && (
                       <div className="flex gap-2">
-                        <Button size="sm"
-                          className="flex-1 gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                        <Button size="sm" className="flex-1 gap-1.5 bg-green-600 hover:bg-green-700 text-white"
                           onClick={() => openAction(order, "approve")}>
                           <CheckCircle2 className="h-3.5 w-3.5" />อนุมัติ
                         </Button>
@@ -216,40 +266,30 @@ export function OrdersManager({ orders: initialOrders, siteUrl }: { orders: Orde
             <div className="pointer-events-auto bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
               <div>
                 <h3 className={`text-base font-bold ${isApprove ? "text-green-700" : "text-red-600"}`}>
-                  {isApprove ? "✅ อนุมัติคำสั่งซื้อ" : "❌ ปฏิเสธคำสั่งซื้อ"}
+                  {isApprove ? "✅ อนุมัติคำสั่งซื้อ" : "❌ ไม่อนุมัติคำสั่งซื้อ"}
                 </h3>
                 <p className="text-sm text-neutral-500 mt-0.5 font-mono">{actionModal.order.reference}</p>
               </div>
-
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-neutral-700">
                   ข้อความถึงลูกค้า <span className="text-neutral-400 font-normal">(ไม่บังคับ)</span>
                 </label>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
+                <textarea value={note} onChange={(e) => setNote(e.target.value)}
                   placeholder={isApprove ? "เช่น ดำเนินการเรียบร้อยแล้ว" : "เช่น สลิปไม่ชัด กรุณาส่งใหม่"}
                   rows={3}
                   className="w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-300"
-                  autoFocus
-                />
+                  autoFocus />
               </div>
-
               {actionError && (
                 <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{actionError}</div>
               )}
-
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setActionModal(null)} disabled={submitting}>
-                  ยกเลิก
-                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => setActionModal(null)} disabled={submitting}>ยกเลิก</Button>
                 <Button
                   className={`flex-1 gap-1.5 text-white ${isApprove ? "bg-green-600 hover:bg-green-700" : "bg-red-500 hover:bg-red-600"}`}
-                  onClick={submitAction}
-                  disabled={submitting}
-                >
+                  onClick={submitAction} disabled={submitting}>
                   <Send className="h-3.5 w-3.5" />
-                  {submitting ? "กำลังส่ง..." : isApprove ? "ยืนยันอนุมัติ" : "ยืนยันปฏิเสธ"}
+                  {submitting ? "กำลังส่ง..." : isApprove ? "ยืนยันอนุมัติ" : "ยืนยันไม่อนุมัติ"}
                 </Button>
               </div>
             </div>
