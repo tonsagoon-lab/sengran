@@ -232,7 +232,7 @@ export function QuotaUpgradeModal({ currentQuota, onClose }: QuotaUpgradeModalPr
               <p className="font-bold text-neutral-900">รอการยืนยัน</p>
               <p className="text-sm text-neutral-500 leading-relaxed">
                 ทีมงานจะตรวจสอบสลิปและเพิ่มจำนวนประกาศให้<br />
-                ภายใน <span className="font-semibold">1 วันทำการ</span>
+                ระบบจะดำเนินการให้ภายใน <span className="font-semibold">24 ชั่วโมง</span>
               </p>
               <Button className="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-white" onClick={() => { onClose(); router.refresh(); }}>ปิด</Button>
             </div>

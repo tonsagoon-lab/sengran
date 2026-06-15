@@ -290,7 +290,7 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
                 <p className="font-bold text-neutral-900 text-lg">รอการยืนยัน</p>
                 <p className="text-sm text-neutral-600 mt-2 leading-relaxed">
                   ทีมงานจะตรวจสอบสลิปและเปิดใช้งาน<br />
-                  ภายใน <span className="font-semibold">1 วันทำการ</span>
+                  ระบบจะดำเนินการให้ภายใน <span className="font-semibold">24 ชั่วโมง</span>
                 </p>
               </div>
               {isFacebook && (
