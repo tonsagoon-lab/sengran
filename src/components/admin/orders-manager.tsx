@@ -15,7 +15,8 @@ type Order = {
   approve_token: string;
   created_at: string;
   processed_at: string | null;
-  user: { email: string; display_name: string | null } | null;
+  user_id: string;
+  user: { display_name: string | null } | null;
   listing: { title: string; slug: string } | null;
 };
 
@@ -104,7 +105,7 @@ export function OrdersManager({ orders, siteUrl }: { orders: Order[]; siteUrl: s
                       {/* User */}
                       {order.user && (
                         <p className="text-xs text-neutral-500">
-                          👤 {order.user.display_name ?? "–"} · {order.user.email}
+                          👤 {order.user.display_name ?? order.user_id.slice(0, 8) + "…"}
                         </p>
                       )}
 

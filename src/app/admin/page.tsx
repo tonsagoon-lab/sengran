@@ -116,56 +116,57 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   ]);
   const showViewCount = showViewCountSetting !== "false";
 
-  // Payment orders
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: rawOrders } = await (supabase as any)
-    .from("payment_orders")
-    .select(`
-      id, reference, order_type, package_key, amount_baht, status,
-      slip_storage_path, approve_token, created_at, processed_at,
-      profiles!payment_orders_user_id_fkey(display_name, id),
-      listings(title, slug)
-    `)
-    .order("created_at", { ascending: false })
-    .limit(200);
-
   type AdminOrder = {
     id: string; reference: string; order_type: string; package_key: string;
     amount_baht: number; status: string; slip_storage_path: string | null;
     approve_token: string; created_at: string; processed_at: string | null;
-    user: { email: string; display_name: string | null } | null;
+    user_id: string;
+    user: { display_name: string | null } | null;
     listing: { title: string; slug: string } | null;
   };
 
-  // Fetch user emails separately since profiles doesn't have email
-  const profileRows = (rawOrders ?? []).map((o: Record<string, unknown>) => o.profiles as { id: string; display_name: string | null } | null);
-  const userIds = [...new Set(profileRows.filter(Boolean).map((p: unknown) => (p as { id: string }).id))];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: authUsers } = userIds.length > 0 ? await (supabase as any)
-    .from("profiles")
-    .select("id, display_name")
-    .in("id", userIds) : { data: [] };
-  const profileMap = new Map((authUsers ?? []).map((u: { id: string; display_name: string | null }) => [u.id, u]));
+  let adminOrders: AdminOrder[] = [];
+  let pendingOrderCount = 0;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rawOrders, error: ordersError } = await (supabase as any)
+      .from("payment_orders")
+      .select("id, reference, order_type, package_key, amount_baht, status, slip_storage_path, approve_token, created_at, processed_at, user_id, listings(title, slug)")
+      .order("created_at", { ascending: false })
+      .limit(200);
 
-  const adminOrders: AdminOrder[] = (rawOrders ?? []).map((o: Record<string, unknown>) => {
-    const profile = o.profiles as { id: string; display_name: string | null } | null;
-    return {
-      id: o.id as string,
-      reference: o.reference as string,
-      order_type: o.order_type as string,
-      package_key: o.package_key as string,
-      amount_baht: o.amount_baht as number,
-      status: o.status as string,
-      slip_storage_path: o.slip_storage_path as string | null,
-      approve_token: o.approve_token as string,
-      created_at: o.created_at as string,
-      processed_at: o.processed_at as string | null,
-      user: profile ? { email: "", display_name: (profileMap.get(profile.id) as { display_name: string | null } | undefined)?.display_name ?? profile.display_name } : null,
-      listing: o.listings as { title: string; slug: string } | null,
-    };
-  });
+    if (!ordersError && rawOrders?.length) {
+      const userIds: string[] = [...new Set((rawOrders as Record<string, unknown>[]).map((o) => o.user_id as string))];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: profiles } = await (supabase as any)
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
+      const profileMap = new Map((profiles ?? []).map((p: { id: string; display_name: string | null }) => [p.id, p]));
 
-  const pendingOrderCount = adminOrders.filter((o) => o.status === "slip_submitted").length;
+      adminOrders = (rawOrders as Record<string, unknown>[]).map((o) => ({
+        id: o.id as string,
+        reference: o.reference as string,
+        order_type: o.order_type as string,
+        package_key: o.package_key as string,
+        amount_baht: o.amount_baht as number,
+        status: o.status as string,
+        slip_storage_path: o.slip_storage_path as string | null,
+        approve_token: o.approve_token as string,
+        created_at: o.created_at as string,
+        processed_at: o.processed_at as string | null,
+        user_id: o.user_id as string,
+        user: profileMap.has(o.user_id as string)
+          ? { display_name: (profileMap.get(o.user_id as string) as { display_name: string | null }).display_name }
+          : null,
+        listing: o.listings as { title: string; slug: string } | null,
+      }));
+    }
+    pendingOrderCount = adminOrders.filter((o) => o.status === "slip_submitted").length;
+  } catch {
+    // payment_orders table may not exist yet — silently skip
+  }
 
   const maxCat = Math.max(...byCategory.map((c) => c.count), 1);
   const maxProv = Math.max(...byProvince.map((p) => p.count), 1);
