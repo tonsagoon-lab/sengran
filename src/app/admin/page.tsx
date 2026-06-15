@@ -119,7 +119,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   type AdminOrder = {
     id: string; reference: string; order_type: string; package_key: string;
     amount_baht: number; status: string; slip_storage_path: string | null;
-    approve_token: string; created_at: string; processed_at: string | null;
+    approve_token: string; notes: string | null; created_at: string; processed_at: string | null;
     user_id: string;
     user: { display_name: string | null } | null;
     listing: { title: string; slug: string } | null;
@@ -132,7 +132,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: rawOrders, error: ordersError } = await (supabase as any)
       .from("payment_orders")
-      .select("id, reference, order_type, package_key, amount_baht, status, slip_storage_path, approve_token, created_at, processed_at, user_id, listings(title, slug)")
+      .select("id, reference, order_type, package_key, amount_baht, status, notes, slip_storage_path, approve_token, created_at, processed_at, user_id, listings(title, slug)")
       .order("created_at", { ascending: false })
       .limit(200);
 
@@ -154,6 +154,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         status: o.status as string,
         slip_storage_path: o.slip_storage_path as string | null,
         approve_token: o.approve_token as string,
+        notes: o.notes as string | null,
         created_at: o.created_at as string,
         processed_at: o.processed_at as string | null,
         user_id: o.user_id as string,
