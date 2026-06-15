@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, XCircle, Clock, ImageIcon, ExternalLink } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, ImageIcon, ExternalLink, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 type Order = {
   id: string;
@@ -21,10 +22,10 @@ type Order = {
 };
 
 const STATUS_MAP: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-  pending:        { label: "รอชำระ",       cls: "bg-yellow-100 text-yellow-700", icon: <Clock className="h-3.5 w-3.5" /> },
-  slip_submitted: { label: "รอยืนยันสลิป", cls: "bg-blue-100 text-blue-700",    icon: <ImageIcon className="h-3.5 w-3.5" /> },
-  approved:       { label: "อนุมัติแล้ว",  cls: "bg-green-100 text-green-700",  icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-  rejected:       { label: "ปฏิเสธ",       cls: "bg-red-100 text-red-600",      icon: <XCircle className="h-3.5 w-3.5" /> },
+  pending:        { label: "รอชำระ",        cls: "bg-yellow-100 text-yellow-700", icon: <Clock className="h-3.5 w-3.5" /> },
+  slip_submitted: { label: "รอยืนยันสลิป",  cls: "bg-blue-100 text-blue-700",    icon: <ImageIcon className="h-3.5 w-3.5" /> },
+  approved:       { label: "อนุมัติแล้ว",   cls: "bg-green-100 text-green-700",  icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+  rejected:       { label: "ปฏิเสธ",        cls: "bg-red-100 text-red-600",      icon: <XCircle className="h-3.5 w-3.5" /> },
 };
 
 const ORDER_TYPE_MAP: Record<string, string> = {
@@ -34,21 +35,61 @@ const ORDER_TYPE_MAP: Record<string, string> = {
 };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "";
 
-export function OrdersManager({ orders, siteUrl }: { orders: Order[]; siteUrl: string }) {
-  const [filter, setFilter] = useState<"all" | "slip_submitted" | "pending" | "approved">("slip_submitted");
+type ActionModal = { order: Order; action: "approve" | "reject" };
+
+export function OrdersManager({ orders: initialOrders, siteUrl }: { orders: Order[]; siteUrl: string }) {
+  const router = useRouter();
+  const [orders, setOrders] = useState(initialOrders);
+  const [filter, setFilter] = useState<"all" | "slip_submitted" | "pending" | "approved" | "rejected">("slip_submitted");
   const [slipModal, setSlipModal] = useState<string | null>(null);
+  const [actionModal, setActionModal] = useState<ActionModal | null>(null);
+  const [note, setNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
-
-  function approveUrl(order: Order) {
-    return `${siteUrl}/api/orders/${order.reference}/approve?token=${order.approve_token}`;
-  }
 
   function slipUrl(path: string) {
     return `${SUPABASE_URL}/storage/v1/object/public/listings/${path}`;
   }
+
+  function openAction(order: Order, action: "approve" | "reject") {
+    setNote("");
+    setActionError(null);
+    setActionModal({ order, action });
+  }
+
+  async function submitAction() {
+    if (!actionModal) return;
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${actionModal.order.reference}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: actionModal.action, note: note.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setActionError(data.error ?? "เกิดข้อผิดพลาด"); return; }
+
+      // Update local state
+      const newStatus = actionModal.action === "approve" ? "approved" : "rejected";
+      setOrders((prev) => prev.map((o) =>
+        o.reference === actionModal.order.reference
+          ? { ...o, status: newStatus, processed_at: new Date().toISOString() }
+          : o
+      ));
+      setActionModal(null);
+      router.refresh();
+    } catch {
+      setActionError("เกิดข้อผิดพลาด");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const isApprove = actionModal?.action === "approve";
 
   return (
     <div className="space-y-4">
@@ -58,6 +99,7 @@ export function OrdersManager({ orders, siteUrl }: { orders: Order[]; siteUrl: s
           { key: "slip_submitted", label: "รอยืนยันสลิป" },
           { key: "pending",        label: "รอชำระ" },
           { key: "approved",       label: "อนุมัติแล้ว" },
+          { key: "rejected",       label: "ปฏิเสธ" },
           { key: "all",            label: "ทั้งหมด" },
         ].map((f) => (
           <button key={f.key} onClick={() => setFilter(f.key as typeof filter)}
@@ -83,55 +125,36 @@ export function OrdersManager({ orders, siteUrl }: { orders: Order[]; siteUrl: s
             {filtered.map((order) => {
               const statusInfo = STATUS_MAP[order.status] ?? { label: order.status, cls: "bg-neutral-100 text-neutral-500", icon: null };
               const typeLabel = ORDER_TYPE_MAP[order.order_type] ?? order.order_type;
-
               return (
                 <li key={order.id} className="px-5 py-4">
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0 space-y-1">
-                      {/* Reference + status */}
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mono text-sm font-semibold text-neutral-800">{order.reference}</span>
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusInfo.cls}`}>
                           {statusInfo.icon}{statusInfo.label}
                         </span>
                       </div>
-
-                      {/* Package + amount */}
                       <p className="text-sm text-neutral-700">
                         {typeLabel} · <span className="font-semibold text-orange-600">฿{order.amount_baht.toLocaleString("th-TH")}</span>
                         <span className="ml-1 text-xs text-neutral-400">({order.package_key})</span>
                       </p>
-
-                      {/* User */}
                       {order.user && (
                         <p className="text-xs text-neutral-500">
                           👤 {order.user.display_name ?? order.user_id.slice(0, 8) + "…"}
                         </p>
                       )}
-
-                      {/* Listing */}
                       {order.listing && (
                         <p className="text-xs text-neutral-500 truncate">
                           📋{" "}
                           <a href={`/property/${order.listing.slug}`} target="_blank" rel="noopener noreferrer"
-                            className="underline hover:text-orange-600">
-                            {order.listing.title}
-                          </a>
+                            className="underline hover:text-orange-600">{order.listing.title}</a>
                         </p>
                       )}
-
-                      {/* Date */}
                       <p className="text-[11px] text-neutral-400">
-                        {new Date(order.created_at).toLocaleString("th-TH", {
-                          day: "numeric", month: "short", year: "2-digit",
-                          hour: "2-digit", minute: "2-digit",
-                        })}
+                        {new Date(order.created_at).toLocaleString("th-TH", { day: "numeric", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         {order.processed_at && (
-                          <span className="ml-2">
-                            · อนุมัติ {new Date(order.processed_at).toLocaleString("th-TH", {
-                              day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-                            })}
-                          </span>
+                          <span className="ml-2">· {order.status === "approved" ? "อนุมัติ" : "ปฏิเสธ"} {new Date(order.processed_at).toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                         )}
                       </p>
                     </div>
@@ -139,18 +162,24 @@ export function OrdersManager({ orders, siteUrl }: { orders: Order[]; siteUrl: s
                     {/* Actions */}
                     <div className="flex flex-col gap-2 shrink-0">
                       {order.slip_storage_path && (
-                        <Button size="sm" variant="outline"
-                          className="text-xs h-8 gap-1.5"
+                        <Button size="sm" variant="outline" className="text-xs h-8 gap-1.5"
                           onClick={() => setSlipModal(slipUrl(order.slip_storage_path!))}>
                           <ImageIcon className="h-3.5 w-3.5" />ดูสลิป
                         </Button>
                       )}
                       {order.status === "slip_submitted" && (
-                        <a href={approveUrl(order)} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" className="text-xs h-8 gap-1.5 bg-green-600 hover:bg-green-700 text-white w-full">
+                        <>
+                          <Button size="sm"
+                            className="text-xs h-8 gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => openAction(order, "approve")}>
                             <CheckCircle2 className="h-3.5 w-3.5" />อนุมัติ
                           </Button>
-                        </a>
+                          <Button size="sm" variant="outline"
+                            className="text-xs h-8 gap-1.5 border-red-300 text-red-600 hover:bg-red-50"
+                            onClick={() => openAction(order, "reject")}>
+                            <XCircle className="h-3.5 w-3.5" />ปฏิเสธ
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -175,6 +204,55 @@ export function OrdersManager({ orders, siteUrl }: { orders: Order[]; siteUrl: s
                   </Button>
                 </a>
                 <Button variant="outline" className="bg-white text-xs" onClick={() => setSlipModal(null)}>ปิด</Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Approve / Reject modal */}
+      {actionModal && (
+        <>
+          <div className="fixed inset-0 z-[200] bg-black/50" onClick={() => !submitting && setActionModal(null)} />
+          <div className="fixed inset-0 z-[201] flex items-center justify-center p-4 pointer-events-none">
+            <div className="pointer-events-auto bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+              <div>
+                <h3 className={`text-base font-bold ${isApprove ? "text-green-700" : "text-red-600"}`}>
+                  {isApprove ? "✅ อนุมัติคำสั่งซื้อ" : "❌ ปฏิเสธคำสั่งซื้อ"}
+                </h3>
+                <p className="text-sm text-neutral-500 mt-0.5 font-mono">{actionModal.order.reference}</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-neutral-700">
+                  ข้อความถึงลูกค้า <span className="text-neutral-400 font-normal">(ไม่บังคับ)</span>
+                </label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder={isApprove ? "เช่น ดำเนินการเรียบร้อยแล้ว" : "เช่น สลิปไม่ชัด กรุณาส่งใหม่"}
+                  rows={3}
+                  className="w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  autoFocus
+                />
+              </div>
+
+              {actionError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{actionError}</div>
+              )}
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setActionModal(null)} disabled={submitting}>
+                  ยกเลิก
+                </Button>
+                <Button
+                  className={`flex-1 gap-1.5 text-white ${isApprove ? "bg-green-600 hover:bg-green-700" : "bg-red-500 hover:bg-red-600"}`}
+                  onClick={submitAction}
+                  disabled={submitting}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  {submitting ? "กำลังส่ง..." : isApprove ? "ยืนยันอนุมัติ" : "ยืนยันปฏิเสธ"}
+                </Button>
               </div>
             </div>
           </div>

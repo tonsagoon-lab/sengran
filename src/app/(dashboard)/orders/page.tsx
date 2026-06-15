@@ -30,6 +30,7 @@ export default async function OrdersPage() {
     package_key: string;
     amount_baht: number;
     status: string;
+    notes: string | null;
     created_at: string;
     listing_id: string | null;
     listings: { title: string } | null;
@@ -38,7 +39,7 @@ export default async function OrdersPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: rawOrders } = await (supabase as any)
     .from("payment_orders")
-    .select("id, reference, order_type, package_key, amount_baht, status, created_at, listing_id, listings(title)")
+    .select("id, reference, order_type, package_key, amount_baht, status, notes, created_at, listing_id, listings(title)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -82,6 +83,15 @@ export default async function OrdersPage() {
                           hour: "2-digit", minute: "2-digit",
                         })}
                       </p>
+                      {order.notes && (
+                        <p className={`mt-1.5 text-xs rounded-lg px-2.5 py-1.5 leading-relaxed ${
+                          order.status === "rejected"
+                            ? "bg-red-50 text-red-700 border border-red-100"
+                            : "bg-green-50 text-green-700 border border-green-100"
+                        }`}>
+                          💬 {order.notes}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-bold text-neutral-800">
