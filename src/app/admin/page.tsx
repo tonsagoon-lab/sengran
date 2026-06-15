@@ -180,6 +180,19 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <h1 className="text-2xl font-bold text-neutral-900">Admin</h1>
         </div>
 
+        {/* ── Pending orders alert ─────────────────────────── */}
+        {pendingOrderCount > 0 && (
+          <a href="/admin?tab=orders" className="flex items-center gap-3 rounded-xl bg-orange-500 px-5 py-4 text-white shadow-lg hover:bg-orange-600 transition-colors">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-lg font-bold">
+              {pendingOrderCount}
+            </span>
+            <div>
+              <p className="font-bold text-base leading-tight">มีสลิปรอการอนุมัติ {pendingOrderCount} รายการ</p>
+              <p className="text-sm text-orange-100 mt-0.5">แตะเพื่อดูและอนุมัติคำสั่งซื้อ →</p>
+            </div>
+          </a>
+        )}
+
         {/* ── Staff view — listings only ───────────────────── */}
         {isStaffOnly && <ContentManager isAdmin={false} />}
 
