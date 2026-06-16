@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Star, Megaphone, X, CheckCircle2, ExternalLink, Upload, Download } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { BOOST_PACKAGES, type BoostPackageKey } from "@/lib/payment-packages";
+import { generateReference } from "@/lib/payment-packages";
 
 interface PromoteModalProps {
   listingId: string;
@@ -13,6 +13,15 @@ interface PromoteModalProps {
   type: "premium" | "facebook";
   onClose: () => void;
 }
+
+type DbPackage = {
+  id: number;
+  name_th: string;
+  price_thb: number;
+  duration_days: number;
+  package_type: string;
+  reach_text: string | null;
+};
 
 const PACKAGE_UI = {
   premium: {
@@ -22,7 +31,6 @@ const PACKAGE_UI = {
     selectedBg: "bg-orange-50",
     label: "ประกาศ Premium หน้าแรก",
     desc: "ติดป้าย Premium โดดเด่น อยู่ใน section แนะนำบนหน้าแรก",
-    keys: ["premium_20", "premium_40"] as BoostPackageKey[],
   },
   facebook: {
     icon: <Megaphone className="h-5 w-5" />,
@@ -31,23 +39,23 @@ const PACKAGE_UI = {
     selectedBg: "bg-indigo-50",
     label: "ยิงโฆษณา Facebook บนเพจ",
     desc: "ยิงโฆษณาบนเพจ facebook.com/selloutthailand",
-    keys: ["facebook_10", "facebook_20"] as BoostPackageKey[],
   },
 };
 
 const FACEBOOK_PAGE = "https://www.facebook.com/selloutthailand/";
 const ADMIN_LINE_URL = "https://line.me/R/ti/p/~salebiz";
-const ADMIN_LINE_ID = "salesbiz";
+const ADMIN_LINE_ID = "salebiz";
 
 type Step = "select" | "payment" | "submitted";
 
 export function PromoteModal({ listingId, listingTitle, type, onClose }: PromoteModalProps) {
   const router = useRouter();
   const group = PACKAGE_UI[type];
+  const isFacebook = type === "facebook";
 
-  const [selectedKey, setSelectedKey] = useState<BoostPackageKey | null>(
-    type === "facebook" ? "facebook_10" : null
-  );
+  const [packages, setPackages] = useState<DbPackage[]>([]);
+  const [pkgLoading, setPkgLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [step, setStep] = useState<Step>("select");
   const [reference, setReference] = useState<string | null>(null);
   const [amountBaht, setAmountBaht] = useState<number | null>(null);
@@ -57,29 +65,33 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const selectedPkg = selectedKey ? BOOST_PACKAGES[selectedKey] : null;
-  const isFacebook = type === "facebook";
+  useEffect(() => {
+    fetch(`/api/boost-packages?type=${type}`)
+      .then((r) => r.json())
+      .then((data: DbPackage[]) => {
+        setPackages(data);
+        if (data.length > 0) setSelectedId(data[0].id);
+      })
+      .finally(() => setPkgLoading(false));
+  }, [type]);
+
+  const selectedPkg = packages.find((p) => p.id === selectedId) ?? null;
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setSlipFile(file);
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setSlipPreview(url);
-    } else {
-      setSlipPreview(null);
-    }
+    setSlipPreview(file ? URL.createObjectURL(file) : null);
   }
 
   async function handleConfirmPackage() {
-    if (!selectedKey || !selectedPkg) return;
+    if (!selectedId || !selectedPkg) return;
     setError(null);
     setLoading(true);
     try {
       const res = await fetch(`/api/listings/${listingId}/boost`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageKey: selectedKey }),
+        body: JSON.stringify({ packageId: selectedId }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "เกิดข้อผิดพลาด"); setLoading(false); return; }
@@ -134,27 +146,36 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
                   {group.icon}
                   <span className="text-sm font-semibold">{group.label}</span>
                 </div>
-                <p className="text-xs text-neutral-500 mb-2">{group.desc}</p>
-                <div className="flex gap-2">
-                  {group.keys.map((key) => {
-                    const pkg = BOOST_PACKAGES[key];
-                    const isSelected = selectedKey === key;
-                    const reach = key.startsWith("facebook_")
-                      ? (key === "facebook_10" ? "คนเห็น 20,000+ คน" : "คนเห็น 45,000+ คน")
-                      : undefined;
-                    return (
-                      <button key={key} onClick={() => { setSelectedKey(key); setError(null); }}
-                        className={`flex-1 rounded-xl border-2 py-3 px-3 text-center transition-all ${
-                          isSelected ? `${group.selectedBorder} ${group.selectedBg}` : "border-neutral-200 hover:border-neutral-300"
-                        }`}
-                      >
-                        <p className="text-xs font-medium text-neutral-700">{pkg.days} วัน</p>
-                        {reach && <p className="text-[10px] text-indigo-500 mt-0.5">{reach}</p>}
-                        <p className={`text-sm font-bold mt-1 ${group.color}`}>{pkg.baht.toLocaleString("th-TH")} บาท</p>
-                      </button>
-                    );
-                  })}
-                </div>
+                <p className="text-xs text-neutral-500 mb-3">{group.desc}</p>
+
+                {pkgLoading ? (
+                  <div className="flex gap-2">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="flex-1 rounded-xl border-2 border-neutral-100 py-3 px-3 animate-pulse bg-neutral-50 h-20" />
+                    ))}
+                  </div>
+                ) : packages.length === 0 ? (
+                  <p className="text-sm text-neutral-400 text-center py-4">ยังไม่มีแพ็กเกจที่เปิดใช้งาน</p>
+                ) : (
+                  <div className="flex gap-2 flex-wrap">
+                    {packages.map((pkg) => {
+                      const isSelected = selectedId === pkg.id;
+                      return (
+                        <button key={pkg.id} onClick={() => { setSelectedId(pkg.id); setError(null); }}
+                          className={`flex-1 min-w-[120px] rounded-xl border-2 py-3 px-3 text-center transition-all ${
+                            isSelected ? `${group.selectedBorder} ${group.selectedBg}` : "border-neutral-200 hover:border-neutral-300"
+                          }`}
+                        >
+                          <p className="text-xs font-medium text-neutral-700">{pkg.duration_days} วัน</p>
+                          {pkg.reach_text && (
+                            <p className="text-[10px] text-indigo-500 mt-0.5">{pkg.reach_text}</p>
+                          )}
+                          <p className={`text-sm font-bold mt-1 ${group.color}`}>{pkg.price_thb.toLocaleString("th-TH")} บาท</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Facebook info box */}
@@ -185,10 +206,10 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
                 <Button variant="outline" className="flex-1" onClick={onClose}>ยกเลิก</Button>
                 <Button
                   className="flex-1 bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-40"
-                  disabled={!selectedKey || loading}
+                  disabled={!selectedId || loading || pkgLoading}
                   onClick={handleConfirmPackage}
                 >
-                  {loading ? "กำลังดำเนินการ..." : selectedKey ? `กดสั่งซื้อเลย ${selectedPkg!.baht.toLocaleString("th-TH")} บาท` : "เลือกแพ็กเกจ"}
+                  {loading ? "กำลังดำเนินการ..." : selectedPkg ? `กดสั่งซื้อเลย ${selectedPkg.price_thb.toLocaleString("th-TH")} บาท` : "เลือกแพ็กเกจ"}
                 </Button>
               </div>
             </div>
@@ -199,7 +220,7 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
             <div className="p-5 space-y-4">
               <div className="flex flex-col items-center gap-3 text-center">
                 <p className="text-sm font-semibold text-neutral-800">สแกน QR หรือโอนเงินตามข้อมูลด้านล่าง</p>
-                <a href="https://line.me/R/ti/p/~salebiz" target="_blank" rel="noopener noreferrer"
+                <a href={ADMIN_LINE_URL} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-full bg-[#06C755] hover:bg-[#05a847] px-4 py-1.5 text-sm font-semibold text-white transition-colors">
                   <svg viewBox="0 0 24 24" className="h-4 w-4 fill-white"><path d="M19.952 12.477c0-4.185-4.194-7.588-9.352-7.588S1.248 8.292 1.248 12.477c0 3.752 3.327 6.893 7.822 7.49.305.066.72.2.825.46.094.236.062.606.03.845l-.133.8c-.041.236-.188.923.809.503 1-.42 5.374-3.165 7.33-5.418 1.351-1.482 2.021-2.987 2.021-4.68z"/></svg>
                   หรือสั่งซื้อผ่าน Line = salebiz
@@ -251,13 +272,7 @@ export function PromoteModal({ listingId, listingTitle, type, onClose }: Promote
 
               <div className="space-y-2">
                 <p className="text-sm font-medium text-neutral-700">อัปโหลดสลิปการโอน</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 {slipPreview ? (
                   <div className="relative rounded-xl overflow-hidden border-2 border-orange-300">
                     <Image src={slipPreview} alt="slip preview" width={400} height={300} unoptimized className="w-full object-cover max-h-48" />

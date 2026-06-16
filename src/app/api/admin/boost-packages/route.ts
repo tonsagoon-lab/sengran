@@ -18,7 +18,7 @@ async function checkAuth() {
 export async function GET() {
   if (!await checkAuth()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (createAdminClient() as any).from("boost_packages").select("*").order("display_order");
+  const { data } = await (createAdminClient() as any).from("boost_packages").select("id, name_th, price_thb, duration_days, package_type, reach_text, is_active, display_order").order("display_order");
   return NextResponse.json(data ?? []);
 }
 
@@ -30,6 +30,8 @@ export async function POST(req: NextRequest) {
     name_th: body.name_th,
     price_thb: Number(body.price_thb),
     duration_days: Number(body.duration_days),
+    package_type: body.package_type ?? "facebook",
+    reach_text: body.reach_text ?? null,
     display_order: body.display_order ?? 0,
     is_active: true,
   }).select().single();

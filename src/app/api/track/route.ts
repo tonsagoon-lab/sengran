@@ -24,9 +24,10 @@ export async function POST(req: NextRequest) {
     const referrer_domain = extractDomain(referrer ?? null);
 
     const supabase = createAdminClient();
-    await supabase.from("page_views").insert({ path, referrer: referrer || null, referrer_domain });
-  } catch {
-    // Never fail silently — tracking is non-critical
+    const { error } = await supabase.from("page_views").insert({ path, referrer: referrer || null, referrer_domain });
+    if (error) console.error("[track] insert error:", error.message, error.code);
+  } catch (err) {
+    console.error("[track] error:", err);
   }
 
   return NextResponse.json({ ok: true });
