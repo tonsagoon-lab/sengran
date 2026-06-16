@@ -49,9 +49,10 @@ function SettingToggle({ label, description, settingKey, initialValue }: Setting
 
 interface GeneralSettingsManagerProps {
   showViewCount: boolean;
+  showQuotaUpgradeButton: boolean;
 }
 
-export function GeneralSettingsManager({ showViewCount }: GeneralSettingsManagerProps) {
+export function GeneralSettingsManager({ showViewCount, showQuotaUpgradeButton }: GeneralSettingsManagerProps) {
   return (
     <div className="space-y-1">
       <SettingToggle
@@ -59,6 +60,12 @@ export function GeneralSettingsManager({ showViewCount }: GeneralSettingsManager
         description="เปิด = ผู้ใช้เห็นว่าประกาศมีคนดูกี่ครั้ง"
         settingKey="show_view_count"
         initialValue={showViewCount}
+      />
+      <SettingToggle
+        label="แสดงปุ่ม 'เพิ่มจำนวนประกาศ'"
+        description="เปิด = ผู้ใช้เห็นปุ่มซื้อโควต้าเพิ่มในหน้าประกาศของฉัน"
+        settingKey="show_quota_upgrade_button"
+        initialValue={showQuotaUpgradeButton}
       />
     </div>
   );

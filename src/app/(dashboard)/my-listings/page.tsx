@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMyListings } from "@/lib/db/listings";
+import { getSiteSetting } from "@/lib/db/admin";
 import { Button } from "@/components/ui/button";
 import { ListingCard } from "@/components/listings/listing-card";
 import { QuotaUpgradeButton } from "@/components/listings/quota-upgrade-button";
@@ -15,14 +16,14 @@ export default async function MyListingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const listings = await getMyListings(user.id);
+  const [listings, profile, quotaButtonSetting] = await Promise.all([
+    getMyListings(user.id),
+    supabase.from("profiles").select("listing_quota").eq("id", user.id).single().then((r) => r.data),
+    getSiteSetting("show_quota_upgrade_button"),
+  ]);
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("listing_quota")
-    .eq("id", user.id)
-    .single();
   const listingQuota = Number(profile?.listing_quota ?? 0);
+  const showQuotaButton = quotaButtonSetting === "true";
 
   const published = listings.filter((l) => l.status === "published");
   const hidden = listings.filter((l) => l.status === "hidden");
@@ -44,9 +45,11 @@ export default async function MyListingsPage() {
       </div>
 
       {/* CTA banner */}
-      <div className="flex gap-2 mb-4">
-        <QuotaUpgradeButton currentQuota={listingQuota} />
-      </div>
+      {showQuotaButton && (
+        <div className="flex gap-2 mb-4">
+          <QuotaUpgradeButton currentQuota={listingQuota} />
+        </div>
+      )}
 
       <div className="flex gap-2 mb-6">
         <a

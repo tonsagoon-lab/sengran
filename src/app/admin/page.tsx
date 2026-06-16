@@ -100,6 +100,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     allReports,
     pendingReportCount,
     showViewCountSetting,
+    showQuotaUpgradeButtonSetting,
   ] = await Promise.all([
     getAdminStats(),
     getTopListings(10),
@@ -113,8 +114,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     getPendingReports(),
     getPendingReportCount(),
     getSiteSetting("show_view_count"),
+    getSiteSetting("show_quota_upgrade_button"),
   ]);
   const showViewCount = showViewCountSetting !== "false";
+  const showQuotaUpgradeButton = showQuotaUpgradeButtonSetting === "true";
 
   type AdminOrder = {
     id: string; reference: string; order_type: string; package_key: string;
@@ -214,7 +217,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {activeTab === "articles" && <ArticlesManager />}
 
         {/* ── Settings tab ─────────────────────────────────── */}
-        {activeTab === "settings" && isAdmin && <SiteSettings showViewCount={showViewCount} />}
+        {activeTab === "settings" && isAdmin && <SiteSettings showViewCount={showViewCount} showQuotaUpgradeButton={showQuotaUpgradeButton} />}
         {activeTab === "settings" && !isAdmin && (
           <p className="text-sm text-neutral-500">คุณไม่มีสิทธิ์เข้าถึงส่วนนี้</p>
         )}

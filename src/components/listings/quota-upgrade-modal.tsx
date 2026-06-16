@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, X, CheckCircle2, Upload } from "lucide-react";
+import { FileText, X, CheckCircle2, Upload, Download } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { QUOTA_PACKAGES, type QuotaPackageKey } from "@/lib/payment-packages";
@@ -147,15 +147,25 @@ export function QuotaUpgradeModal({ currentQuota, onClose }: QuotaUpgradeModalPr
                   <svg viewBox="0 0 24 24" className="h-4 w-4 fill-white"><path d="M19.952 12.477c0-4.185-4.194-7.588-9.352-7.588S1.248 8.292 1.248 12.477c0 3.752 3.327 6.893 7.822 7.49.305.066.72.2.825.46.094.236.062.606.03.845l-.133.8c-.041.236-.188.923.809.503 1-.42 5.374-3.165 7.33-5.418 1.351-1.482 2.021-2.987 2.021-4.68z"/></svg>
                   หรือสั่งซื้อผ่าน Line = salebiz
                 </a>
-                <div className="rounded-2xl border-2 border-neutral-200 bg-white p-3 shadow-sm">
-                  <Image
-                    src="/promptpay-qr.jpg"
-                    alt="PromptPay QR"
-                    width={200}
-                    height={200}
-                    unoptimized
-                    className="rounded-lg"
-                  />
+                <div className="flex flex-col items-center gap-2">
+                  <div className="rounded-2xl border-2 border-neutral-200 bg-white p-3 shadow-sm">
+                    <Image
+                      src="/promptpay-qr.jpg"
+                      alt="PromptPay QR"
+                      width={200}
+                      height={200}
+                      unoptimized
+                      className="rounded-lg"
+                    />
+                  </div>
+                  <a
+                    href="/promptpay-qr.jpg"
+                    download="promptpay-qr.jpg"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    ดาวน์โหลด QR
+                  </a>
                 </div>
               </div>
 
