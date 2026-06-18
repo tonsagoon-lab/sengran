@@ -173,7 +173,7 @@ export function NearMeSection() {
     const timeout = <T,>(ms: number): Promise<T> =>
       new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
 
-    const SELECT = `id, slug, title, listing_type, sale_price, rent_price, district, is_featured, published_at,
+    const SELECT = `id, slug, title, listing_type, sale_price, rent_price, district, is_featured, featured_until, published_at,
       listing_images(id, storage_path, display_order),
       categories(name_th, slug), provinces(name_th, slug)`;
 

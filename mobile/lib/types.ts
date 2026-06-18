@@ -18,6 +18,7 @@ export type Listing = {
   district: string | null;
   status: string;
   is_featured: boolean | null;
+  featured_until: string | null;
   view_count: number;
   published_at: string | null;
   category_id: number | null;

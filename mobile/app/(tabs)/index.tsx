@@ -49,6 +49,12 @@ function getAgeBadge(published_at: string | null | undefined): string | null {
 }
 
 type BadgeType = "sale" | "rent" | "both";
+function isActiveFeatured(is_featured: boolean | null, featured_until: string | null): boolean {
+  if (!is_featured) return false;
+  if (!featured_until) return true;
+  return new Date(featured_until) > new Date();
+}
+
 function TypeBadge({ type, featured }: { type: BadgeType; featured?: boolean | null }) {
   const cfg = {
     sale: { bg: "#dbeafe", border: "#bfdbfe", text: "#1d4ed8", label: "เซ้ง" },
@@ -97,7 +103,7 @@ function ListingCardV({
           </View>
         )}
         <View style={styles.cardVBadgeWrap}>
-          <TypeBadge type={item.listing_type} featured={item.is_featured} />
+          <TypeBadge type={item.listing_type} featured={isActiveFeatured(item.is_featured, item.featured_until)} />
           {getAgeBadge(item.published_at) && (
             <View style={styles.ageBadge}>
               <Text style={styles.ageBadgeText}>{getAgeBadge(item.published_at)}</Text>
@@ -211,7 +217,7 @@ export default function HomeScreen() {
       const listingsRes = await supabase
         .from("listings")
         .select(
-          `id, slug, title, listing_type, sale_price, rent_price, district, is_featured, published_at,
+          `id, slug, title, listing_type, sale_price, rent_price, district, is_featured, featured_until, published_at,
            listing_images(id, storage_path, display_order),
            categories(name_th, slug), provinces(name_th, slug)`
         )
@@ -223,7 +229,7 @@ export default function HomeScreen() {
         setErrorMsg("listings: " + listingsRes.error.message);
       } else {
         const listings = (listingsRes.data ?? []) as unknown as Listing[];
-        setFeatured(listings.filter((l) => l.is_featured).slice(0, 4));
+        setFeatured(listings.filter((l) => isActiveFeatured(l.is_featured, l.featured_until)).slice(0, 4));
         setLatest(listings.slice(0, 8));
       }
 
@@ -243,7 +249,7 @@ export default function HomeScreen() {
         .from("editorial_picks")
         .select(
           `display_order,
-           listings!inner(id, slug, title, listing_type, sale_price, rent_price, district, is_featured, published_at,
+           listings!inner(id, slug, title, listing_type, sale_price, rent_price, district, is_featured, featured_until, published_at,
              listing_images(id, storage_path, display_order),
              categories(name_th, slug), provinces(name_th, slug))`
         )
