@@ -28,6 +28,12 @@ export async function LatestListings({ supabaseUrl }: LatestListingsProps) {
           />
         ))}
       </div>
+      <Link
+        href="/listings?sort=newest"
+        className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-orange-400 bg-orange-50 hover:bg-orange-100 text-orange-600 font-semibold py-3 text-sm transition-colors"
+      >
+        🆕 ดูประกาศร้านล่าสุดเพิ่มเติม →
+      </Link>
     </section>
   );
 }
