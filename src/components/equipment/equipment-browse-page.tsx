@@ -116,11 +116,11 @@ export async function EquipmentBrowsePage({
       {/* Category pills */}
       {!lockedCategory && categories.length > 0 && (
         <div className="border-b bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-2">
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div className="mx-auto max-w-7xl px-4 py-3">
+            <div className="flex flex-wrap gap-2">
               <a
                 href="/equipment"
-                className="shrink-0 rounded-full border px-3 py-1 text-sm transition-colors border-neutral-300 text-neutral-600 bg-white hover:border-orange-400 hover:text-orange-600"
+                className="rounded-full border px-3 py-1 text-sm transition-colors border-neutral-300 text-neutral-600 bg-white hover:border-orange-400 hover:text-orange-600"
               >
                 ทั้งหมด
               </a>
@@ -128,7 +128,7 @@ export async function EquipmentBrowsePage({
                 <a
                   key={cat.id}
                   href={`/equipment?cat=${cat.slug}`}
-                  className="shrink-0 rounded-full border px-3 py-1 text-sm transition-colors border-neutral-300 text-neutral-600 bg-white hover:border-orange-400 hover:text-orange-600"
+                  className="rounded-full border px-3 py-1 text-sm transition-colors border-neutral-300 text-neutral-600 bg-white hover:border-orange-400 hover:text-orange-600"
                 >
                   {cat.name_th}
                 </a>
