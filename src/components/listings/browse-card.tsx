@@ -82,7 +82,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
     .sort((a, b) => a.display_order - b.display_order)[0];
   const coverUrl = cover ? resolveImageUrl(cover.storage_path, 400, 65, "cover", 225) : null;
 
-  const typeBadge = TYPE_BADGE[listing.listing_type];
+  const typeBadge = TYPE_BADGE[listing.listing_type] ?? TYPE_BADGE.sale;
   const ageSuffix = getAgeSuffix(listing.published_at ?? null);
   const location = [listing.district, listing.provinces?.name_th].filter(Boolean).join(", ");
 

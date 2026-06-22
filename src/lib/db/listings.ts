@@ -469,6 +469,7 @@ export async function getLatestListings(limit = 8): Promise<SearchListing[]> {
     .from("listings")
     .select(LISTING_CARD_SELECT)
     .eq("status", "published")
+    .neq("listing_type", "equipment")
     .order("published_at", { ascending: false })
     .limit(limit);
   return (data ?? []) as unknown as SearchListing[];
