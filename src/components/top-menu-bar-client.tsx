@@ -87,7 +87,7 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLog
           aria-label="ของมือสอง"
         >
           <Package className="h-4 w-4 shrink-0" />
-          <span className="hidden sm:inline">ของมือสอง</span>
+          <span className="hidden sm:inline">ขายอุปกรณ์</span>
         </Link>
 
         {/* 6. แผนที่เซ้ง */}
