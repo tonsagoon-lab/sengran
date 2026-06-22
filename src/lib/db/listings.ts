@@ -166,6 +166,8 @@ export async function getAllCategories() {
     .from("categories")
     .select("id, name_th, slug")
     .eq("is_active", true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .eq("category_type" as any, "shop")
     .order("display_order");
   return data ?? [];
 }
@@ -403,9 +405,13 @@ async function anonClient() {
 
 export async function getAllCategoriesPublic() {
   const supabase = await anonClient();
-  const { data } = await supabase
-    .from("categories").select("id, name_th, slug, icon").eq("is_active", true).order("display_order");
-  return data ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query = (supabase as any).from("categories").select("id, name_th, slug, icon")
+    .eq("is_active", true)
+    .eq("category_type", "shop")
+    .order("display_order");
+  const { data } = await query;
+  return (data ?? []) as { id: number; name_th: string; slug: string; icon: string | null }[];
 }
 
 export async function getAllProvincesPublic() {
