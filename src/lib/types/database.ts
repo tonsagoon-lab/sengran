@@ -14,6 +14,8 @@ export type Database = {
           wallet_balance: number;
           listing_quota: number;
           legacy_wp_user_id: number | null;
+          phone_number: string | null;
+          phone_verified: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -27,6 +29,8 @@ export type Database = {
           wallet_balance?: number;
           listing_quota?: number;
           legacy_wp_user_id?: number | null;
+          phone_number?: string | null;
+          phone_verified?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -39,6 +43,8 @@ export type Database = {
           wallet_balance?: number;
           listing_quota?: number;
           legacy_wp_user_id?: number | null;
+          phone_number?: string | null;
+          phone_verified?: boolean;
           updated_at?: string;
         };
         Relationships: [];
@@ -51,6 +57,7 @@ export type Database = {
           icon: string | null;
           display_order: number;
           is_active: boolean;
+          category_type: "shop" | "equipment";
         };
         Insert: {
           name_th: string;
@@ -58,6 +65,7 @@ export type Database = {
           icon?: string | null;
           display_order?: number;
           is_active?: boolean;
+          category_type?: "shop" | "equipment";
         };
         Update: {
           name_th?: string;
@@ -65,6 +73,7 @@ export type Database = {
           icon?: string | null;
           display_order?: number;
           is_active?: boolean;
+          category_type?: "shop" | "equipment";
         };
         Relationships: [];
       };
@@ -115,7 +124,7 @@ export type Database = {
           user_id: string;
           title: string;
           description: string;
-          listing_type: "sale" | "rent" | "both";
+          listing_type: "sale" | "rent" | "both" | "equipment";
           sale_price: number | null;
           rent_price: number | null;
           deposit_months: number | null;
@@ -133,7 +142,9 @@ export type Database = {
           contact_mobile: string;
           contact_line: string | null;
           video_url: string | null;
-          status: "draft" | "published" | "sold" | "expired" | "hidden";
+          condition: "excellent" | "good" | "fair" | null;
+          posted_ip: string | null;
+          status: "draft" | "published" | "sold" | "expired" | "hidden" | "reserved";
           is_featured: boolean;
           featured_until: string | null;
           boost_until: string | null;
@@ -151,7 +162,7 @@ export type Database = {
           user_id: string;
           title: string;
           description: string;
-          listing_type: "sale" | "rent" | "both";
+          listing_type: "sale" | "rent" | "both" | "equipment";
           sale_price?: number | null;
           rent_price?: number | null;
           deposit_months?: number | null;
@@ -169,7 +180,9 @@ export type Database = {
           contact_mobile: string;
           contact_line?: string | null;
           video_url?: string | null;
-          status?: "draft" | "published" | "sold" | "expired" | "hidden";
+          condition?: "excellent" | "good" | "fair" | null;
+          posted_ip?: string | null;
+          status?: "draft" | "published" | "sold" | "expired" | "hidden" | "reserved";
           is_featured?: boolean;
           featured_until?: string | null;
           boost_until?: string | null;
@@ -183,7 +196,7 @@ export type Database = {
         Update: {
           title?: string;
           description?: string;
-          listing_type?: "sale" | "rent" | "both";
+          listing_type?: "sale" | "rent" | "both" | "equipment";
           sale_price?: number | null;
           rent_price?: number | null;
           deposit_months?: number | null;
@@ -201,7 +214,9 @@ export type Database = {
           contact_mobile?: string;
           contact_line?: string | null;
           video_url?: string | null;
-          status?: "draft" | "published" | "sold" | "expired" | "hidden";
+          condition?: "excellent" | "good" | "fair" | null;
+          posted_ip?: string | null;
+          status?: "draft" | "published" | "sold" | "expired" | "hidden" | "reserved";
           is_featured?: boolean;
           featured_until?: string | null;
           boost_until?: string | null;
@@ -370,3 +385,4 @@ export type Favorite = Database["public"]["Tables"]["favorites"]["Row"];
 
 export type ListingStatus = Listing["status"];
 export type ListingType = Listing["listing_type"];
+export type EquipmentCondition = "excellent" | "good" | "fair";

@@ -61,7 +61,7 @@ export function ListingForm({ userId, categories, provinces, action, listing }: 
     defaultValues: {
       title: listing?.title ?? "",
       description: listing?.description ?? "",
-      listing_type: listing?.listing_type ?? "rent",
+      listing_type: (listing?.listing_type === "sale" || listing?.listing_type === "rent" || listing?.listing_type === "both") ? listing.listing_type : "rent",
       sale_price: listing?.sale_price != null ? String(listing.sale_price) : "",
       rent_price: listing?.rent_price != null ? String(listing.rent_price) : "",
       deposit_months: listing?.deposit_months != null ? String(listing.deposit_months) : "",

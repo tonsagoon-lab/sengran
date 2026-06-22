@@ -68,7 +68,7 @@ interface WizardProps {
   };
 }
 
-type ListingType = "sale" | "rent" | "both";
+type ListingType = "sale" | "rent" | "both"; // equipment listings use their own wizard
 
 interface WizardState {
   listingId: string;
@@ -213,7 +213,7 @@ function buildInitialState(listing?: WizardProps["listing"]): WizardState {
   return {
     listingId: listing?.id ?? crypto.randomUUID(),
     title: listing?.title ?? "",
-    listing_type: listing?.listing_type ?? "sale",
+    listing_type: (listing?.listing_type === "sale" || listing?.listing_type === "rent" || listing?.listing_type === "both") ? listing.listing_type : "sale",
     category_id: listing?.category_id != null ? String(listing.category_id) : "",
     sale_price: listing?.sale_price != null ? String(listing.sale_price) : "",
     rent_price: listing?.rent_price != null ? String(listing.rent_price) : "",

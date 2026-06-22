@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Map, Megaphone, MessageCircle, ShieldCheck, Bell, PlusCircle } from "lucide-react";
+import { Home, Map, Megaphone, MessageCircle, ShieldCheck, Bell, PlusCircle, Package } from "lucide-react";
 
 interface TopMenuBarClientProps {
   unreadCount: number;
@@ -80,7 +80,17 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLog
           <span>ลงโฆษณา</span>
         </a>
 
-        {/* 5. แผนที่เซ้ง */}
+        {/* 5. ของมือสอง */}
+        <Link
+          href="/equipment"
+          className={linkClass(pathname.startsWith("/equipment"))}
+          aria-label="ของมือสอง"
+        >
+          <Package className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">ของมือสอง</span>
+        </Link>
+
+        {/* 6. แผนที่เซ้ง */}
         <Link
           href="/map"
           className={linkClass(pathname === "/map")}
@@ -90,7 +100,7 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLog
           <span className="hidden sm:inline">แผนที่เซ้ง</span>
         </Link>
 
-        {/* 6. ข้อความ */}
+        {/* 7. ข้อความ */}
         <Link href="/messages" className={`${linkClass(isMessages)} relative`} aria-label="ข้อความ">
           <MessageCircle className="h-4 w-4 shrink-0" />
           <span className="hidden sm:inline">ข้อความ</span>

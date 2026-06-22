@@ -31,7 +31,6 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-maps",
       "expo-image-picker",
       "expo-web-browser",
       [

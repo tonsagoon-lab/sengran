@@ -307,7 +307,8 @@ export async function searchListings(params: SearchParams): Promise<{
   let query: any = supabase
     .from("listings")
     .select(LISTING_CARD_SELECT, { count: "exact" })
-    .eq("status", "published");
+    .eq("status", "published")
+    .neq("listing_type", "equipment");
 
   // Listing type
   if (params.type === "sale") query = query.in("listing_type", ["sale", "both"]);
