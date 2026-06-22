@@ -148,7 +148,7 @@ export async function searchEquipment(params: EquipmentSearchParams): Promise<{
   if (provinceId) query = query.eq("province_id", provinceId);
 
   // Condition filter
-  if (params.condition && ["excellent", "good", "fair"].includes(params.condition)) {
+  if (params.condition && ["new", "used"].includes(params.condition)) {
     query = query.eq("condition", params.condition);
   }
 

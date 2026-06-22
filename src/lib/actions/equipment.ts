@@ -49,7 +49,7 @@ export async function createEquipmentListingAction(
 
   if (!title?.trim()) return { error: "กรุณากรอกชื่อสินค้า" };
   if (!categoryId) return { error: "กรุณาเลือกหมวดหมู่" };
-  if (!condition || !["excellent", "good", "fair"].includes(condition)) {
+  if (!condition || !["new", "used"].includes(condition)) {
     return { error: "กรุณาเลือกสภาพสินค้า" };
   }
   if (!price || isNaN(Number(price))) return { error: "กรุณาระบุราคาที่ถูกต้อง" };

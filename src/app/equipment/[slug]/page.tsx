@@ -32,9 +32,8 @@ import { cn } from "@/lib/utils";
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.xn--72ch7bybxexd0cc.com";
 
 const CONDITION_LABELS: Record<string, { label: string; className: string }> = {
-  excellent: { label: "ดีมาก",  className: "bg-green-100 text-green-700 border-green-200" },
-  good:      { label: "ดี",      className: "bg-blue-100 text-blue-700 border-blue-200" },
-  fair:      { label: "พอใช้",   className: "bg-gray-100 text-gray-600 border-gray-200" },
+  new:  { label: "มือ 1", className: "bg-green-100 text-green-700 border-green-200" },
+  used: { label: "มือ 2", className: "bg-blue-100 text-blue-700 border-blue-200" },
 };
 
 const STATUS_LABELS: Record<string, string> = {
