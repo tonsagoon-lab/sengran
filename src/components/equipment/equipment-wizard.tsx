@@ -291,21 +291,20 @@ export function EquipmentWizard({ userId, categories, provinces }: WizardProps) 
             {/* Condition */}
             <div className="space-y-1.5">
               <Label>สภาพสินค้า <span className="text-red-500">*</span></Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="flex gap-3">
                 {CONDITION_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => update({ condition: opt.value })}
                     className={cn(
-                      "rounded-lg border-2 p-3 text-left transition-all",
+                      "rounded-full border-2 px-6 py-2 text-sm font-semibold transition-all",
                       state.condition === opt.value
                         ? opt.color + " border-current"
-                        : "border-neutral-200 hover:border-neutral-300"
+                        : "border-neutral-200 text-neutral-600 hover:border-neutral-300"
                     )}
                   >
-                    <p className="font-semibold text-sm">{opt.label}</p>
-                    <p className="text-xs opacity-70 mt-0.5">{opt.desc}</p>
+                    {opt.label}
                   </button>
                 ))}
               </div>
