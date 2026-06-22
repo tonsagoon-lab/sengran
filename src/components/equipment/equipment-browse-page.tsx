@@ -104,6 +104,12 @@ export async function EquipmentBrowsePage({
             เลือกซื้ออุปกรณ์ร้านค้ามือสองคุณภาพดี ราคาถูก จากผู้ขายทั่วประเทศ
           </p>
           <SearchBox defaultValue={searchParams.q ?? ""} />
+          <a
+            href="/equipment/new"
+            className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-2.5 text-sm font-semibold text-white shadow hover:bg-orange-600 transition-colors"
+          >
+            + ลงขายอุปกรณ์ฟรี
+          </a>
         </div>
       </section>
 
