@@ -196,10 +196,13 @@ export async function adminDeleteEquipmentListingAction(
     return { error: "ไม่มีสิทธิ์" };
   }
 
-  // Delete images first
-  await supabase.from("listing_images").delete().eq("listing_id", listingId);
+  // Use admin client to bypass RLS
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const adminClient = createAdminClient();
 
-  const { error } = await supabase
+  await adminClient.from("listing_images").delete().eq("listing_id", listingId);
+
+  const { error } = await adminClient
     .from("listings")
     .delete()
     .eq("id", listingId)
