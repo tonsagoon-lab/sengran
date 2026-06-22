@@ -13,7 +13,7 @@ import {
   UserCircle,
   CheckCircle2,
 } from "lucide-react";
-import { getEquipmentBySlug, getRelatedEquipment } from "@/lib/db/equipment";
+import { getEquipmentBySlug, getRelatedEquipment, getEquipmentCategories } from "@/lib/db/equipment";
 import { createClient } from "@/lib/supabase/server";
 import { startConversationAction } from "@/lib/actions/messages";
 import { ImageGallery } from "@/components/listings/image-gallery";
@@ -78,7 +78,13 @@ export default async function EquipmentDetailPage({ params }: Props) {
     (a, b) => a.display_order - b.display_order
   );
 
-  const related = await getRelatedEquipment(slug, listing.category_id ?? null, listing.province_id ?? null);
+  const [related, shopCategories] = await Promise.all([
+    getRelatedEquipment(slug, listing.category_id ?? null, listing.province_id ?? null),
+    getEquipmentCategories(),
+  ]);
+  const shopTypeNames = (listing.shop_type_ids ?? [])
+    .map((id) => shopCategories.find((c) => c.id === id)?.name_th)
+    .filter((n): n is string => Boolean(n));
 
   const coverImage = sortedImages[0];
   const coverUrl = coverImage ? resolveImageUrl(coverImage.storage_path) : undefined;
@@ -144,9 +150,9 @@ export default async function EquipmentDetailPage({ params }: Props) {
                       สภาพ: {conditionInfo.label}
                     </span>
                   )}
-                  {listing.categories && (
-                    <Badge variant="outline">{listing.categories.name_th}</Badge>
-                  )}
+                  {shopTypeNames.map((name) => (
+                    <Badge key={name} variant="outline">{name}</Badge>
+                  ))}
                   {statusLabel && (
                     <Badge variant="secondary">{statusLabel}</Badge>
                   )}
@@ -199,10 +205,10 @@ export default async function EquipmentDetailPage({ params }: Props) {
                       <td className="px-4 py-2.5 text-neutral-800">{conditionInfo.label}</td>
                     </tr>
                   )}
-                  {listing.categories && (
+                  {shopTypeNames.length > 0 && (
                     <tr className="border-b">
-                      <td className="px-4 py-2.5 font-medium text-neutral-500 bg-neutral-50">หมวดหมู่</td>
-                      <td className="px-4 py-2.5 text-neutral-800">{listing.categories.name_th}</td>
+                      <td className="px-4 py-2.5 font-medium text-neutral-500 bg-neutral-50">เหมาะกับร้าน</td>
+                      <td className="px-4 py-2.5 text-neutral-800">{shopTypeNames.join(", ")}</td>
                     </tr>
                   )}
                   {(listing.district || listing.provinces) && (

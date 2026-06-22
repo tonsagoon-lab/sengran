@@ -35,7 +35,8 @@ export async function createEquipmentListingAction(
   }
 
   const title = formData.get("title") as string;
-  const categoryId = formData.get("category_id") as string;
+  const shopTypeIdsRaw = formData.get("shop_type_ids") as string;
+  const shopTypeIds: number[] = shopTypeIdsRaw ? JSON.parse(shopTypeIdsRaw) : [];
   const condition = formData.get("condition") as string;
   const price = formData.get("price") as string;
   const description = formData.get("description") as string;
@@ -48,7 +49,7 @@ export async function createEquipmentListingAction(
   const listingId = (formData.get("listing_id") as string) || crypto.randomUUID();
 
   if (!title?.trim()) return { error: "กรุณากรอกชื่อสินค้า" };
-  if (!categoryId) return { error: "กรุณาเลือกหมวดหมู่" };
+  if (!shopTypeIds.length || shopTypeIds.length > 4) return { error: "กรุณาเลือกประเภทร้านอย่างน้อย 1 และไม่เกิน 4 ประเภท" };
   if (!condition || !["new", "used"].includes(condition)) {
     return { error: "กรุณาเลือกสภาพสินค้า" };
   }
@@ -65,7 +66,8 @@ export async function createEquipmentListingAction(
 
   const slug = await generateUniqueSlug(title);
 
-  const { error: insertError } = await supabase.from("listings").insert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const insertData: any = {
     id: listingId,
     user_id: user.id,
     title: title.trim(),
@@ -74,7 +76,8 @@ export async function createEquipmentListingAction(
     sale_price: Number(price),
     rent_price: null,
     condition: condition as "new" | "used",
-    category_id: Number(categoryId),
+    category_id: null,
+    shop_type_ids: shopTypeIds,
     province_id: Number(provinceId),
     district: district || null,
     address: address || null,
@@ -91,7 +94,8 @@ export async function createEquipmentListingAction(
       status !== "draft"
         ? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
         : null,
-  });
+  };
+  const { error: insertError } = await supabase.from("listings").insert(insertData);
 
   if (insertError) return { error: `เกิดข้อผิดพลาด: ${insertError.message}` };
 

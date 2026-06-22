@@ -129,12 +129,7 @@ export function EquipmentCard({ listing, priority = false, sellerVerified = fals
         )}
 
         {/* Footer */}
-        <div className="mt-auto flex items-center justify-between gap-1">
-          {listing.categories && (
-            <span className="text-xs text-neutral-400 truncate">
-              {listing.categories.name_th}
-            </span>
-          )}
+        <div className="mt-auto flex items-center justify-end gap-1">
           {listing.published_at && (
             <div className="flex items-center gap-0.5 text-[10px] text-neutral-400 shrink-0">
               <Clock className="h-2.5 w-2.5" />

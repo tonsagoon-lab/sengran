@@ -33,7 +33,7 @@ type EquipmentCondition = "new" | "used";
 interface WizardState {
   listingId: string;
   // Step 1
-  category_id: string;
+  shop_type_ids: number[];
   title: string;
   condition: EquipmentCondition | "";
   price: string;
@@ -56,7 +56,7 @@ const CONDITION_OPTIONS: { value: EquipmentCondition; label: string; desc: strin
 // ── Step schemas ──────────────────────────────────────────────
 
 const step1Schema = z.object({
-  category_id: z.string().min(1, "กรุณาเลือกหมวดหมู่"),
+  shop_type_ids: z.array(z.number()).min(1, "กรุณาเลือกอย่างน้อย 1 ประเภทร้าน").max(4, "เลือกได้ไม่เกิน 4 ประเภท"),
   title: z.string().min(5, "ชื่อสินค้าต้องมีอย่างน้อย 5 ตัวอักษร").max(120, "ชื่อสินค้าไม่เกิน 120 ตัวอักษร"),
   condition: z.enum(["new", "used"] as const, { error: "กรุณาเลือกสภาพสินค้า" }),
   price: z.string().min(1, "กรุณาระบุราคา"),
@@ -76,7 +76,7 @@ const SESSION_KEY = "equipment_wizard_state";
 function defaultState(): WizardState {
   return {
     listingId: crypto.randomUUID(),
-    category_id: "",
+    shop_type_ids: [],
     title: "",
     condition: "",
     price: "",
@@ -122,7 +122,7 @@ export function EquipmentWizard({ userId, categories, provinces }: WizardProps) 
   // ── Step 1 validation ─────────────────────────────────────
   const validateStep1 = () => {
     const parsed = step1Schema.safeParse({
-      category_id: state.category_id,
+      shop_type_ids: state.shop_type_ids,
       title: state.title,
       condition: state.condition || undefined,
       price: state.price,
@@ -178,7 +178,7 @@ export function EquipmentWizard({ userId, categories, provinces }: WizardProps) 
     startTransition(async () => {
       const fd = new FormData();
       fd.set("listing_id", state.listingId);
-      fd.set("category_id", state.category_id);
+      fd.set("shop_type_ids", JSON.stringify(state.shop_type_ids));
       fd.set("title", state.title);
       fd.set("condition", state.condition);
       fd.set("price", state.price);
@@ -238,20 +238,42 @@ export function EquipmentWizard({ userId, categories, provinces }: WizardProps) 
       {step === 1 && (
         <Card>
           <CardContent className="pt-6 space-y-5">
-            {/* Category */}
+            {/* Shop type multi-select */}
             <div className="space-y-1.5">
-              <Label>หมวดหมู่ <span className="text-red-500">*</span></Label>
-              <select
-                value={state.category_id}
-                onChange={(e) => update({ category_id: e.target.value })}
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              >
-                <option value="">— เลือกหมวดหมู่ —</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={String(c.id)}>{c.name_th}</option>
-                ))}
-              </select>
-              {errors.category_id && <p className="text-xs text-red-500">{errors.category_id}</p>}
+              <Label>
+                เหมาะกับร้านประเภท (เลือกได้ 1-4) <span className="text-red-500">*</span>
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((c) => {
+                  const selected = state.shop_type_ids.includes(c.id);
+                  const maxReached = state.shop_type_ids.length >= 4 && !selected;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      disabled={maxReached}
+                      onClick={() => {
+                        const next = selected
+                          ? state.shop_type_ids.filter((id) => id !== c.id)
+                          : [...state.shop_type_ids, c.id];
+                        update({ shop_type_ids: next });
+                      }}
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-sm transition-colors",
+                        selected
+                          ? "border-orange-500 bg-orange-500 text-white"
+                          : maxReached
+                          ? "border-neutral-200 text-neutral-300 cursor-not-allowed"
+                          : "border-neutral-300 text-neutral-700 hover:border-orange-400 hover:text-orange-600"
+                      )}
+                    >
+                      {c.icon && <span className="mr-1">{c.icon}</span>}
+                      {c.name_th}
+                    </button>
+                  );
+                })}
+              </div>
+              {errors.shop_type_ids && <p className="text-xs text-red-500">{errors.shop_type_ids}</p>}
             </div>
 
             {/* Title */}

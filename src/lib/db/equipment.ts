@@ -25,6 +25,7 @@ export type EquipmentListing = {
   province_id: number | null;
   view_count: number;
   published_at: string | null;
+  shop_type_ids: number[] | null;
   listing_images: Array<{ id: string; storage_path: string; display_order: number }>;
   categories: { name_th: string; slug: string } | null;
   provinces: { name_th: string; slug: string } | null;
@@ -45,6 +46,7 @@ export type EquipmentListingWithDetails = {
   district: string | null;
   address: string | null;
   category_id: number | null;
+  shop_type_ids: number[] | null;
   province_id: number | null;
   latitude: number | null;
   longitude: number | null;
@@ -80,7 +82,7 @@ export interface EquipmentSearchParams {
 
 const EQUIPMENT_CARD_SELECT = `
   id, title, slug, listing_type, sale_price, condition, status,
-  is_featured, featured_until, district, province_id, view_count, published_at,
+  is_featured, featured_until, district, province_id, view_count, published_at, shop_type_ids,
   listing_images(id, storage_path, display_order),
   categories(name_th, slug),
   provinces(name_th, slug)
@@ -94,7 +96,7 @@ export async function getEquipmentCategories(): Promise<EquipmentCategory[]> {
     .from("categories")
     .select("id, name_th, slug, icon, display_order")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .eq("category_type" as any, "equipment")
+    .eq("category_type" as any, "shop")
     .eq("is_active", true)
     .order("display_order");
   return (data ?? []) as EquipmentCategory[];
@@ -144,7 +146,7 @@ export async function searchEquipment(params: EquipmentSearchParams): Promise<{
     .eq("listing_type", "equipment")
     .in("status", ["published", "reserved", "sold"]);
 
-  if (categoryId) query = query.eq("category_id", categoryId);
+  if (categoryId) query = query.filter("shop_type_ids", "cs", `{${categoryId}}`);
   if (provinceId) query = query.eq("province_id", provinceId);
 
   // Condition filter
