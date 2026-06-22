@@ -181,6 +181,37 @@ export async function renewEquipmentListingAction(
   return { success: true };
 }
 
+// ── Admin delete equipment listing ────────────────────────────
+
+export async function adminDeleteEquipmentListingAction(
+  listingId: string
+): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "กรุณาเข้าสู่ระบบ" };
+
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "";
+  const STAFF_EMAILS = (process.env.STAFF_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
+  if (user.email !== ADMIN_EMAIL && !STAFF_EMAILS.includes(user.email ?? "")) {
+    return { error: "ไม่มีสิทธิ์" };
+  }
+
+  // Delete images first
+  await supabase.from("listing_images").delete().eq("listing_id", listingId);
+
+  const { error } = await supabase
+    .from("listings")
+    .delete()
+    .eq("id", listingId)
+    .eq("listing_type", "equipment");
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/equipment");
+  return { success: true };
+}
+
 // ── Log user activity ──────────────────────────────────────────
 
 export async function logActivityAction(params: {

@@ -1,7 +1,10 @@
+"use server";
+
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { updateEquipmentStatusAction } from "@/lib/actions/equipment";
+import { updateEquipmentStatusAction, adminDeleteEquipmentListingAction } from "@/lib/actions/equipment";
 import { Eye } from "lucide-react";
+import { DeleteEquipmentButton } from "./delete-equipment-button";
 
 type EquipmentRow = {
   id: string;
@@ -108,6 +111,7 @@ export async function EquipmentManager() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">วิว</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">วันที่</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">เปลี่ยนสถานะ</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -159,6 +163,9 @@ export async function EquipmentManager() {
                       </td>
                       <td className="px-4 py-3">
                         <EquipmentStatusForm listingId={l.id} currentStatus={l.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <DeleteEquipmentButton listingId={l.id} title={l.title} />
                       </td>
                     </tr>
                   );
