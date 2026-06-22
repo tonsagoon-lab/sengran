@@ -386,6 +386,7 @@ export async function getFeaturedListings(): Promise<SearchListing[]> {
     .select(LISTING_CARD_SELECT)
     .eq("status", "published")
     .eq("is_featured", true)
+    .neq("listing_type", "equipment")
     .gt("featured_until", new Date().toISOString())
     .order("published_at", { ascending: false })
     .limit(10);
@@ -484,6 +485,8 @@ export async function getCategoriesWithListings(): Promise<
     .from("categories")
     .select("id, name_th, slug, icon")
     .eq("is_active", true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .eq("category_type" as any, "shop")
     .order("display_order");
 
   if (!cats || cats.length === 0) return [];

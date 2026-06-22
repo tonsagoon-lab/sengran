@@ -37,6 +37,7 @@ export async function getNearMeListings(
       .from("listings")
       .select(NEAR_ME_SELECT, { count: "exact" })
       .eq("status", "published")
+      .neq("listing_type", "equipment")
       .order("published_at", { ascending: false })
       .limit(4);
     return { listings: (data ?? []) as unknown as SearchListing[], total: count ?? 0 };
@@ -96,6 +97,7 @@ export async function getNearMeListings(
         .select(NEAR_ME_SELECT, { count: "exact" })
         .eq("province_id", provinceId)
         .eq("status", "published")
+        .neq("listing_type", "equipment")
         .order("published_at", { ascending: false })
         .limit(20);
       const filtered = ((data ?? []) as unknown as SearchListing[])
@@ -109,6 +111,7 @@ export async function getNearMeListings(
       .from("listings")
       .select(NEAR_ME_SELECT, { count: "exact" })
       .eq("status", "published")
+      .neq("listing_type", "equipment")
       .order("published_at", { ascending: false })
       .limit(20);
     const filteredLatest = ((latest ?? []) as unknown as SearchListing[])
@@ -121,6 +124,7 @@ export async function getNearMeListings(
       .select(NEAR_ME_SELECT, { count: "exact" })
       .eq("province_id", params.provinceId)
       .eq("status", "published")
+      .neq("listing_type", "equipment")
       .order("published_at", { ascending: false })
       .limit(20);
 
