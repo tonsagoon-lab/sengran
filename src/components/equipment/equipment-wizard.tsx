@@ -334,7 +334,7 @@ export function EquipmentWizard({ userId, categories, provinces }: WizardProps) 
                 value={state.description}
                 onChange={(e) => update({ description: e.target.value })}
                 placeholder="อธิบายสภาพ ขนาด ยี่ห้อ รุ่น หรือข้อมูลเพิ่มเติม..."
-                rows={5}
+                rows={10}
               />
               {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
             </div>
