@@ -142,7 +142,7 @@ export type Database = {
           contact_mobile: string;
           contact_line: string | null;
           video_url: string | null;
-          condition: "excellent" | "good" | "fair" | null;
+          condition: "new" | "used" | null;
           posted_ip: string | null;
           status: "draft" | "published" | "sold" | "expired" | "hidden" | "reserved";
           is_featured: boolean;
@@ -180,7 +180,7 @@ export type Database = {
           contact_mobile: string;
           contact_line?: string | null;
           video_url?: string | null;
-          condition?: "excellent" | "good" | "fair" | null;
+          condition?: "new" | "used" | null;
           posted_ip?: string | null;
           status?: "draft" | "published" | "sold" | "expired" | "hidden" | "reserved";
           is_featured?: boolean;
@@ -214,7 +214,7 @@ export type Database = {
           contact_mobile?: string;
           contact_line?: string | null;
           video_url?: string | null;
-          condition?: "excellent" | "good" | "fair" | null;
+          condition?: "new" | "used" | null;
           posted_ip?: string | null;
           status?: "draft" | "published" | "sold" | "expired" | "hidden" | "reserved";
           is_featured?: boolean;
@@ -385,4 +385,4 @@ export type Favorite = Database["public"]["Tables"]["favorites"]["Row"];
 
 export type ListingStatus = Listing["status"];
 export type ListingType = Listing["listing_type"];
-export type EquipmentCondition = "excellent" | "good" | "fair";
+export type EquipmentCondition = "new" | "used";

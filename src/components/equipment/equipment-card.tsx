@@ -9,9 +9,8 @@ import { resolveImageUrl } from "@/lib/utils/image-url";
 import type { EquipmentListing } from "@/lib/db/equipment";
 
 const CONDITION_BADGE: Record<string, { label: string; className: string }> = {
-  excellent: { label: "ดีมาก", className: "bg-green-100 text-green-700 border-green-200" },
-  good:      { label: "ดี",     className: "bg-blue-100 text-blue-700 border-blue-200" },
-  fair:      { label: "พอใช้",  className: "bg-gray-100 text-gray-600 border-gray-200" },
+  new:  { label: "มือ 1", className: "bg-green-100 text-green-700 border-green-200" },,
+  used: { label: "มือ 2", className: "bg-blue-100 text-blue-700 border-blue-200" },,
 };
 
 const STATUS_OVERLAY: Record<string, { label: string; className: string } | undefined> = {

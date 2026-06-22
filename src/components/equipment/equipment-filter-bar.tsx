@@ -38,9 +38,8 @@ interface EquipmentFilterBarProps {
 
 const CONDITION_OPTIONS = [
   { value: "",          label: "ทุกสภาพ" },
-  { value: "excellent", label: "ดีมาก" },
-  { value: "good",      label: "ดี" },
-  { value: "fair",      label: "พอใช้" },
+  { value: "new",  label: "มือ 1" },
+  { value: "used", label: "มือ 2" },
 ];
 
 const SORT_OPTIONS = [

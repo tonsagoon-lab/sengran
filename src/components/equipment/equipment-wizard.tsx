@@ -28,7 +28,7 @@ interface WizardProps {
   provinces: Province[];
 }
 
-type EquipmentCondition = "excellent" | "good" | "fair";
+type EquipmentCondition = "new" | "used";
 
 interface WizardState {
   listingId: string;
@@ -49,9 +49,8 @@ interface WizardState {
 }
 
 const CONDITION_OPTIONS: { value: EquipmentCondition; label: string; desc: string; color: string }[] = [
-  { value: "excellent", label: "ดีมาก",  desc: "แทบไม่มีรอย ใช้งานน้อย",      color: "border-green-400 bg-green-50 text-green-800" },
-  { value: "good",      label: "ดี",      desc: "มีรอยนิดหน่อย ยังใช้ดี",      color: "border-blue-400 bg-blue-50 text-blue-800" },
-  { value: "fair",      label: "พอใช้",   desc: "มีรอยใช้งาน ใช้งานได้ปกติ",   color: "border-gray-400 bg-gray-50 text-gray-700" },
+  { value: "new",  label: "มือ 1", desc: "สินค้าใหม่ ยังไม่ผ่านการใช้งาน", color: "border-green-400 bg-green-50 text-green-800" },
+  { value: "used", label: "มือ 2", desc: "ผ่านการใช้งานแล้ว ยังใช้งานได้ดี", color: "border-blue-400 bg-blue-50 text-blue-800" },
 ];
 
 // ── Step schemas ──────────────────────────────────────────────
@@ -59,7 +58,7 @@ const CONDITION_OPTIONS: { value: EquipmentCondition; label: string; desc: strin
 const step1Schema = z.object({
   category_id: z.string().min(1, "กรุณาเลือกหมวดหมู่"),
   title: z.string().min(5, "ชื่อสินค้าต้องมีอย่างน้อย 5 ตัวอักษร").max(120, "ชื่อสินค้าไม่เกิน 120 ตัวอักษร"),
-  condition: z.enum(["excellent", "good", "fair"] as const, { error: "กรุณาเลือกสภาพสินค้า" }),
+  condition: z.enum(["new", "used"] as const, { error: "กรุณาเลือกสภาพสินค้า" }),
   price: z.string().min(1, "กรุณาระบุราคา"),
   description: z.string().min(10, "กรุณาอธิบายสินค้าอย่างน้อย 10 ตัวอักษร"),
 });
