@@ -98,6 +98,7 @@ export async function getEquipmentCategories(): Promise<EquipmentCategory[]> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .eq("category_type" as any, "shop")
     .eq("is_active", true)
+    .neq("slug", "space-only")
     .order("display_order");
   return (data ?? []) as EquipmentCategory[];
 }
