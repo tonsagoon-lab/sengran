@@ -267,7 +267,6 @@ export function EquipmentWizard({ userId, categories, provinces }: WizardProps) 
                           : "border-neutral-300 text-neutral-700 hover:border-orange-400 hover:text-orange-600"
                       )}
                     >
-                      {c.icon && <span className="mr-1">{c.icon}</span>}
                       {c.name_th}
                     </button>
                   );
