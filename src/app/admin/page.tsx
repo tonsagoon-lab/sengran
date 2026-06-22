@@ -25,6 +25,7 @@ import { AdminTabs } from "@/components/admin/admin-tabs";
 import { ArticlesManager } from "@/components/admin/articles-manager";
 import { ReportsManager } from "@/components/admin/reports-manager";
 import { OrdersManager } from "@/components/admin/orders-manager";
+import { EquipmentManager } from "@/components/admin/equipment-manager";
 import {
   LayoutGrid, Users, Eye,
   FileText, CheckCircle, EyeOff, FileEdit, TrendingUp, Globe,
@@ -85,7 +86,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const isAdmin = user.email === ADMIN_EMAIL;
   const isStaffOnly = !isAdmin && STAFF_EMAILS.includes(user.email ?? "");
   const { tab } = await searchParams;
-  const activeTab = tab === "settings" ? "settings" : tab === "articles" ? "articles" : tab === "reports" ? "reports" : tab === "orders" ? "orders" : "dashboard";
+  const activeTab = tab === "settings" ? "settings" : tab === "articles" ? "articles" : tab === "reports" ? "reports" : tab === "orders" ? "orders" : tab === "equipment" ? "equipment" : "dashboard";
 
   const [
     stats,
@@ -204,6 +205,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {!isStaffOnly && <>
         {/* Tab bar */}
         <AdminTabs pendingReports={pendingReportCount} pendingOrders={pendingOrderCount} />
+
+        {/* ── Equipment tab ────────────────────────────────── */}
+        {activeTab === "equipment" && <EquipmentManager />}
 
         {/* ── Orders tab ───────────────────────────────────── */}
         {activeTab === "orders" && (

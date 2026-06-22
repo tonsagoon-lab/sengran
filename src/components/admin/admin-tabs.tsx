@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { key: "dashboard", label: "Dashboard" },
+  { key: "equipment", label: "ขายอุปกรณ์" },
   { key: "orders", label: "คำสั่งซื้อ" },
   { key: "reports", label: "แจ้งปัญหา" },
   { key: "articles", label: "บทความ" },
