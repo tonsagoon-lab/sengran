@@ -82,7 +82,7 @@ async function EquipmentGrid({
 export async function EquipmentBrowsePage({
   searchParams,
   lockedCategory,
-  heroTitle = "ของมือสอง อุปกรณ์ร้านค้า ราคาดี",
+  heroTitle = "ขายอุปกรณ์ร้านค้า มือหนึ่ง มือสอง ราคาดี",
 }: EquipmentBrowsePageProps) {
   const mergedParams: EquipmentSearchParams = {
     ...searchParams,
