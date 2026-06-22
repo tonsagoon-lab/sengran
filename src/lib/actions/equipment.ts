@@ -73,7 +73,7 @@ export async function createEquipmentListingAction(
     listing_type: "equipment",
     sale_price: Number(price),
     rent_price: null,
-    condition: condition as "excellent" | "good" | "fair",
+    condition: condition as "new" | "used",
     category_id: Number(categoryId),
     province_id: Number(provinceId),
     district: district || null,

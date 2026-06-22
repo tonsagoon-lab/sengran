@@ -9,8 +9,8 @@ import { resolveImageUrl } from "@/lib/utils/image-url";
 import type { EquipmentListing } from "@/lib/db/equipment";
 
 const CONDITION_BADGE: Record<string, { label: string; className: string }> = {
-  new:  { label: "มือ 1", className: "bg-green-100 text-green-700 border-green-200" },,
-  used: { label: "มือ 2", className: "bg-blue-100 text-blue-700 border-blue-200" },,
+  new:  { label: "มือ 1", className: "bg-green-100 text-green-700 border-green-200" },
+  used: { label: "มือ 2", className: "bg-blue-100 text-blue-700 border-blue-200" },
 };
 
 const STATUS_OVERLAY: Record<string, { label: string; className: string } | undefined> = {

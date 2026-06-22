@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getEquipmentCategories } from "@/lib/db/equipment";
 import { getAllProvinces } from "@/lib/db/listings";
 import { EquipmentWizard } from "@/components/equipment/equipment-wizard";
-import { PhoneGate } from "@/components/equipment/phone-gate";
 import { TopMenuBar } from "@/components/top-menu-bar";
 
 export const metadata: Metadata = {
@@ -22,7 +21,7 @@ export default async function NewEquipmentPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, mobile, phone_verified")
+    .select("display_name, mobile")
     .eq("id", user.id)
     .single();
 
@@ -35,8 +34,6 @@ export default async function NewEquipmentPage() {
     getAllProvinces(),
   ]);
 
-  const phoneVerified = (profile as { phone_verified?: boolean }).phone_verified ?? false;
-
   return (
     <>
       <TopMenuBar />
@@ -46,13 +43,11 @@ export default async function NewEquipmentPage() {
           โพสต์ฟรี ขายได้เร็ว มีผู้ซื้อทั่วประเทศ
         </p>
       </div>
-      <PhoneGate phoneVerified={phoneVerified}>
-        <EquipmentWizard
-          userId={user.id}
-          categories={categories}
-          provinces={provinces}
-        />
-      </PhoneGate>
+      <EquipmentWizard
+        userId={user.id}
+        categories={categories}
+        provinces={provinces}
+      />
     </>
   );
 }
