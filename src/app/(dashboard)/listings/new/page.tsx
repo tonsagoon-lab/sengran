@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAllCategories, getAllProvinces, getAllAmenities } from "@/lib/db/listings";
 import { ListingWizard } from "@/components/listing-wizard";
 import { ContactInfoDialog } from "@/components/contact-info-dialog";
+import { ListingTypeChooser } from "@/components/listing-type-chooser";
 
 export const metadata = { title: "ลงประกาศใหม่ — เซ้งร้าน.com" , robots: { index: false, follow: false } };
 
@@ -39,15 +40,17 @@ export default async function NewListingPage() {
           defaultLineId={profile?.line_id ?? undefined}
         />
       )}
-      <h1 className="text-2xl font-bold text-neutral-900 mb-6">ลงประกาศใหม่</h1>
-      <ListingWizard
-        userId={user.id}
-        categories={categories}
-        provinces={provinces}
-        amenities={amenities}
-        linePackageUrl={config.data?.line_package_url ?? undefined}
-        lineFaakUrl={config.data?.line_faak_url ?? undefined}
-      />
+      <ListingTypeChooser>
+        <h1 className="text-2xl font-bold text-neutral-900 mb-6">ลงประกาศใหม่</h1>
+        <ListingWizard
+          userId={user.id}
+          categories={categories}
+          provinces={provinces}
+          amenities={amenities}
+          linePackageUrl={config.data?.line_package_url ?? undefined}
+          lineFaakUrl={config.data?.line_faak_url ?? undefined}
+        />
+      </ListingTypeChooser>
     </main>
   );
 }
