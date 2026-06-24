@@ -173,17 +173,41 @@ export default async function EquipmentDetailPage({ params }: Props) {
               )}
             </div>
 
-            {/* Price */}
-            {listing.sale_price != null && (
-              <div className="rounded-xl border bg-orange-50 border-orange-100 p-5">
+            {/* Price + quick contact */}
+            <div className="rounded-xl border bg-orange-50 border-orange-100 p-5 space-y-3">
+              {listing.sale_price != null && (
                 <div className="flex items-center gap-2">
                   <Tag className="h-4 w-4 text-orange-500" />
                   <span className="text-xl font-bold text-orange-600">
                     ฿{fmt.format(listing.sale_price)}
                   </span>
                 </div>
-              </div>
-            )}
+              )}
+              {(displayMobile || lineId) && (
+                <div className="flex flex-wrap gap-2 pt-1 border-t border-orange-100">
+                  {displayMobile && (
+                    <a
+                      href={`tel:${displayMobile}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-orange-200 px-3 py-1.5 text-sm font-medium text-orange-700 hover:bg-orange-50 transition-colors"
+                    >
+                      <Phone className="h-3.5 w-3.5" />
+                      {displayMobile}
+                    </a>
+                  )}
+                  {lineId && (
+                    <a
+                      href={`https://line.me/ti/p/${lineId.startsWith("@") ? lineId : `~${lineId}`}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-green-200 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      LINE: {lineId}
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
 
             <Separator />
 
