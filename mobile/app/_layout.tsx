@@ -1,6 +1,8 @@
 import { createContext, useEffect, useRef, useState } from "react";
-import { Stack } from "expo-router";
+import { Platform } from "react-native";
+import { Stack, router } from "expo-router";
 import { Session } from "@supabase/supabase-js";
+import * as Notifications from "expo-notifications";
 import { supabase } from "../lib/supabase";
 import {
   getUnreadMessageCount,
@@ -15,14 +17,47 @@ export const UnreadCountsContext = createContext<{
   refresh: () => void;
 }>({ counts: { messages: 0, notifications: 0 }, refresh: () => {} });
 
-// Push notification setup is handled in a separate native module
-// that is only included in development/production builds (not Expo Go)
-async function setupPush(_userId: string) {
-  // No-op in Expo Go — will be implemented in dev/production build
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+async function setupPush(userId: string) {
+  try {
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+      });
+    }
+
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    let finalStatus = existing;
+    if (existing !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") return;
+
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    await supabase.from("profiles").update({ push_token: token }).eq("id", userId);
+  } catch {
+    // push notifications ไม่ได้รับการสนับสนุนบน simulator หรือ Expo Go
+  }
 }
 
 function setupNotificationListeners() {
-  return () => {};
+  const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    const slug = response.notification.request.content.data?.slug as string | undefined;
+    if (slug) router.push(`/listing/${slug}`);
+  });
+  return () => sub.remove();
 }
 
 export default function RootLayout() {
