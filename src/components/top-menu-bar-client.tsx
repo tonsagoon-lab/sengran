@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Map, Megaphone, MessageCircle, ShieldCheck, Bell, PlusCircle, Package } from "lucide-react";
+import { Home, Map, MessageCircle, ShieldCheck, Bell, PlusCircle, Package } from "lucide-react";
 
 interface TopMenuBarClientProps {
   unreadCount: number;
@@ -11,7 +11,6 @@ interface TopMenuBarClientProps {
   isLoggedIn: boolean;
 }
 
-const LINE_CTA_URL = "https://line.me/R/ti/p/~salebiz";
 
 export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLoggedIn }: TopMenuBarClientProps) {
   const pathname = usePathname();
@@ -69,25 +68,14 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLog
           )}
         </Link>
 
-        {/* 4. ลงโฆษณา — highlighted LINE green */}
-        <a
-          href={LINE_CTA_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex shrink-0 items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
-        >
-          <Megaphone className="h-4 w-4 shrink-0" />
-          <span>ลงโฆษณา</span>
-        </a>
-
-        {/* 5. ของมือสอง */}
+        {/* 4. ขายอุปกรณ์ — highlighted purple, ติดกับเตือนเซ้งร้าน */}
         <Link
           href="/equipment"
-          className={linkClass(pathname.startsWith("/equipment"))}
-          aria-label="ของมือสอง"
+          className="flex shrink-0 items-center gap-1.5 rounded-full bg-purple-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-purple-700 transition-colors whitespace-nowrap"
+          aria-label="ขายอุปกรณ์"
         >
           <Package className="h-4 w-4 shrink-0" />
-          <span className="hidden sm:inline">ขายอุปกรณ์</span>
+          <span>ขายอุปกรณ์</span>
         </Link>
 
         {/* 6. แผนที่เซ้ง */}
