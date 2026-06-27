@@ -383,6 +383,12 @@ export default function ListingDetailScreen() {
                   {profile.display_name ?? "ผู้ขาย"}
                 </Text>
                 <Text style={styles.sellerMeta}>ผู้ขาย · ตอบเร็ว</Text>
+                {listing.contact_mobile ? (
+                  <Text style={styles.sellerContact}>📞 {listing.contact_mobile}</Text>
+                ) : null}
+                {listing.contact_line ? (
+                  <Text style={styles.sellerContact}>💬 LINE: {listing.contact_line}</Text>
+                ) : null}
               </View>
               <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
             </View>
@@ -532,6 +538,7 @@ const styles = StyleSheet.create({
   sellerInfo: { flex: 1 },
   sellerName: { fontSize: 14, fontWeight: "600", color: "#111827" },
   sellerMeta: { fontSize: 12, color: "#9ca3af", marginTop: 2 },
+  sellerContact: { fontSize: 12, color: "#6b7280", marginTop: 3 },
 
   // Map
   mapCard: {
