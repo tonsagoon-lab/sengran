@@ -27,6 +27,7 @@ function generateId(): string {
   });
 }
 
+type FormType = null | "shop";
 type ListingType = "sale" | "rent" | "both";
 
 const LISTING_TYPES: { value: ListingType; label: string; emoji: string }[] = [
@@ -36,6 +37,7 @@ const LISTING_TYPES: { value: ListingType; label: string; emoji: string }[] = [
 ];
 
 export default function CreateListingScreen() {
+  const [formType, setFormType] = useState<FormType>(null);
   const [listingType, setListingType] = useState<ListingType>("sale");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -339,7 +341,66 @@ export default function CreateListingScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          <Text style={styles.heading}>ลงประกาศใหม่</Text>
+          {/* ── Type chooser ── */}
+          {formType === null ? (
+            <View style={{ flex: 1, paddingTop: 16 }}>
+              <Text style={styles.heading}>ลงประกาศใหม่</Text>
+              <Text style={{ color: "#6b7280", fontSize: 14, textAlign: "center", marginBottom: 28 }}>
+                เลือกประเภทที่ต้องการลง
+              </Text>
+              <View style={{ gap: 14 }}>
+                <Pressable
+                  onPress={() => setFormType("shop")}
+                  style={({ pressed }) => ({
+                    borderRadius: 16,
+                    borderWidth: 2,
+                    borderColor: pressed ? "#f97316" : "#e5e7eb",
+                    backgroundColor: pressed ? "#fff7ed" : "#fff",
+                    padding: 24,
+                    alignItems: "center",
+                    gap: 8,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.06,
+                    shadowRadius: 4,
+                    elevation: 2,
+                  })}
+                >
+                  <Text style={{ fontSize: 48 }}>🏪</Text>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: "#111827" }}>เซ้งร้าน</Text>
+                  <Text style={{ fontSize: 13, color: "#6b7280", textAlign: "center" }}>
+                    ลงประกาศเซ้ง / ให้เช่าพื้นที่ร้านค้า
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => router.push("/equipment-create")}
+                  style={({ pressed }) => ({
+                    borderRadius: 16,
+                    borderWidth: 2,
+                    borderColor: pressed ? "#f97316" : "#e5e7eb",
+                    backgroundColor: pressed ? "#fff7ed" : "#fff",
+                    padding: 24,
+                    alignItems: "center",
+                    gap: 8,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.06,
+                    shadowRadius: 4,
+                    elevation: 2,
+                  })}
+                >
+                  <Text style={{ fontSize: 48 }}>🔧</Text>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: "#111827" }}>ขายอุปกรณ์</Text>
+                  <Text style={{ fontSize: 13, color: "#6b7280", textAlign: "center" }}>
+                    ลงขายอุปกรณ์ร้านค้า มือหนึ่ง มือสอง
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+          <>
+          <Text style={styles.heading}>เซ้งร้าน — ลงประกาศ</Text>
 
           {/* Type picker */}
           <Text style={styles.label}>ประเภทประกาศ *</Text>
@@ -624,6 +685,8 @@ export default function CreateListingScreen() {
               )}
             </Pressable>
           </View>
+          </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
