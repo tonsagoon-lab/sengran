@@ -12,56 +12,35 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import * as Location from "expo-location";
 import { supabase } from "../../lib/supabase";
 import { resolveImageUrl } from "../../lib/image-url";
 import type { Category, Listing, Province } from "../../lib/types";
 
 const PAGE_SIZE = 20;
-const RADIUS_OPTIONS = [5, 10, 25, 50];
-type FilterType = "all" | "sale" | "rent" | "both";
 type SortKey = "newest" | "price_asc" | "price_desc";
 
-function priceText(item: Listing): string {
-  const price =
-    item.listing_type === "sale"
-      ? item.sale_price
-      : item.listing_type === "rent"
-      ? item.rent_price
-      : item.sale_price ?? item.rent_price;
+function priceText(price: number | null): string {
   if (!price) return "";
   if (price >= 1_000_000) return `฿${(price / 1_000_000).toFixed(1)}M`;
   if (price >= 1_000) return `฿${Math.round(price / 1000)}K`;
   return `฿${price.toLocaleString("th-TH")}`;
 }
 
-function priceUnit(item: Listing): string {
-  if (item.listing_type === "rent") return "/ด.";
-  if (item.listing_type === "both" && !item.sale_price && item.rent_price) return "/ด.";
-  return "";
-}
-
 function getAgeBadge(published_at: string | null | undefined): string | null {
   if (!published_at) return null;
   const days = Math.floor((Date.now() - new Date(published_at).getTime()) / 86_400_000);
-  if (days <= 10) return `ลงได้ ${Math.max(days, 1)} วัน`;
-  if (days <= 30) return "ประกาศใหม่";
+  if (days <= 10) return `ใหม่ ${Math.max(days, 1)} วัน`;
   return null;
 }
 
-type BadgeType = "sale" | "rent" | "both";
-function TypeBadge({ type }: { type: BadgeType }) {
-  const cfg = {
-    sale: { bg: "#dbeafe", border: "#bfdbfe", text: "#1d4ed8", label: "เซ้ง" },
-    rent: { bg: "#dcfce7", border: "#bbf7d0", text: "#15803d", label: "ให้เช่า" },
-    both: { bg: "#f3e8ff", border: "#e9d5ff", text: "#7e22ce", label: "เซ้ง+เช่า" },
-  }[type];
+function ConditionBadge({ condition }: { condition: string | null }) {
+  const isNew = condition === "new";
   return (
-    <View style={[styles.badge, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
-      <Text style={[styles.badgeText, { color: cfg.text }]}>{cfg.label}</Text>
+    <View style={[styles.badge, { backgroundColor: isNew ? "#dcfce7" : "#dbeafe", borderColor: isNew ? "#bbf7d0" : "#bfdbfe" }]}>
+      <Text style={[styles.badgeText, { color: isNew ? "#15803d" : "#1d4ed8" }]}>{isNew ? "มือ 1" : "มือ 2"}</Text>
     </View>
   );
 }
@@ -73,6 +52,8 @@ function ListingRow({ item, onPress }: { item: Listing; onPress: () => void }) {
   const imageUrl = cover ? resolveImageUrl(cover.storage_path) : null;
   const [imgError, setImgError] = useState(false);
   const ageBadge = getAgeBadge(item.published_at);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const condition = (item as any).condition as string | null;
   return (
     <Pressable style={styles.row} onPress={onPress}>
       <View style={styles.rowImgWrap}>
@@ -80,13 +61,13 @@ function ListingRow({ item, onPress }: { item: Listing; onPress: () => void }) {
           <Image source={{ uri: imageUrl }} style={styles.rowImg} onError={() => setImgError(true)} />
         ) : (
           <View style={[styles.rowImg, styles.rowImgPlaceholder]}>
-            <Text style={{ fontSize: 22 }}>🏪</Text>
+            <Text style={{ fontSize: 22 }}>🛒</Text>
           </View>
         )}
       </View>
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
-          <TypeBadge type={item.listing_type} />
+          <ConditionBadge condition={condition} />
           {ageBadge && (
             <View style={styles.ageBadge}>
               <Text style={styles.ageBadgeText}>{ageBadge}</Text>
@@ -103,8 +84,7 @@ function ListingRow({ item, onPress }: { item: Listing; onPress: () => void }) {
           </View>
         )}
         <View style={styles.rowBottom}>
-          <Text style={styles.rowPrice}>{priceText(item)}</Text>
-          {priceUnit(item) ? <Text style={styles.rowPriceUnit}>{priceUnit(item)}</Text> : null}
+          <Text style={styles.rowPrice}>{priceText(item.sale_price)}</Text>
         </View>
       </View>
       <Ionicons name="chevron-forward" size={16} color="#d1d5db" style={styles.rowChevron} />
@@ -112,7 +92,6 @@ function ListingRow({ item, onPress }: { item: Listing; onPress: () => void }) {
   );
 }
 
-// ─── OptionPill helper ───────────────────────────────────────
 function OptionPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
     <Pressable style={[styles.optionPill, active && styles.optionPillActive]} onPress={onPress}>
@@ -121,10 +100,7 @@ function OptionPill({ label, active, onPress }: { label: string; active: boolean
   );
 }
 
-// ─── Browse screen ───────────────────────────────────────────
 export default function BrowseScreen() {
-  const params = useLocalSearchParams<{ type?: string; cat?: string; q?: string }>();
-
   const [listings, setListings] = useState<Listing[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -132,35 +108,23 @@ export default function BrowseScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [search, setSearch] = useState(params.q ?? "");
-  const [debouncedSearch, setDebouncedSearch] = useState(params.q ?? "");
-  const [filterType, setFilterType] = useState<FilterType>((params.type as FilterType) ?? "all");
-  const [filterCat, setFilterCat] = useState<number | null>(params.cat ? Number(params.cat) : null);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterShopType, setFilterShopType] = useState<number | null>(null);
   const [filterProvince, setFilterProvince] = useState<number | null>(null);
-  const [filterRadius, setFilterRadius] = useState<number | null>(null);
-  const [nearbyIds, setNearbyIds] = useState<string[] | null>(null);
-  const [gpsLoading, setGpsLoading] = useState(false);
+  const [filterCondition, setFilterCondition] = useState<"all" | "new" | "used">("all");
   const [provinceSearch, setProvinceSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [resultCount, setResultCount] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
-  const [activePicker, setActivePicker] = useState<null | "type" | "cat" | "province">(null);
+  const [activePicker, setActivePicker] = useState<null | "cat" | "province">(null);
 
   const page = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => { loadMeta(); }, []);
-
-  // Sync params when navigating from another tab (tab screens stay mounted)
-  useEffect(() => {
-    setFilterCat(params.cat ? Number(params.cat) : null);
-  }, [params.cat]);
-
-  useEffect(() => {
-    setFilterType((params.type as FilterType) ?? "all");
-  }, [params.type]);
 
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -168,73 +132,45 @@ export default function BrowseScreen() {
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [search]);
 
-  useEffect(() => { resetAndLoad(); }, [filterType, filterCat, filterProvince, nearbyIds, debouncedSearch, sortKey, minPrice, maxPrice]);
+  useEffect(() => { resetAndLoad(); }, [filterShopType, filterProvince, filterCondition, debouncedSearch, sortKey, minPrice, maxPrice]);
 
   async function loadMeta() {
     const [catsRes, provRes] = await Promise.all([
-      supabase.from("categories").select("id, name_th, slug").eq("is_active", true).order("display_order"),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from("categories").select("id, name_th, slug").eq("category_type", "shop").eq("is_active", true).neq("slug", "space-only").order("display_order"),
       supabase.from("provinces").select("id, name_th, slug").order("name_th"),
     ]);
     setCategories(catsRes.data ?? []);
     setProvinces(provRes.data ?? []);
   }
 
-  async function requestGPS(radius: number) {
-    setGpsLoading(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") { setGpsLoading(false); return; }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const { latitude: lat, longitude: lng } = loc.coords;
-
-      const { data: nearby } = await supabase.rpc("listings_within_distance", {
-        center_lat: lat, center_lng: lng, radius_km: radius,
-      });
-      const ids = (nearby ?? []).map((r: any) => r.id) as string[];
-      setNearbyIds(ids);
-      setFilterRadius(radius);
-      setFilterProvince(null);
-    } catch {
-      // ignore
-    }
-    setGpsLoading(false);
-  }
-
-  function clearDistance() {
-    setNearbyIds(null);
-    setFilterRadius(null);
-  }
-
   function buildQuery(from: number, to: number) {
-    let q = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q = (supabase as any)
       .from("listings")
       .select(
-        `id, slug, title, listing_type, sale_price, rent_price, district, is_featured, featured_until, published_at,
+        `id, slug, title, listing_type, sale_price, condition, district, published_at,
          listing_images(id, storage_path, display_order),
-         categories(name_th, slug), provinces(name_th, slug)`,
+         provinces(name_th, slug)`,
         { count: "exact" }
       )
-      .eq("status", "published")
-      .order("boost_rank", { ascending: false })
+      .eq("listing_type", "equipment")
+      .in("status", ["published", "reserved"])
       .order("published_at", { ascending: false })
       .range(from, to);
 
-    if (filterType === "sale") q = q.in("listing_type", ["sale", "both"]);
-    else if (filterType === "rent") q = q.in("listing_type", ["rent", "both"]);
-    else if (filterType === "both") q = q.eq("listing_type", "both");
-    if (filterCat) q = q.eq("category_id", filterCat);
+    if (filterShopType) q = q.filter("shop_type_ids", "cs", `{${filterShopType}}`);
     if (filterProvince) q = q.eq("province_id", filterProvince);
-    if (nearbyIds) q = q.in("id", nearbyIds.length > 0 ? nearbyIds : ["_none_"]);
+    if (filterCondition !== "all") q = q.eq("condition", filterCondition);
     if (debouncedSearch.trim()) q = q.ilike("title", `%${debouncedSearch.trim()}%`);
 
     const min = minPrice ? Number(minPrice.replace(/,/g, "")) : null;
     const max = maxPrice ? Number(maxPrice.replace(/,/g, "")) : null;
-    const priceCol = filterType === "rent" ? "rent_price" : "sale_price";
-    if (min) q = q.gte(priceCol, min);
-    if (max) q = q.lte(priceCol, max);
+    if (min) q = q.gte("sale_price", min);
+    if (max) q = q.lte("sale_price", max);
 
-    if (sortKey === "price_asc") q = q.order(priceCol, { ascending: true, nullsFirst: false });
-    else if (sortKey === "price_desc") q = q.order(priceCol, { ascending: false, nullsFirst: false });
+    if (sortKey === "price_asc") q = q.order("sale_price", { ascending: true, nullsFirst: false });
+    else if (sortKey === "price_desc") q = q.order("sale_price", { ascending: false, nullsFirst: false });
     return q;
   }
 
@@ -267,27 +203,20 @@ export default function BrowseScreen() {
   }
 
   function resetFilters() {
-    setFilterType("all");
-    setFilterCat(null);
+    setFilterShopType(null);
     setFilterProvince(null);
+    setFilterCondition("all");
     setSortKey("newest");
     setMinPrice("");
     setMaxPrice("");
-    clearDistance();
+    setProvinceSearch("");
   }
 
-  const hasActiveFilter = filterType !== "all" || filterCat !== null || filterProvince !== null || filterRadius !== null || sortKey !== "newest" || !!minPrice || !!maxPrice;
+  const hasActiveFilter = filterShopType !== null || filterProvince !== null || filterCondition !== "all" || sortKey !== "newest" || !!minPrice || !!maxPrice;
 
   const filteredProvinces = provinces.filter((p) =>
     provinceSearch ? p.name_th.includes(provinceSearch) : true
   );
-
-  const TYPE_FILTERS: { key: FilterType; label: string }[] = [
-    { key: "all", label: "ทั้งหมด" },
-    { key: "sale", label: "เซ้ง" },
-    { key: "rent", label: "ให้เช่า" },
-    { key: "both", label: "เซ้ง+เช่า" },
-  ];
 
   const renderItem = useCallback(
     ({ item }: { item: Listing }) => (
@@ -300,20 +229,15 @@ export default function BrowseScreen() {
       {/* Top bar */}
       <View style={styles.topBar}>
         <View>
-          <Text style={styles.topBarTitle}>ประกาศทั้งหมด</Text>
+          <Text style={styles.topBarTitle}>ขายอุปกรณ์</Text>
           {!loading && (
             <Text style={styles.topBarSub}>พบ {resultCount.toLocaleString("th-TH")} รายการ</Text>
           )}
         </View>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <Pressable style={styles.filterIconBtn} onPress={() => router.push("/map")}>
-            <Ionicons name="map-outline" size={22} color="#374151" />
-          </Pressable>
-          <Pressable style={styles.filterIconBtn} onPress={() => setShowFilter(true)}>
-            <Ionicons name="options-outline" size={22} color={hasActiveFilter ? "#f97316" : "#374151"} />
-            {hasActiveFilter && <View style={styles.filterDot} />}
-          </Pressable>
-        </View>
+        <Pressable style={styles.filterIconBtn} onPress={() => setShowFilter(true)}>
+          <Ionicons name="options-outline" size={22} color={hasActiveFilter ? "#f97316" : "#374151"} />
+          {hasActiveFilter && <View style={styles.filterDot} />}
+        </Pressable>
       </View>
 
       {/* Search */}
@@ -321,7 +245,7 @@ export default function BrowseScreen() {
         <Ionicons name="search-outline" size={17} color="#9ca3af" />
         <TextInput
           style={styles.searchInput}
-          placeholder="ค้นหาร้าน..."
+          placeholder="ค้นหาอุปกรณ์..."
           placeholderTextColor="#9ca3af"
           value={search}
           onChangeText={setSearch}
@@ -337,22 +261,25 @@ export default function BrowseScreen() {
       {/* Filter chips */}
       <View style={styles.chipRow}>
         <Pressable
-          style={[styles.filterChip, filterType !== "all" && styles.filterChipActive]}
-          onPress={() => setActivePicker("type")}
+          style={[styles.filterChip, filterCondition !== "all" && styles.filterChipActive]}
+          onPress={() => {
+            const next = filterCondition === "all" ? "new" : filterCondition === "new" ? "used" : "all";
+            setFilterCondition(next);
+          }}
         >
-          <Text style={[styles.filterChipText, filterType !== "all" && styles.filterChipTextActive]} numberOfLines={1}>
-            {filterType === "all" ? "ประเภทประกาศ" : TYPE_FILTERS.find(f => f.key === filterType)?.label}
+          <Text style={[styles.filterChipText, filterCondition !== "all" && styles.filterChipTextActive]} numberOfLines={1}>
+            {filterCondition === "all" ? "สภาพ" : filterCondition === "new" ? "มือ 1" : "มือ 2"}
           </Text>
-          <Ionicons name="chevron-down" size={12} color={filterType !== "all" ? "#c2410c" : "#6b7280"} />
+          <Ionicons name="chevron-down" size={12} color={filterCondition !== "all" ? "#c2410c" : "#6b7280"} />
         </Pressable>
         <Pressable
-          style={[styles.filterChip, filterCat !== null && styles.filterChipActive]}
+          style={[styles.filterChip, filterShopType !== null && styles.filterChipActive]}
           onPress={() => setActivePicker("cat")}
         >
-          <Text style={[styles.filterChipText, filterCat !== null && styles.filterChipTextActive]} numberOfLines={1}>
-            {filterCat !== null ? categories.find(c => c.id === filterCat)?.name_th ?? "หมวดหมู่" : "หมวดหมู่"}
+          <Text style={[styles.filterChipText, filterShopType !== null && styles.filterChipTextActive]} numberOfLines={1}>
+            {filterShopType !== null ? categories.find(c => c.id === filterShopType)?.name_th ?? "ประเภทร้าน" : "ประเภทร้าน"}
           </Text>
-          <Ionicons name="chevron-down" size={12} color={filterCat !== null ? "#c2410c" : "#6b7280"} />
+          <Ionicons name="chevron-down" size={12} color={filterShopType !== null ? "#c2410c" : "#6b7280"} />
         </Pressable>
         <Pressable
           style={[styles.filterChip, filterProvince !== null && styles.filterChipActive]}
@@ -382,8 +309,8 @@ export default function BrowseScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Ionicons name="search-outline" size={48} color="#d1d5db" />
-              <Text style={styles.emptyTitle}>ไม่พบประกาศ</Text>
+              <Text style={{ fontSize: 40 }}>🛒</Text>
+              <Text style={styles.emptyTitle}>ไม่พบอุปกรณ์</Text>
               <Text style={styles.emptySub}>ลองเปลี่ยนคำค้นหาหรือตัวกรอง</Text>
             </View>
           }
@@ -396,40 +323,25 @@ export default function BrowseScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setActivePicker(null)}>
           <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHandle} />
-            {activePicker === "type" && (
-              <>
-                <Text style={styles.modalTitle}>ประเภทประกาศ</Text>
-                {TYPE_FILTERS.map((f) => (
-                  <Pressable
-                    key={f.key}
-                    style={[styles.pickerRow, filterType === f.key && styles.pickerRowActive]}
-                    onPress={() => { setFilterType(f.key); setActivePicker(null); }}
-                  >
-                    <Text style={[styles.pickerRowText, filterType === f.key && styles.pickerRowTextActive]}>{f.label}</Text>
-                    {filterType === f.key && <Ionicons name="checkmark" size={18} color="#f97316" />}
-                  </Pressable>
-                ))}
-              </>
-            )}
             {activePicker === "cat" && (
               <>
-                <Text style={styles.modalTitle}>หมวดหมู่</Text>
+                <Text style={styles.modalTitle}>ประเภทร้าน</Text>
                 <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
                   <Pressable
-                    style={[styles.pickerRow, filterCat === null && styles.pickerRowActive]}
-                    onPress={() => { setFilterCat(null); setActivePicker(null); }}
+                    style={[styles.pickerRow, filterShopType === null && styles.pickerRowActive]}
+                    onPress={() => { setFilterShopType(null); setActivePicker(null); }}
                   >
-                    <Text style={[styles.pickerRowText, filterCat === null && styles.pickerRowTextActive]}>ทุกหมวดหมู่</Text>
-                    {filterCat === null && <Ionicons name="checkmark" size={18} color="#f97316" />}
+                    <Text style={[styles.pickerRowText, filterShopType === null && styles.pickerRowTextActive]}>ทุกประเภท</Text>
+                    {filterShopType === null && <Ionicons name="checkmark" size={18} color="#f97316" />}
                   </Pressable>
                   {categories.map((cat) => (
                     <Pressable
                       key={cat.id}
-                      style={[styles.pickerRow, filterCat === cat.id && styles.pickerRowActive]}
-                      onPress={() => { setFilterCat(cat.id); setActivePicker(null); }}
+                      style={[styles.pickerRow, filterShopType === cat.id && styles.pickerRowActive]}
+                      onPress={() => { setFilterShopType(cat.id); setActivePicker(null); }}
                     >
-                      <Text style={[styles.pickerRowText, filterCat === cat.id && styles.pickerRowTextActive]}>{cat.name_th}</Text>
-                      {filterCat === cat.id && <Ionicons name="checkmark" size={18} color="#f97316" />}
+                      <Text style={[styles.pickerRowText, filterShopType === cat.id && styles.pickerRowTextActive]}>{cat.name_th}</Text>
+                      {filterShopType === cat.id && <Ionicons name="checkmark" size={18} color="#f97316" />}
                     </Pressable>
                   ))}
                 </ScrollView>
@@ -482,6 +394,21 @@ export default function BrowseScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.modalTitle}>กรองการค้นหา</Text>
 
+              {/* Condition */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>สภาพอุปกรณ์</Text>
+                <View style={styles.optionRow}>
+                  {(["all", "new", "used"] as const).map((c) => (
+                    <OptionPill
+                      key={c}
+                      label={c === "all" ? "ทั้งหมด" : c === "new" ? "มือ 1" : "มือ 2"}
+                      active={filterCondition === c}
+                      onPress={() => setFilterCondition(c)}
+                    />
+                  ))}
+                </View>
+              </View>
+
               {/* Sort */}
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>เรียงตาม</Text>
@@ -527,10 +454,10 @@ export default function BrowseScreen() {
                 </View>
                 <View style={styles.pricePresets}>
                   {[
-                    { label: "< 100K", min: "", max: "100000" },
-                    { label: "100K–500K", min: "100000", max: "500000" },
-                    { label: "500K–1M", min: "500000", max: "1000000" },
-                    { label: "> 1M", min: "1000000", max: "" },
+                    { label: "< 1K", min: "", max: "1000" },
+                    { label: "1K–10K", min: "1000", max: "10000" },
+                    { label: "10K–50K", min: "10000", max: "50000" },
+                    { label: "> 50K", min: "50000", max: "" },
                   ].map((p) => (
                     <Pressable
                       key={p.label}
@@ -545,13 +472,13 @@ export default function BrowseScreen() {
                 </View>
               </View>
 
-              {/* Category */}
+              {/* Shop type */}
               <View style={styles.modalSection}>
-                <Text style={styles.modalLabel}>หมวดหมู่</Text>
+                <Text style={styles.modalLabel}>ประเภทร้าน</Text>
                 <View style={styles.optionRow}>
-                  <OptionPill label="ทั้งหมด" active={filterCat === null} onPress={() => setFilterCat(null)} />
+                  <OptionPill label="ทั้งหมด" active={filterShopType === null} onPress={() => setFilterShopType(null)} />
                   {categories.map((cat) => (
-                    <OptionPill key={cat.id} label={cat.name_th} active={filterCat === cat.id} onPress={() => setFilterCat(filterCat === cat.id ? null : cat.id)} />
+                    <OptionPill key={cat.id} label={cat.name_th} active={filterShopType === cat.id} onPress={() => setFilterShopType(filterShopType === cat.id ? null : cat.id)} />
                   ))}
                 </View>
               </View>
@@ -569,7 +496,7 @@ export default function BrowseScreen() {
                     onChangeText={setProvinceSearch}
                   />
                   {(provinceSearch.length > 0 || filterProvince !== null) && (
-                    <Pressable onPress={() => { setProvinceSearch(""); setFilterProvince(null); clearDistance(); }}>
+                    <Pressable onPress={() => { setProvinceSearch(""); setFilterProvince(null); }}>
                       <Ionicons name="close-circle" size={16} color="#9ca3af" />
                     </Pressable>
                   )}
@@ -580,7 +507,7 @@ export default function BrowseScreen() {
                     <Text style={styles.provinceSelectedText}>
                       {provinces.find((p) => p.id === filterProvince)?.name_th}
                     </Text>
-                    <Pressable onPress={() => { setFilterProvince(null); clearDistance(); }}>
+                    <Pressable onPress={() => setFilterProvince(null)}>
                       <Ionicons name="close" size={14} color="#9ca3af" />
                     </Pressable>
                   </View>
@@ -594,7 +521,7 @@ export default function BrowseScreen() {
                         <Pressable
                           key={prov.id}
                           style={[styles.provinceItem, filterProvince === prov.id && styles.provinceItemActive]}
-                          onPress={() => { setFilterProvince(prov.id); setProvinceSearch(""); clearDistance(); }}
+                          onPress={() => { setFilterProvince(prov.id); setProvinceSearch(""); }}
                         >
                           <Text style={[styles.provinceItemText, filterProvince === prov.id && styles.provinceItemTextActive]}>
                             {prov.name_th}
@@ -603,24 +530,6 @@ export default function BrowseScreen() {
                         </Pressable>
                       ))
                     )}
-                  </View>
-                )}
-              </View>
-
-              {/* Distance */}
-              <View style={styles.modalSection}>
-                <Text style={styles.modalLabel}>ระยะทาง (จากตำแหน่งปัจจุบัน)</Text>
-                {gpsLoading ? (
-                  <View style={styles.gpsLoading}>
-                    <ActivityIndicator size="small" color="#f97316" />
-                    <Text style={styles.gpsLoadingText}>กำลังหาตำแหน่ง...</Text>
-                  </View>
-                ) : (
-                  <View style={styles.optionRow}>
-                    <OptionPill label="ปิด" active={filterRadius === null} onPress={clearDistance} />
-                    {RADIUS_OPTIONS.map((r) => (
-                      <OptionPill key={r} label={`${r} กม.`} active={filterRadius === r} onPress={() => { requestGPS(r); setFilterProvince(null); }} />
-                    ))}
                   </View>
                 )}
               </View>
@@ -696,7 +605,6 @@ const styles = StyleSheet.create({
   rowImgPlaceholder: { backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" },
   rowBody: { flex: 1, gap: 4 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 6 },
-  rowDate: { fontSize: 10, color: "#9ca3af", marginLeft: "auto" },
   ageBadge: {
     backgroundColor: "#fff7ed",
     borderRadius: 999,
@@ -710,7 +618,6 @@ const styles = StyleSheet.create({
   rowLocText: { fontSize: 11, color: "#9ca3af", flex: 1 },
   rowBottom: { flexDirection: "row", alignItems: "baseline", gap: 3, marginTop: 2 },
   rowPrice: { fontSize: 16, fontWeight: "700", color: "#f97316" },
-  rowPriceUnit: { fontSize: 11, color: "#9ca3af" },
   rowChevron: { marginTop: 4, flexShrink: 0 },
 
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
@@ -737,7 +644,6 @@ const styles = StyleSheet.create({
   },
   pickerSearchInput: { flex: 1, fontSize: 14, color: "#111827" },
 
-  // Filter modal
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
   modalSheet: {
     backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20,
@@ -803,9 +709,6 @@ const styles = StyleSheet.create({
   provinceItemText: { fontSize: 14, color: "#374151" },
   provinceItemTextActive: { color: "#c2410c", fontWeight: "600" },
   provinceNoResult: { fontSize: 13, color: "#9ca3af", textAlign: "center", paddingVertical: 12 },
-
-  gpsLoading: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8 },
-  gpsLoadingText: { fontSize: 13, color: "#9ca3af" },
 
   modalApplyBtn: {
     backgroundColor: "#f97316", borderRadius: 12,
