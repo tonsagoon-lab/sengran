@@ -16,7 +16,7 @@ type TabConfig = {
 
 const TABS: TabConfig[] = [
   { name: "index",       label: "หน้าแรก",  icon: "home-outline",          iconActive: "home" },
-  { name: "browse",      label: "ค้นหา",    icon: "search-outline",        iconActive: "search" },
+  { name: "browse",      label: "ขายอุปกรณ์", icon: "hammer-outline",        iconActive: "hammer" },
   { name: "create",      label: "ลงประกาศ", icon: "add",                   iconActive: "add", primary: true },
   { name: "my-listings", label: "ของฉัน",   icon: "document-text-outline", iconActive: "document-text" },
   { name: "profile",     label: "โปรไฟล์",  icon: "person-outline",        iconActive: "person" },
