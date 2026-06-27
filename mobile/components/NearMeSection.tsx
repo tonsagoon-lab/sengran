@@ -168,7 +168,6 @@ export function NearMeSection() {
   // ── Query ร้านใกล้เคียง ───────────────────────────────────
   async function fetchNearby(lat: number, lng: number, radius: number) {
     setState({ phase: "loading" });
-    console.log("[NearMe] fetchNearby start", { lat, lng, radius });
 
     const timeout = <T,>(ms: number): Promise<T> =>
       new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
@@ -183,8 +182,7 @@ export function NearMeSection() {
         supabase.rpc("listings_within_distance", { center_lat: lat, center_lng: lng, radius_km: radius }),
         timeout<never>(10_000),
       ]);
-      const { data: nearby, error: rpcError } = rpcResult as { data: unknown; error: unknown };
-      console.log("[NearMe] rpc result", { count: (nearby as unknown[])?.length, error: rpcError });
+      const { data: nearby } = rpcResult as { data: unknown; error: unknown };
 
       if (nearby && (nearby as { id: string }[]).length > 0) {
         const ids = (nearby as { id: string; distance_km: number }[]).slice(0, 8).map((r) => r.id);
@@ -202,53 +200,53 @@ export function NearMeSection() {
         }
       }
 
-      // 2. Fallback: หา province ที่ใกล้ที่สุดจากรัศมี 200 กม.
-      console.log("[NearMe] fallback: wide 200km search");
-      const { data: wideIds } = await Promise.race([
-        supabase.rpc("listings_within_distance", { center_lat: lat, center_lng: lng, radius_km: 200 }),
-        timeout<never>(10_000),
-      ]);
-      console.log("[NearMe] wide rpc count:", (wideIds as unknown[])?.length);
+      // 2. Fallback: reverse geocode → หาจังหวัดจาก GPS โดยตรง
+      let provinceId: number | null = null;
+      try {
+        const [geo] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+        const regionName = geo?.region ?? geo?.city ?? null;
+        if (regionName) {
+          const { data: prov } = await supabase
+            .from("provinces")
+            .select("id")
+            .ilike("name_th", `%${regionName}%`)
+            .limit(1);
+          provinceId = (prov as { id: number }[] | null)?.[0]?.id ?? null;
+        }
+      } catch {
+        // reverse geocode ล้มเหลว — ลอง fallback ต่อ
+      }
 
-      if (wideIds && (wideIds as { id: string }[]).length > 0) {
-        const nearestId = (wideIds as { id: string }[])[0].id;
-        const { data: nearest } = await supabase
-          .from("listings").select("province_id").eq("id", nearestId).single();
-        const provinceId = (nearest as { province_id: number } | null)?.province_id ?? null;
-
-        if (provinceId) {
-          const { data } = await Promise.race([
-            supabase.from("listings").select(SELECT)
-              .eq("province_id", provinceId).eq("status", "published")
-              .order("published_at", { ascending: false }).limit(8),
-            timeout<never>(10_000),
-          ]);
-          if (data && data.length > 0) {
-            setState({ phase: "results", listings: data as unknown as Listing[], radius, lat, lng });
-            return;
-          }
+      // 3. ถ้า reverse geocode ไม่ได้ → หา province จาก listing ที่ใกล้ที่สุดในรัศมี 300 กม.
+      if (!provinceId) {
+        const { data: wideIds } = await Promise.race([
+          supabase.rpc("listings_within_distance", { center_lat: lat, center_lng: lng, radius_km: 300 }),
+          timeout<never>(10_000),
+        ]);
+        if (wideIds && (wideIds as { id: string }[]).length > 0) {
+          const nearestId = (wideIds as { id: string }[])[0].id;
+          const { data: nearest } = await supabase
+            .from("listings").select("province_id").eq("id", nearestId).single();
+          provinceId = (nearest as { province_id: number } | null)?.province_id ?? null;
         }
       }
 
-      // 3. Last resort: listing ล่าสุด
-      console.log("[NearMe] fallback: latest listings");
-      const { data: latest } = await Promise.race([
-        supabase.from("listings").select(SELECT)
-          .eq("status", "published")
-          .order("published_at", { ascending: false }).limit(8),
-        timeout<never>(10_000),
-      ]);
-
-      console.log("[NearMe] latest count:", latest?.length);
-      if (latest && latest.length > 0) {
-        setState({ phase: "results", listings: latest as unknown as Listing[], radius, lat, lng });
-        return;
+      // 4. ดึงประกาศจากจังหวัดที่ได้
+      if (provinceId) {
+        const { data } = await Promise.race([
+          supabase.from("listings").select(SELECT)
+            .eq("province_id", provinceId).eq("status", "published")
+            .order("published_at", { ascending: false }).limit(8),
+          timeout<never>(10_000),
+        ]);
+        if (data && data.length > 0) {
+          setState({ phase: "results", listings: data as unknown as Listing[], radius, lat, lng });
+          return;
+        }
       }
 
-      console.log("[NearMe] all fallbacks empty → showing empty state");
       setState({ phase: "empty", lat, lng });
-    } catch (err) {
-      console.log("[NearMe] caught error:", err);
+    } catch {
       setState({ phase: "empty", lat, lng });
     }
   }
