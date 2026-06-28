@@ -2,12 +2,21 @@ import { createContext, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { Stack, router } from "expo-router";
 import { Session } from "@supabase/supabase-js";
-import * as Notifications from "expo-notifications";
 import { supabase } from "../lib/supabase";
 import {
   getUnreadMessageCount,
   getUnreadNotificationCount,
 } from "../lib/notifications";
+
+// Lazy load to avoid crash in Expo Go on Android SDK 53+
+function getNotifications() {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require("expo-notifications") as typeof import("expo-notifications");
+  } catch {
+    return null;
+  }
+}
 
 export const SessionContext = createContext<Session | null>(null);
 
@@ -17,39 +26,38 @@ export const UnreadCountsContext = createContext<{
   refresh: () => void;
 }>({ counts: { messages: 0, notifications: 0 }, refresh: () => {} });
 
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
-} catch {
-  // expo-notifications not supported in Expo Go on Android SDK 53+
-}
+getNotifications()?.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 async function setupPush(userId: string) {
   try {
+    const N = getNotifications();
+    if (!N) return;
+
     if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
+      await N.setNotificationChannelAsync("default", {
         name: "default",
-        importance: Notifications.AndroidImportance.MAX,
+        importance: N.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
       });
     }
 
-    const { status: existing } = await Notifications.getPermissionsAsync();
+    const { status: existing } = await N.getPermissionsAsync();
     let finalStatus = existing;
     if (existing !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
+      const { status } = await N.requestPermissionsAsync();
       finalStatus = status;
     }
     if (finalStatus !== "granted") return;
 
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    const token = (await N.getExpoPushTokenAsync()).data;
     await supabase.from("profiles").update({ push_token: token }).eq("id", userId);
   } catch {
     // push notifications ไม่ได้รับการสนับสนุนบน simulator หรือ Expo Go
@@ -58,7 +66,9 @@ async function setupPush(userId: string) {
 
 function setupNotificationListeners() {
   try {
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    const N = getNotifications();
+    if (!N) return () => {};
+    const sub = N.addNotificationResponseReceivedListener((response) => {
       const slug = response.notification.request.content.data?.slug as string | undefined;
       if (slug) router.push(`/listing/${slug}`);
     });
