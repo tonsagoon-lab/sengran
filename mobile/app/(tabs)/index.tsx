@@ -297,9 +297,13 @@ export default function HomeScreen() {
             <Text style={styles.appName}>เซ้งร้าน</Text>
           </View>
           <View style={styles.headerIcons}>
+            <Pressable style={styles.adBtn} onPress={() => Linking.openURL("https://line.me/R/ti/p/~salebiz")}>
+              <Ionicons name="megaphone-outline" size={13} color="#fff" />
+              <Text style={styles.adBtnText}>ซื้อโฆษณา</Text>
+            </Pressable>
             <Pressable style={styles.notifBtn} onPress={() => router.push("/(tabs)/profile?tab=notifications")}>
               <Ionicons name="notifications-outline" size={15} color="#c2410c" />
-              <Text style={styles.notifBtnText}>แจ้งเตือนร้านใหม่</Text>
+              <Text style={styles.notifBtnText}>แจ้งร้านใหม่</Text>
               {counts.notifications > 0 && (
                 <View style={styles.notifBadge}>
                   <Text style={styles.notifBadgeText}>
@@ -492,6 +496,11 @@ const styles = StyleSheet.create({
   appName: { fontSize: 20, fontWeight: "800", color: "#111827", letterSpacing: -0.5 },
   headerIcons: { flexDirection: "row", gap: 4 },
   iconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  adBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "#06C755", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6,
+  },
+  adBtnText: { fontSize: 12, fontWeight: "700", color: "#fff" },
   notifBtn: {
     flexDirection: "row", alignItems: "center", gap: 5,
     backgroundColor: "#fff7ed", borderWidth: 1, borderColor: "#fed7aa",
