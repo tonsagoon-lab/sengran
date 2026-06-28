@@ -50,12 +50,21 @@ export default function LoginScreen() {
   const [appleLoading, setAppleLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
-  // Handle deep link callback (Android Expo Go)
+  // Handle deep link callback (Android)
   useEffect(() => {
     const sub = Linking.addEventListener("url", async ({ url }) => {
-      if (!url.includes("access_token")) return;
-      const ok = await applyTokensFromUrl(url);
-      if (ok) router.replace("/(tabs)");
+      if (url.includes("access_token")) {
+        const ok = await applyTokensFromUrl(url);
+        if (ok) router.replace("/(tabs)");
+      } else if (url.includes("code=")) {
+        try {
+          const code = new URL(url).searchParams.get("code");
+          if (code) {
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (!error) router.replace("/(tabs)");
+          }
+        } catch {}
+      }
     });
     return () => sub.remove();
   }, []);
@@ -74,7 +83,7 @@ export default function LoginScreen() {
   async function handleGoogleLogin() {
     setGoogleLoading(true);
     try {
-      const redirectTo = makeRedirectUri({ path: "auth/callback" });
+      const redirectTo = makeRedirectUri({ scheme: "sengran" });
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -87,15 +96,22 @@ export default function LoginScreen() {
         return;
       }
 
-      // On Android Expo Go, openAuthSessionAsync may not intercept the redirect.
-      // Linking listener above handles the callback in that case.
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      const result = await WebBrowser.openAuthSessionAsync(data.url, "sengran://");
 
       if (result.type === "success" && result.url) {
-        const ok = await applyTokensFromUrl(result.url);
-        if (ok) router.replace("/(tabs)");
+        const url = result.url;
+        if (url.includes("access_token")) {
+          const ok = await applyTokensFromUrl(url);
+          if (ok) router.replace("/(tabs)");
+        } else if (url.includes("code=")) {
+          const code = new URL(url).searchParams.get("code");
+          if (code) {
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (!error) router.replace("/(tabs)");
+          }
+        }
       }
-    } catch (e) {
+    } catch {
       Alert.alert("เกิดข้อผิดพลาด", "ลอง login ใหม่อีกครั้ง");
     }
     setGoogleLoading(false);
