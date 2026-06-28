@@ -223,6 +223,7 @@ export default function HomeScreen() {
            categories(name_th, slug), provinces(name_th, slug)`
         )
         .eq("status", "published")
+        .in("listing_type", ["sale", "rent", "both"])
         .order("published_at", { ascending: false })
         .limit(20);
 

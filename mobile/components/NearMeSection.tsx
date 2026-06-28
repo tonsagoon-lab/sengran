@@ -187,7 +187,7 @@ export function NearMeSection() {
       if (nearby && (nearby as { id: string }[]).length > 0) {
         const ids = (nearby as { id: string; distance_km: number }[]).slice(0, 8).map((r) => r.id);
         const { data } = await Promise.race([
-          supabase.from("listings").select(SELECT).in("id", ids),
+          supabase.from("listings").select(SELECT).in("id", ids).in("listing_type", ["sale", "rent", "both"]),
           timeout<never>(10_000),
         ]);
         if (data && data.length > 0) {
@@ -236,6 +236,7 @@ export function NearMeSection() {
         const { data } = await Promise.race([
           supabase.from("listings").select(SELECT)
             .eq("province_id", provinceId).eq("status", "published")
+            .in("listing_type", ["sale", "rent", "both"])
             .order("published_at", { ascending: false }).limit(8),
           timeout<never>(10_000),
         ]);
