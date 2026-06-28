@@ -108,7 +108,6 @@ export default function EquipmentCreateScreen() {
       quality: 0.8,
       allowsMultipleSelection: true,
       selectionLimit: 10 - images.length,
-      base64: true,
     });
     if (result.canceled || result.assets.length === 0) return;
 
@@ -118,12 +117,12 @@ export default function EquipmentCreateScreen() {
 
     for (const asset of result.assets) {
       try {
-        if (!asset.base64) { failCount++; continue; }
         const ext = (asset.uri.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z]/g, "") || "jpg";
         const mimeType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
         const storagePath = `${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const bytes = Uint8Array.from(atob(asset.base64), (c) => c.charCodeAt(0));
-        const { error } = await supabase.storage.from("listings").upload(storagePath, bytes, { contentType: mimeType });
+        const response = await fetch(asset.uri);
+        const arrayBuffer = await response.arrayBuffer();
+        const { error } = await supabase.storage.from("listings").upload(storagePath, arrayBuffer, { contentType: mimeType });
         if (error) { failCount++; } else { newImages.push({ uri: asset.uri, path: storagePath }); }
       } catch { failCount++; }
     }
