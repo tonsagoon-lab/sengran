@@ -28,8 +28,6 @@ type SortKey = "newest" | "price_asc" | "price_desc";
 
 function priceText(price: number | null): string {
   if (!price) return "";
-  if (price >= 1_000_000) return `฿${(price / 1_000_000).toFixed(1)}M`;
-  if (price >= 1_000) return `฿${Math.round(price / 1000)}K`;
   return `฿${price.toLocaleString("th-TH")}`;
 }
 

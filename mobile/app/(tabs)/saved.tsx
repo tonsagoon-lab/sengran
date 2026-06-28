@@ -27,8 +27,6 @@ function priceText(item: Listing): string {
       ? item.rent_price
       : item.sale_price ?? item.rent_price;
   if (!price) return "";
-  if (price >= 1_000_000) return `฿${(price / 1_000_000).toFixed(1)}M`;
-  if (price >= 1_000) return `฿${Math.round(price / 1000)}K`;
   return `฿${price.toLocaleString("th-TH")}`;
 }
 

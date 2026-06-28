@@ -29,8 +29,6 @@ function priceText(item: Listing): string {
       ? item.rent_price
       : item.sale_price ?? item.rent_price;
   if (!price) return "";
-  if (price >= 1_000_000) return `฿${(price / 1_000_000).toFixed(1)}M`;
-  if (price >= 1_000) return `฿${Math.round(price / 1000)}K`;
   return `฿${price.toLocaleString("th-TH")}`;
 }
 
@@ -600,7 +598,7 @@ const styles = StyleSheet.create({
   // Banner
   bannerStack: { paddingHorizontal: 16, gap: 10 },
   bannerCard: { borderRadius: 12, overflow: "hidden" },
-  bannerImg: { width: "100%", aspectRatio: 16 / 9 },
+  bannerImg: { width: "100%", aspectRatio: 16 / 11 },
 
   // Featured scroll
   featuredScroll: { paddingLeft: 16, paddingRight: 8, gap: 10, paddingBottom: 4 },
