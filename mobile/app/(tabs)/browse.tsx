@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   Image,
   Modal,
@@ -17,7 +18,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { resolveImageUrl } from "../../lib/image-url";
+import { NearMeEquipmentSection } from "../../components/NearMeEquipmentSection";
 import type { Category, Listing, Province } from "../../lib/types";
+
+const CARD_WIDTH = (Dimensions.get("window").width - 16 * 2 - 10) / 2;
 
 const PAGE_SIZE = 20;
 type SortKey = "newest" | "price_asc" | "price_desc";
@@ -45,7 +49,7 @@ function ConditionBadge({ condition }: { condition: string | null }) {
   );
 }
 
-function ListingRow({ item, onPress }: { item: Listing; onPress: () => void }) {
+function ListingCard({ item, onPress }: { item: Listing; onPress: () => void }) {
   const cover = (item.listing_images ?? [])
     .slice()
     .sort((a, b) => a.display_order - b.display_order)[0];
@@ -54,40 +58,40 @@ function ListingRow({ item, onPress }: { item: Listing; onPress: () => void }) {
   const ageBadge = getAgeBadge(item.published_at);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const condition = (item as any).condition as string | null;
+  const isNew = condition === "new";
   return (
-    <Pressable style={styles.row} onPress={onPress}>
-      <View style={styles.rowImgWrap}>
+    <Pressable style={[styles.card, { width: CARD_WIDTH }]} onPress={onPress}>
+      <View style={styles.cardImgWrap}>
         {imageUrl && !imgError ? (
-          <Image source={{ uri: imageUrl }} style={styles.rowImg} onError={() => setImgError(true)} />
+          <Image source={{ uri: imageUrl }} style={styles.cardImg} onError={() => setImgError(true)} />
         ) : (
-          <View style={[styles.rowImg, styles.rowImgPlaceholder]}>
-            <Text style={{ fontSize: 22 }}>🛒</Text>
+          <View style={[styles.cardImg, styles.cardImgPlaceholder]}>
+            <Text style={{ fontSize: 28 }}>🛒</Text>
           </View>
         )}
-      </View>
-      <View style={styles.rowBody}>
-        <View style={styles.rowTop}>
-          <ConditionBadge condition={condition} />
+        <View style={styles.cardBadgeRow}>
+          <View style={[styles.condBadge, { backgroundColor: isNew ? "#dcfce7" : "#dbeafe", borderColor: isNew ? "#bbf7d0" : "#bfdbfe" }]}>
+            <Text style={[styles.condBadgeText, { color: isNew ? "#15803d" : "#1d4ed8" }]}>{isNew ? "มือ 1" : "มือ 2"}</Text>
+          </View>
           {ageBadge && (
             <View style={styles.ageBadge}>
               <Text style={styles.ageBadgeText}>{ageBadge}</Text>
             </View>
           )}
         </View>
-        <Text style={styles.rowTitle} numberOfLines={2}>{item.title}</Text>
+      </View>
+      <View style={styles.cardBody}>
+        <Text style={styles.cardPrice}>{priceText(item.sale_price)}</Text>
+        <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
         {(item.district || item.provinces) && (
-          <View style={styles.rowLoc}>
+          <View style={styles.cardLoc}>
             <Ionicons name="location-outline" size={11} color="#9ca3af" />
-            <Text style={styles.rowLocText} numberOfLines={1}>
+            <Text style={styles.cardLocText} numberOfLines={1}>
               {[item.district, item.provinces?.name_th].filter(Boolean).join(", ")}
             </Text>
           </View>
         )}
-        <View style={styles.rowBottom}>
-          <Text style={styles.rowPrice}>{priceText(item.sale_price)}</Text>
-        </View>
       </View>
-      <Ionicons name="chevron-forward" size={16} color="#d1d5db" style={styles.rowChevron} />
     </Pressable>
   );
 }
@@ -220,7 +224,7 @@ export default function BrowseScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Listing }) => (
-      <ListingRow item={item} onPress={() => router.push(`/listing/${item.slug}`)} />
+      <ListingCard item={item} onPress={() => router.push(`/listing/${item.slug}`)} />
     ), []
   );
 
@@ -302,11 +306,14 @@ export default function BrowseScreen() {
           data={listings}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.listContent}
           style={{ backgroundColor: "#f9fafb" }}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />}
+          ListHeaderComponent={<NearMeEquipmentSection />}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Text style={{ fontSize: 40 }}>🛒</Text>
@@ -590,35 +597,28 @@ const styles = StyleSheet.create({
   filterChipTextActive: { color: "#c2410c", fontWeight: "600" },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-  listContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
+  listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20 },
+  columnWrapper: { gap: 10, marginBottom: 10 },
 
-  row: {
-    flexDirection: "row", gap: 12, padding: 12,
+  card: {
     backgroundColor: "#fff", borderRadius: 14,
-    borderWidth: 1, borderColor: "#f3f4f6",
-    alignItems: "flex-start",
+    borderWidth: 1, borderColor: "#e5e7eb", overflow: "hidden",
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
-  rowImgWrap: { borderRadius: 10, overflow: "hidden", flexShrink: 0 },
-  rowImg: { width: 100, height: 100, resizeMode: "cover" },
-  rowImgPlaceholder: { backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" },
-  rowBody: { flex: 1, gap: 4 },
-  rowTop: { flexDirection: "row", alignItems: "center", gap: 6 },
-  ageBadge: {
-    backgroundColor: "#fff7ed",
-    borderRadius: 999,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginLeft: "auto",
-  },
+  cardImgWrap: { position: "relative" },
+  cardImg: { width: "100%", aspectRatio: 4 / 3, resizeMode: "cover" },
+  cardImgPlaceholder: { backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" },
+  cardBadgeRow: { position: "absolute", bottom: 6, left: 6, right: 6, flexDirection: "row", gap: 4, alignItems: "center" },
+  condBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, borderWidth: 1 },
+  condBadgeText: { fontSize: 10, fontWeight: "700" },
+  ageBadge: { backgroundColor: "#fff7ed", borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 },
   ageBadgeText: { fontSize: 9, fontWeight: "600", color: "#ea580c" },
-  rowTitle: { fontSize: 14, fontWeight: "600", color: "#111827", lineHeight: 20 },
-  rowLoc: { flexDirection: "row", alignItems: "center", gap: 3 },
-  rowLocText: { fontSize: 11, color: "#9ca3af", flex: 1 },
-  rowBottom: { flexDirection: "row", alignItems: "baseline", gap: 3, marginTop: 2 },
-  rowPrice: { fontSize: 16, fontWeight: "700", color: "#f97316" },
-  rowChevron: { marginTop: 4, flexShrink: 0 },
+  cardBody: { padding: 10, gap: 3 },
+  cardPrice: { fontSize: 15, fontWeight: "700", color: "#f97316" },
+  cardTitle: { fontSize: 12, fontWeight: "500", color: "#374151", lineHeight: 17 },
+  cardLoc: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
+  cardLocText: { fontSize: 11, color: "#9ca3af", flex: 1 },
 
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
   badgeText: { fontSize: 11, fontWeight: "600" },
