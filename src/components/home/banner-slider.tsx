@@ -40,14 +40,15 @@ export function BannerSliderClient({ banners }: BannerSliderClientProps) {
         <div className="flex">
           {banners.map((banner) => {
             const inner = (
-              <div className="relative w-full aspect-[3/2] shrink-0 flex-none bg-neutral-100">
+              <div className="relative w-full shrink-0 flex-none bg-neutral-100">
                 <Image
                   src={banner.image_url}
                   alt={banner.title ?? "ประกาศ"}
-                  fill
-                  className="object-cover"
+                  width={900}
+                  height={600}
+                  className="w-full h-auto"
                   sizes="(max-width: 768px) 100vw, 672px"
-                  quality={70}
+                  quality={85}
                   priority
                 />
               </div>
