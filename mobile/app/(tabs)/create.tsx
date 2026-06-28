@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -154,6 +155,7 @@ export default function CreateListingScreen() {
   const [revenuePeriod, setRevenuePeriod] = useState<"monthly_last" | "quarterly_avg" | "yearly">("monthly_last");
   const [district, setDistrict] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [provinceId, setProvinceId] = useState<number | null>(null);
   const [provinceSearch, setProvinceSearch] = useState("");
   const [provinceDropdownOpen, setProvinceDropdownOpen] = useState(false);
@@ -170,6 +172,10 @@ export default function CreateListingScreen() {
   const [images, setImages] = useState<{ uri: string; path: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [tempName, setTempName] = useState("");
+  const [tempMobile, setTempMobile] = useState("");
+  const pendingStatus = useRef<"published" | "draft" | null>(null);
   const listingId = useRef(generateId());
   const userId = useRef<string | null>(null);
 
@@ -377,7 +383,10 @@ export default function CreateListingScreen() {
       .single();
 
     if (!profile?.display_name || !profile?.mobile) {
-      Alert.alert("ข้อมูลไม่ครบ", "กรุณาเพิ่มชื่อและเบอร์โทรในโปรไฟล์ก่อนลงประกาศ");
+      pendingStatus.current = status;
+      setTempName(profile?.display_name ?? "");
+      setTempMobile(profile?.mobile ?? "");
+      setProfileModalVisible(true);
       setSubmitting(false);
       return;
     }
@@ -433,6 +442,18 @@ export default function CreateListingScreen() {
         { text: "ตกลง", onPress: () => router.push("/(tabs)/my-listings") },
       ]);
     }
+  }
+
+  async function confirmProfile() {
+    if (!tempName.trim() || !tempMobile.trim()) {
+      Alert.alert("กรุณากรอก", "ชื่อและเบอร์โทรให้ครบ");
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("profiles").update({ display_name: tempName.trim(), mobile: tempMobile.trim() }).eq("id", user.id);
+    setProfileModalVisible(false);
+    if (pendingStatus.current) handleSubmit(pendingStatus.current);
   }
 
   function resetForm() {
@@ -614,21 +635,12 @@ export default function CreateListingScreen() {
 
           {/* Category */}
           <Text style={styles.label}>หมวดหมู่</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-            <View style={styles.chipRow}>
-              {categories.map((cat) => (
-                <Pressable
-                  key={cat.id}
-                  style={[styles.chip, categoryId === cat.id && styles.chipActive]}
-                  onPress={() => setCategoryId(categoryId === cat.id ? null : cat.id)}
-                >
-                  <Text style={[styles.chipText, categoryId === cat.id && styles.chipTextActive]}>
-                    {cat.name_th}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </ScrollView>
+          <Pressable style={styles.selectBtn} onPress={() => setCategoryDropdownOpen(true)}>
+            <Text style={[styles.selectBtnText, !categoryId && { color: "#9ca3af" }]}>
+              {categoryId ? categories.find((c) => c.id === categoryId)?.name_th : "เลือกหมวดหมู่..."}
+            </Text>
+            <Text style={{ color: "#9ca3af" }}>▾</Text>
+          </Pressable>
 
           {/* Province — search input + dropdown */}
           <Text style={styles.label}>จังหวัด</Text>
@@ -808,6 +820,73 @@ export default function CreateListingScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Category Modal */}
+      <Modal visible={categoryDropdownOpen} animationType="slide" transparent onRequestClose={() => setCategoryDropdownOpen(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setCategoryDropdownOpen(false)}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>เลือกหมวดหมู่</Text>
+            <ScrollView>
+              <Pressable
+                style={[styles.modalItem, !categoryId && styles.modalItemActive]}
+                onPress={() => { setCategoryId(null); setCategoryDropdownOpen(false); }}
+              >
+                <Text style={[styles.modalItemText, !categoryId && styles.modalItemTextActive]}>ไม่ระบุหมวดหมู่</Text>
+              </Pressable>
+              {categories.map((cat) => (
+                <Pressable
+                  key={cat.id}
+                  style={[styles.modalItem, categoryId === cat.id && styles.modalItemActive]}
+                  onPress={() => { setCategoryId(cat.id); setCategoryDropdownOpen(false); }}
+                >
+                  <Text style={[styles.modalItemText, categoryId === cat.id && styles.modalItemTextActive]}>
+                    {cat.name_th}
+                  </Text>
+                  {categoryId === cat.id && <Text style={{ color: "#f97316" }}>✓</Text>}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Profile info Modal */}
+      <Modal visible={profileModalVisible} animationType="slide" transparent onRequestClose={() => setProfileModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>กรอกข้อมูลติดต่อ</Text>
+            <Text style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
+              ต้องการชื่อและเบอร์โทรเพื่อลงประกาศ
+            </Text>
+            <Text style={styles.label}>ชื่อที่แสดง *</Text>
+            <TextInput
+              style={[styles.input, { marginBottom: 12 }]}
+              placeholder="ชื่อร้านหรือชื่อผู้ติดต่อ"
+              value={tempName}
+              onChangeText={setTempName}
+            />
+            <Text style={styles.label}>เบอร์โทรศัพท์ *</Text>
+            <TextInput
+              style={[styles.input, { marginBottom: 20 }]}
+              placeholder="0812345678"
+              value={tempMobile}
+              onChangeText={setTempMobile}
+              keyboardType="phone-pad"
+            />
+            <View style={styles.btnRow}>
+              <Pressable style={styles.draftBtn} onPress={() => setProfileModalVisible(false)}>
+                <Text style={styles.draftBtnText}>ยกเลิก</Text>
+              </Pressable>
+              <Pressable style={styles.publishBtn} onPress={confirmProfile}>
+                <Text style={styles.publishBtnText}>ตกลง</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -977,4 +1056,41 @@ const styles = StyleSheet.create({
   },
   locationResultText: { fontSize: 13, color: "#92400e", flex: 1 },
   locationClear: { fontSize: 13, color: "#f97316", fontWeight: "600" },
+
+  selectBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  selectBtnText: { fontSize: 15, color: "#111827" },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
+  modalSheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 12,
+    maxHeight: "75%",
+  },
+  modalHandle: { width: 40, height: 4, backgroundColor: "#e5e7eb", borderRadius: 2, alignSelf: "center", marginBottom: 16 },
+  modalTitle: { fontSize: 17, fontWeight: "700", color: "#111827", marginBottom: 12 },
+  modalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  modalItemActive: { backgroundColor: "#fff7ed" },
+  modalItemText: { fontSize: 15, color: "#374151" },
+  modalItemTextActive: { color: "#f97316", fontWeight: "600" },
 });
