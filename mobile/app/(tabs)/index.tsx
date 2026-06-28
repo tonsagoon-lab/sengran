@@ -56,11 +56,12 @@ function isActiveFeatured(is_featured: boolean | null, featured_until: string | 
 }
 
 function TypeBadge({ type, featured }: { type: BadgeType; featured?: boolean | null }) {
-  const cfg = {
+  const cfg = ({
     sale: { bg: "#dbeafe", border: "#bfdbfe", text: "#1d4ed8", label: "เซ้ง" },
     rent: { bg: "#dcfce7", border: "#bbf7d0", text: "#15803d", label: "ให้เช่า" },
     both: { bg: "#f3e8ff", border: "#e9d5ff", text: "#7e22ce", label: "เซ้ง+เช่า" },
-  }[type];
+    equipment: { bg: "#fff7ed", border: "#fed7aa", text: "#c2410c", label: "อุปกรณ์" },
+  } as Record<string, { bg: string; border: string; text: string; label: string }>)[type] ?? { bg: "#f3f4f6", border: "#e5e7eb", text: "#6b7280", label: type };
   return (
     <View style={[styles.badge, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
       {featured && <Text style={styles.badgeStar}>⭐</Text>}
