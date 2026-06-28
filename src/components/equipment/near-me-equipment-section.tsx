@@ -15,7 +15,7 @@ type LocationState =
   | { type: "gps"; lat: number; lng: number; radiusKm: number }
   | { type: "province"; provinceId: number; provinceName: string };
 
-type Status = "init" | "prompt" | "gps-loading" | "fetching" | "loaded" | "empty";
+type Status = "init" | "prompt" | "gps-loading" | "gps-denied" | "fetching" | "loaded" | "empty";
 
 interface Props {
   provinces: Province[];
@@ -95,7 +95,7 @@ export function NearMeEquipmentSection({ provinces }: Props) {
 
   const requestGPS = () => {
     if (!navigator.geolocation) {
-      setStatus("prompt");
+      setStatus("gps-denied");
       return;
     }
     setStatus("gps-loading");
@@ -109,7 +109,7 @@ export function NearMeEquipmentSection({ provinces }: Props) {
         };
         applyLocation(loc);
       },
-      () => setStatus("prompt"),
+      () => setStatus("gps-denied"),
       { timeout: 10000, enableHighAccuracy: false }
     );
   };
@@ -176,6 +176,27 @@ export function NearMeEquipmentSection({ provinces }: Props) {
                 </select>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* GPS denied */}
+        {status === "gps-denied" && (
+          <div className="rounded-xl border border-red-100 bg-red-50 p-4 space-y-3">
+            <p className="text-sm text-red-700 font-medium">ไม่สามารถใช้ GPS ได้ กรุณาเลือกจังหวัดแทน</p>
+            <select
+              defaultValue=""
+              onChange={(e) => {
+                const prov = provinces.find((p) => String(p.id) === e.target.value);
+                if (!prov) return;
+                applyLocation({ type: "province", provinceId: prov.id, provinceName: prov.name_th });
+              }}
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            >
+              <option value="" disabled>เลือกจังหวัด...</option>
+              {provinces.map((p) => (
+                <option key={p.id} value={p.id}>{p.name_th}</option>
+              ))}
+            </select>
           </div>
         )}
 
