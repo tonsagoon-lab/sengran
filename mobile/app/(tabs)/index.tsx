@@ -367,7 +367,7 @@ export default function HomeScreen() {
         {editorialPicks.length > 0 && (
           <View style={styles.section}>
             <SectionHeader
-              title="🔥 ประกาศเซ้งด่วน!!"
+              title="✅ ฝากเซ้ง-ประเมินราคาแล้ว"
               linkLabel="ดูทั้งหมด"
               onLink={() => router.push("/(tabs)/browse")}
             />
