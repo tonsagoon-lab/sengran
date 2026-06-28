@@ -313,7 +313,15 @@ export default function BrowseScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />}
-          ListHeaderComponent={<NearMeEquipmentSection />}
+          ListHeaderComponent={
+            <View>
+              <NearMeEquipmentSection />
+              <View style={styles.latestHeader}>
+                <Text style={styles.latestTitle}>🆕 อุปกรณ์ล่าสุด</Text>
+                {!loading && <Text style={styles.latestCount}>{resultCount.toLocaleString("th-TH")} รายการ</Text>}
+              </View>
+            </View>
+          }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Text style={{ fontSize: 40 }}>🛒</Text>
@@ -597,8 +605,11 @@ const styles = StyleSheet.create({
   filterChipTextActive: { color: "#c2410c", fontWeight: "600" },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-  listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20 },
+  listContent: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 20 },
   columnWrapper: { gap: 10, marginBottom: 10 },
+  latestHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 },
+  latestTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  latestCount: { fontSize: 12, color: "#9ca3af" },
 
   card: {
     backgroundColor: "#fff", borderRadius: 14,
