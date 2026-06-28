@@ -17,15 +17,19 @@ export const UnreadCountsContext = createContext<{
   refresh: () => void;
 }>({ counts: { messages: 0, notifications: 0 }, refresh: () => {} });
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+} catch {
+  // expo-notifications not supported in Expo Go on Android SDK 53+
+}
 
 async function setupPush(userId: string) {
   try {
@@ -53,11 +57,15 @@ async function setupPush(userId: string) {
 }
 
 function setupNotificationListeners() {
-  const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-    const slug = response.notification.request.content.data?.slug as string | undefined;
-    if (slug) router.push(`/listing/${slug}`);
-  });
-  return () => sub.remove();
+  try {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const slug = response.notification.request.content.data?.slug as string | undefined;
+      if (slug) router.push(`/listing/${slug}`);
+    });
+    return () => sub.remove();
+  } catch {
+    return () => {};
+  }
 }
 
 export default function RootLayout() {
