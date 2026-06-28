@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { makeRedirectUri } from "expo-auth-session";
 import { supabase } from "../../lib/supabase";
 
@@ -46,6 +47,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [lineLoading, setLineLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   // Handle deep link callback (Android Expo Go)
@@ -97,6 +99,30 @@ export default function LoginScreen() {
       Alert.alert("เกิดข้อผิดพลาด", "ลอง login ใหม่อีกครั้ง");
     }
     setGoogleLoading(false);
+  }
+
+  async function handleAppleLogin() {
+    setAppleLoading(true);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) throw new Error("No identity token");
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken,
+      });
+      if (error) Alert.alert("เข้าสู่ระบบไม่สำเร็จ", error.message);
+      else router.replace("/(tabs)");
+    } catch (e: unknown) {
+      if ((e as { code?: string }).code !== "ERR_REQUEST_CANCELED") {
+        Alert.alert("เกิดข้อผิดพลาด", "ลอง Apple login ใหม่อีกครั้ง");
+      }
+    }
+    setAppleLoading(false);
   }
 
   async function handleLineLogin() {
@@ -173,6 +199,17 @@ export default function LoginScreen() {
             </>
           )}
         </Pressable>
+
+        {/* Apple login (iOS only) */}
+        {Platform.OS === "ios" && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={12}
+            style={styles.appleBtn}
+            onPress={handleAppleLogin}
+          />
+        )}
 
         {/* Divider */}
         <View style={styles.dividerRow}>
@@ -281,6 +318,7 @@ const styles = StyleSheet.create({
   },
   lineIcon: { fontSize: 16, fontWeight: "800", color: "#fff" },
   lineBtnText: { fontSize: 15, fontWeight: "600", color: "#fff" },
+  appleBtn: { width: "100%", height: 50, marginTop: 10 },
 
   dividerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 20 },
   dividerLine: { flex: 1, height: 1, backgroundColor: "#e5e7eb" },

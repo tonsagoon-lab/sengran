@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,9 +16,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import * as ImageManipulator from "expo-image-manipulator";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { makeRedirectUri } from "expo-auth-session";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
+import { SessionContext } from "../_layout";
 import type { Category, Province } from "../../lib/types";
 
 function generateId(): string {
@@ -37,7 +41,109 @@ const LISTING_TYPES: { value: ListingType; label: string; emoji: string }[] = [
   { value: "both", label: "เซ้งและให้เช่า", emoji: "🤝" },
 ];
 
+function LoginPrompt() {
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [lineLoading, setLineLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+
+  async function handleGoogle() {
+    setGoogleLoading(true);
+    try {
+      const redirectTo = makeRedirectUri({ path: "auth/callback" });
+      const { data, error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo, skipBrowserRedirect: true } });
+      if (error || !data.url) { Alert.alert("เกิดข้อผิดพลาด", error?.message); setGoogleLoading(false); return; }
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      if (result.type === "success" && result.url) {
+        const hash = result.url.split("#")[1] ?? "";
+        const p = new URLSearchParams(hash);
+        const at = p.get("access_token"); const rt = p.get("refresh_token");
+        if (at && rt) await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+      }
+    } catch { Alert.alert("เกิดข้อผิดพลาด"); }
+    setGoogleLoading(false);
+  }
+
+  async function handleLine() {
+    setLineLoading(true);
+    try {
+      const params = new URLSearchParams({ response_type: "code", client_id: "2010387343", redirect_uri: "https://www.xn--72ch7bybxexd0cc.com/auth/line/callback", state: `mobile_${Date.now()}`, scope: "profile openid" });
+      const result = await WebBrowser.openAuthSessionAsync(`https://access.line.me/oauth2/v2.1/authorize?${params}`, "sengran://");
+      if (result.type === "success" && result.url) {
+        const hash = result.url.split("#")[1] ?? "";
+        const p = new URLSearchParams(hash);
+        const at = p.get("access_token"); const rt = p.get("refresh_token");
+        if (at && rt) await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+      }
+    } catch { Alert.alert("เกิดข้อผิดพลาด"); }
+    setLineLoading(false);
+  }
+
+  async function handleApple() {
+    setAppleLoading(true);
+    try {
+      const credential = await AppleAuthentication.signInAsync({ requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL] });
+      if (!credential.identityToken) throw new Error("no token");
+      const { error } = await supabase.auth.signInWithIdToken({ provider: "apple", token: credential.identityToken });
+      if (error) Alert.alert("เข้าสู่ระบบไม่สำเร็จ", error.message);
+    } catch (e: unknown) {
+      if ((e as { code?: string }).code !== "ERR_REQUEST_CANCELED") Alert.alert("เกิดข้อผิดพลาด");
+    }
+    setAppleLoading(false);
+  }
+
+  return (
+    <SafeAreaView style={lp.container}>
+      <View style={lp.inner}>
+        <Text style={lp.emoji}>🏪</Text>
+        <Text style={lp.title}>เข้าสู่ระบบเพื่อลงประกาศ</Text>
+        <Text style={lp.sub}>สร้างประกาศเซ้งร้านหรือขายอุปกรณ์ได้ฟรี</Text>
+
+        <Pressable style={[lp.googleBtn, googleLoading && lp.disabled]} onPress={handleGoogle} disabled={googleLoading}>
+          {googleLoading ? <ActivityIndicator color="#374151" /> : <><Text style={lp.googleIcon}>G</Text><Text style={lp.googleText}>เข้าสู่ระบบด้วย Google</Text></>}
+        </Pressable>
+
+        <Pressable style={[lp.lineBtn, lineLoading && lp.disabled]} onPress={handleLine} disabled={lineLoading}>
+          {lineLoading ? <ActivityIndicator color="#fff" /> : <><Text style={lp.lineIcon}>L</Text><Text style={lp.lineText}>เข้าสู่ระบบด้วย LINE</Text></>}
+        </Pressable>
+
+        {Platform.OS === "ios" && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={12}
+            style={lp.appleBtn}
+            onPress={handleApple}
+          />
+        )}
+
+        <Pressable style={lp.emailBtn} onPress={() => router.push("/auth/login")}>
+          <Text style={lp.emailText}>เข้าสู่ระบบด้วยอีเมล / สมัครสมาชิก</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const lp = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#f9fafb" },
+  inner: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 32 },
+  emoji: { fontSize: 56, marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: "700", color: "#111827", textAlign: "center", marginBottom: 8 },
+  sub: { fontSize: 14, color: "#6b7280", textAlign: "center", marginBottom: 32 },
+  googleBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#fff", borderRadius: 12, paddingVertical: 14, borderWidth: 1.5, borderColor: "#e5e7eb", width: "100%", marginBottom: 10 },
+  googleIcon: { fontSize: 18, fontWeight: "800", color: "#4285F4" },
+  googleText: { fontSize: 15, fontWeight: "600", color: "#374151" },
+  lineBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#06C755", borderRadius: 12, paddingVertical: 14, width: "100%", marginBottom: 10 },
+  lineIcon: { fontSize: 16, fontWeight: "800", color: "#fff" },
+  lineText: { fontSize: 15, fontWeight: "600", color: "#fff" },
+  appleBtn: { width: "100%", height: 50, marginBottom: 10 },
+  emailBtn: { paddingVertical: 14, width: "100%" },
+  emailText: { fontSize: 14, color: "#6b7280", textAlign: "center" },
+  disabled: { opacity: 0.6 },
+});
+
 export default function CreateListingScreen() {
+  const session = useContext(SessionContext);
   const [formType, setFormType] = useState<FormType>(null);
   const [listingType, setListingType] = useState<ListingType>("sale");
   const [title, setTitle] = useState("");
@@ -343,6 +449,8 @@ export default function CreateListingScreen() {
     setImages([]);
     listingId.current = generateId();
   }
+
+  if (!session) return <LoginPrompt />;
 
   return (
     <SafeAreaView style={styles.container}>
