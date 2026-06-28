@@ -139,14 +139,6 @@ export async function EquipmentBrowsePage({
         </div>
       </section>
 
-      {/* Near-me equipment (client — GPS/province) */}
-      <NearMeEquipmentSection provinces={provinces} />
-
-      {/* Latest equipment */}
-      <Suspense fallback={null}>
-        <LatestEquipmentSection />
-      </Suspense>
-
       {/* Category pills */}
       {!lockedCategory && categories.length > 0 && (
         <div className="border-b bg-white">
@@ -178,6 +170,14 @@ export async function EquipmentBrowsePage({
         provinces={provinces}
         lockedCategory={lockedCategory}
       />
+
+      {/* Near-me equipment (client — GPS/province) */}
+      <NearMeEquipmentSection provinces={provinces} />
+
+      {/* Latest equipment */}
+      <Suspense fallback={null}>
+        <LatestEquipmentSection />
+      </Suspense>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
         <Suspense fallback={<GridSkeleton />}>
