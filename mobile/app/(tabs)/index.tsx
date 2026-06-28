@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
   // Banner
   bannerStack: { paddingHorizontal: 16, gap: 10 },
   bannerCard: { borderRadius: 12, overflow: "hidden" },
-  bannerImg: { width: "100%", aspectRatio: 16 / 7 },
+  bannerImg: { width: "100%", aspectRatio: 16 / 9 },
 
   // Featured scroll
   featuredScroll: { paddingLeft: 16, paddingRight: 8, gap: 10, paddingBottom: 4 },
