@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -13,7 +14,32 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import * as AppleAuthentication from "expo-apple-authentication";
+import { makeRedirectUri } from "expo-auth-session";
 import { supabase } from "../../lib/supabase";
+
+WebBrowser.maybeCompleteAuthSession();
+
+async function applyTokensFromUrl(url: string): Promise<boolean> {
+  const hash = url.split("#")[1] ?? "";
+  const p = new URLSearchParams(hash);
+  const at = p.get("access_token");
+  const rt = p.get("refresh_token");
+  if (at && rt) {
+    await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+    return true;
+  }
+  const q = url.split("?")[1] ?? "";
+  const qp = new URLSearchParams(q);
+  const qat = qp.get("access_token");
+  const qrt = qp.get("refresh_token");
+  if (qat && qrt) {
+    await supabase.auth.setSession({ access_token: qat, refresh_token: qrt });
+    return true;
+  }
+  return false;
+}
 
 export default function RegisterScreen() {
   const [displayName, setDisplayName] = useState("");
@@ -21,10 +47,94 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [lineLoading, setLineLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   const mobileRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const sub = Linking.addEventListener("url", async ({ url }) => {
+      if (!url.includes("access_token")) return;
+      const ok = await applyTokensFromUrl(url);
+      if (ok) router.replace("/(tabs)");
+    });
+    return () => sub.remove();
+  }, []);
+
+  async function handleGoogleLogin() {
+    setGoogleLoading(true);
+    try {
+      const redirectTo = makeRedirectUri({ path: "auth/callback" });
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo, skipBrowserRedirect: true },
+      });
+      if (error || !data.url) {
+        Alert.alert("เกิดข้อผิดพลาด", error?.message ?? "ไม่สามารถเปิด Google login ได้");
+        setGoogleLoading(false);
+        return;
+      }
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      if (result.type === "success" && result.url) {
+        const ok = await applyTokensFromUrl(result.url);
+        if (ok) router.replace("/(tabs)");
+      }
+    } catch {
+      Alert.alert("เกิดข้อผิดพลาด", "ลอง login ใหม่อีกครั้ง");
+    }
+    setGoogleLoading(false);
+  }
+
+  async function handleLineLogin() {
+    setLineLoading(true);
+    try {
+      const state = `mobile_${Date.now()}`;
+      const redirectUri = "https://www.xn--72ch7bybxexd0cc.com/auth/line/callback";
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: "2010387343",
+        redirect_uri: redirectUri,
+        state,
+        scope: "profile openid",
+      });
+      const lineUrl = `https://access.line.me/oauth2/v2.1/authorize?${params}`;
+      const result = await WebBrowser.openAuthSessionAsync(lineUrl, "sengran://");
+      if (result.type === "success" && result.url) {
+        const ok = await applyTokensFromUrl(result.url);
+        if (ok) router.replace("/(tabs)");
+      }
+    } catch {
+      Alert.alert("เกิดข้อผิดพลาด", "ลอง LINE login ใหม่อีกครั้ง");
+    }
+    setLineLoading(false);
+  }
+
+  async function handleAppleLogin() {
+    setAppleLoading(true);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) throw new Error("No identity token");
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken,
+      });
+      if (error) Alert.alert("เข้าสู่ระบบไม่สำเร็จ", error.message);
+      else router.replace("/(tabs)");
+    } catch (e: unknown) {
+      if ((e as { code?: string }).code !== "ERR_REQUEST_CANCELED") {
+        Alert.alert("เกิดข้อผิดพลาด", "ลอง Apple login ใหม่อีกครั้ง");
+      }
+    }
+    setAppleLoading(false);
+  }
 
   async function handleRegister() {
     if (!displayName.trim() || !mobile.trim() || !email.trim() || !password) {
@@ -50,11 +160,9 @@ export default function RegisterScreen() {
       return;
     }
 
-    // If Supabase email confirmation is disabled, session is returned immediately
     if (data.session) {
       router.replace("/(tabs)");
     } else {
-      // Email confirmation still required — go to login
       Alert.alert(
         "สมัครสมาชิกสำเร็จ",
         "กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี แล้วเข้าสู่ระบบ",
@@ -82,6 +190,57 @@ export default function RegisterScreen() {
 
           <Text style={styles.heading}>สมัครสมาชิก</Text>
 
+          {/* Google */}
+          <Pressable
+            style={[styles.googleBtn, googleLoading && styles.btnDisabled]}
+            onPress={handleGoogleLogin}
+            disabled={googleLoading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color="#374151" />
+            ) : (
+              <>
+                <Text style={styles.googleIcon}>G</Text>
+                <Text style={styles.googleBtnText}>สมัครด้วย Google</Text>
+              </>
+            )}
+          </Pressable>
+
+          {/* LINE */}
+          <Pressable
+            style={[styles.lineBtn, lineLoading && styles.btnDisabled]}
+            onPress={handleLineLogin}
+            disabled={lineLoading}
+          >
+            {lineLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Text style={styles.lineIcon}>L</Text>
+                <Text style={styles.lineBtnText}>สมัครด้วย LINE</Text>
+              </>
+            )}
+          </Pressable>
+
+          {/* Apple (iOS only) */}
+          {Platform.OS === "ios" && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={12}
+              style={styles.appleBtn}
+              onPress={handleAppleLogin}
+            />
+          )}
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>หรือสมัครด้วยอีเมล</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Email form */}
           <Text style={styles.label}>ชื่อที่แสดง</Text>
           <TextInput
             style={styles.input}
@@ -163,7 +322,55 @@ const styles = StyleSheet.create({
   logoRow: { flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 8 },
   logo: { fontSize: 36 },
   appName: { fontSize: 26, fontWeight: "800", color: "#f97316" },
-  heading: { fontSize: 22, fontWeight: "700", color: "#111827", textAlign: "center", marginBottom: 24 },
+  heading: { fontSize: 22, fontWeight: "700", color: "#111827", textAlign: "center", marginBottom: 20 },
+
+  googleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 14,
+    borderWidth: 1.5,
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  googleIcon: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#4285F4",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+  },
+  googleBtnText: { fontSize: 15, fontWeight: "600", color: "#374151" },
+
+  lineBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#06C755",
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 10,
+    shadowColor: "#06C755",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  lineIcon: { fontSize: 16, fontWeight: "800", color: "#fff" },
+  lineBtnText: { fontSize: 15, fontWeight: "600", color: "#fff" },
+  appleBtn: { width: "100%", height: 50, marginTop: 10 },
+
+  dividerRow: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: "#e5e7eb" },
+  dividerText: { fontSize: 12, color: "#9ca3af", flexShrink: 0 },
+
   label: { fontSize: 14, fontWeight: "600", color: "#374151", marginBottom: 4, marginTop: 12 },
   input: {
     backgroundColor: "#f9fafb",
