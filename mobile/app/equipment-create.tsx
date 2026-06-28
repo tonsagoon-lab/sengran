@@ -130,7 +130,8 @@ export default function EquipmentCreateScreen() {
           ? (await ImageManipulator.manipulateAsync(asset.uri, [], { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG })).uri
           : asset.uri;
         const ext = needsConvert ? "jpg" : rawExt;
-        const mimeType = "image/jpeg";
+        const mimeMap: Record<string, string> = { png: "image/png", gif: "image/gif" };
+        const mimeType = needsConvert ? "image/jpeg" : (mimeMap[ext] ?? "image/jpeg");
         const uid = userId.current ?? (await supabase.auth.getUser()).data.user?.id;
         const storagePath = `${uid}/${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const response = await fetch(finalUri);
@@ -228,13 +229,16 @@ export default function EquipmentCreateScreen() {
     }
 
     if (images.length > 0) {
-      await supabase.from("listing_images").insert(
+      const { error: imgError } = await supabase.from("listing_images").insert(
         images.map((img, i) => ({
           listing_id: listingId.current,
           storage_path: img.path,
           display_order: i,
         }))
       );
+      if (imgError) {
+        console.error("listing_images insert failed:", JSON.stringify(imgError));
+      }
     }
 
     if (status === "published") {

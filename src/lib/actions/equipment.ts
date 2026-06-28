@@ -5,6 +5,67 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { generateUniqueSlug } from "@/lib/utils/slug";
+import type { EquipmentListing } from "@/lib/db/equipment";
+
+const EQUIPMENT_CARD_SELECT = `
+  id, title, slug, listing_type, sale_price, condition, status,
+  is_featured, featured_until, district, province_id, view_count, published_at, shop_type_ids,
+  listing_images(id, storage_path, display_order),
+  categories(name_th, slug),
+  provinces(name_th, slug)
+`.trim();
+
+// ── Near-me equipment search ───────────────────────────────────
+
+export async function getNearMeEquipment(
+  params:
+    | { type: "gps"; lat: number; lng: number; radiusKm?: number }
+    | { type: "province"; provinceId: number }
+): Promise<{ listings: EquipmentListing[]; total: number }> {
+  const supabase = await createClient();
+
+  if (params.type === "gps") {
+    const { lat, lng, radiusKm = 10 } = params;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: nearIds } = await (supabase as any).rpc("listings_within_distance", {
+      center_lat: lat,
+      center_lng: lng,
+      radius_km: radiusKm,
+    });
+
+    const gpsMatches = (nearIds ?? []) as { id: string; distance_km: number }[];
+
+    if (gpsMatches.length > 0) {
+      const ids = gpsMatches.slice(0, 24).map((r) => r.id);
+      const { data } = await supabase
+        .from("listings")
+        .select(EQUIPMENT_CARD_SELECT)
+        .in("id", ids)
+        .eq("listing_type", "equipment")
+        .eq("status", "published");
+
+      const listings = (data ?? []) as unknown as EquipmentListing[];
+      const byId = new Map(listings.map((l) => [l.id, l]));
+      const ordered = ids
+        .map((id) => byId.get(id))
+        .filter((x): x is EquipmentListing => !!x)
+        .slice(0, 8);
+      return { listings: ordered, total: ordered.length };
+    }
+    return { listings: [], total: 0 };
+  }
+
+  const { data, count } = await supabase
+    .from("listings")
+    .select(EQUIPMENT_CARD_SELECT, { count: "exact" })
+    .eq("listing_type", "equipment")
+    .eq("status", "published")
+    .eq("province_id", params.provinceId)
+    .order("published_at", { ascending: false })
+    .limit(8);
+
+  return { listings: (data ?? []) as unknown as EquipmentListing[], total: count ?? 0 };
+}
 
 export type EquipmentActionResult =
   | { error: string; success?: never }
