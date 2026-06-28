@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getAllProvinces } from "@/lib/db/listings";
-import { getEquipmentCategories, searchEquipment, getLatestEquipment } from "@/lib/db/equipment";
+import { getEquipmentCategories, searchEquipment } from "@/lib/db/equipment";
 import { EquipmentFilterBar } from "./equipment-filter-bar";
 import { EquipmentCard } from "./equipment-card";
 import { NearMeEquipmentSection } from "./near-me-equipment-section";
@@ -15,30 +15,6 @@ interface EquipmentBrowsePageProps {
   heroTitle?: string;
 }
 
-async function LatestEquipmentSection() {
-  const listings = await getLatestEquipment(8);
-  if (listings.length === 0) return null;
-
-  return (
-    <section className="border-b bg-white py-5">
-      <div className="mx-auto max-w-7xl px-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-neutral-800">🆕 อุปกรณ์ล่าสุด</h2>
-          <a href="/equipment?sort=latest" className="text-sm text-orange-600 hover:underline">
-            ดูทั้งหมด →
-          </a>
-        </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-          {listings.map((listing) => (
-            <div key={listing.id} className="flex-none w-44 sm:w-52">
-              <EquipmentCard listing={listing} />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function GridSkeleton() {
   return (
@@ -173,11 +149,6 @@ export async function EquipmentBrowsePage({
 
       {/* Near-me equipment (client — GPS/province) */}
       <NearMeEquipmentSection provinces={provinces} />
-
-      {/* Latest equipment */}
-      <Suspense fallback={null}>
-        <LatestEquipmentSection />
-      </Suspense>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
         <Suspense fallback={<GridSkeleton />}>
