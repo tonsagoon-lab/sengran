@@ -853,8 +853,9 @@ export default function CreateListingScreen() {
 
       {/* Profile info Modal */}
       <Modal visible={profileModalVisible} animationType="slide" transparent onRequestClose={() => setProfileModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <View style={[styles.modalOverlay, { justifyContent: "flex-start" }]}>
+          <View style={[styles.modalSheet, styles.modalSheetTop]}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>กรอกข้อมูลติดต่อ</Text>
             <Text style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
@@ -885,6 +886,7 @@ export default function CreateListingScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
     </SafeAreaView>
@@ -1079,6 +1081,13 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingTop: 12,
     maxHeight: "75%",
+  },
+  modalSheetTop: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginTop: 0,
   },
   modalHandle: { width: 40, height: 4, backgroundColor: "#e5e7eb", borderRadius: 2, alignSelf: "center", marginBottom: 16 },
   modalTitle: { fontSize: 17, fontWeight: "700", color: "#111827", marginBottom: 12 },
