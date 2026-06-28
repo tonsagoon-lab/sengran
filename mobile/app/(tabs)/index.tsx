@@ -291,9 +291,7 @@ export default function HomeScreen() {
         {/* App header */}
         <View style={styles.locationHeader}>
           <View style={styles.appBrand}>
-            <View style={styles.appLogoCircle}>
-              <Ionicons name="storefront" size={18} color="#fff" />
-            </View>
+            <Text style={styles.appName}>เซ้งร้าน</Text>
           </View>
           <View style={styles.headerIcons}>
             <Pressable style={styles.adBtn} onPress={() => Linking.openURL("https://line.me/R/ti/p/~salebiz")}>
