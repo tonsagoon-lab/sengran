@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import * as ImageManipulator from "expo-image-manipulator";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
@@ -198,12 +199,17 @@ export default function CreateListingScreen() {
 
     for (const asset of result.assets) {
       try {
-        const ext = (asset.uri.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z]/g, "") || "jpg";
-        const mimeType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
+        const rawExt = (asset.uri.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z]/g, "") || "jpg";
+        const needsConvert = ["heic", "heif", "webp"].includes(rawExt);
+        const finalUri = needsConvert
+          ? (await ImageManipulator.manipulateAsync(asset.uri, [], { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG })).uri
+          : asset.uri;
+        const ext = needsConvert ? "jpg" : rawExt;
+        const mimeType = "image/jpeg";
         const uid = userId.current ?? (await supabase.auth.getUser()).data.user?.id;
         const storagePath = `${uid}/${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-        const response = await fetch(asset.uri);
+        const response = await fetch(finalUri);
         const arrayBuffer = await response.arrayBuffer();
 
         const { error } = await supabase.storage
