@@ -291,7 +291,7 @@ export default function HomeScreen() {
         {/* App header */}
         <View style={styles.locationHeader}>
           <View style={styles.appBrand}>
-            <Text style={styles.appName}>เซ้งร้าน</Text>
+            <Image source={require("../../assets/icon.png")} style={styles.headerLogo} />
           </View>
           <View style={styles.headerIcons}>
             <Pressable style={styles.adBtn} onPress={() => Linking.openURL("https://line.me/R/ti/p/~salebiz")}>
@@ -491,6 +491,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   appName: { fontSize: 20, fontWeight: "800", color: "#111827", letterSpacing: -0.5 },
+  headerLogo: { width: 40, height: 40, borderRadius: 8 },
   headerIcons: { flexDirection: "row", gap: 4 },
   iconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   adBtn: {
