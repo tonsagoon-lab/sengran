@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
@@ -43,6 +44,9 @@ export default function EquipmentCreateScreen() {
   const [images, setImages] = useState<{ uri: string; path: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
   const listingId = useRef(generateId());
 
   useEffect(() => {
@@ -129,6 +133,24 @@ export default function EquipmentCreateScreen() {
     if (failCount > 0) Alert.alert("อัปโหลดไม่สำเร็จ", `${failCount} รูปอัปโหลดไม่ได้`);
   }
 
+  async function getCurrentLocation() {
+    setLocationLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("ต้องการสิทธิ์", "กรุณาอนุญาตให้แอปเข้าถึงตำแหน่งที่ตั้ง");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setLatitude(loc.coords.latitude);
+      setLongitude(loc.coords.longitude);
+    } catch {
+      Alert.alert("ไม่สามารถดึงตำแหน่งได้", "กรุณาลองใหม่");
+    } finally {
+      setLocationLoading(false);
+    }
+  }
+
   function removeImage(path: string) {
     setImages((prev) => prev.filter((img) => img.path !== path));
     supabase.storage.from("listings").remove([path]).then(() => {});
@@ -174,6 +196,8 @@ export default function EquipmentCreateScreen() {
       shop_type_ids: shopTypeIds,
       province_id: provinceId,
       district: district.trim() || null,
+      latitude: latitude ?? null,
+      longitude: longitude ?? null,
       slug,
       status,
       contact_name: profile.display_name,
@@ -334,6 +358,35 @@ export default function EquipmentCreateScreen() {
             onChangeText={setDistrict}
           />
 
+          {/* Location */}
+          <Text style={[s.label, { marginTop: 12 }]}>พิกัดที่ตั้ง (ไม่บังคับ)</Text>
+          {latitude && longitude ? (
+            <View style={s.locationResult}>
+              <Ionicons name="location" size={16} color="#f97316" />
+              <Text style={s.locationResultText}>
+                {latitude.toFixed(5)}, {longitude.toFixed(5)}
+              </Text>
+              <Pressable onPress={() => { setLatitude(null); setLongitude(null); }}>
+                <Text style={s.locationClear}>ล้าง</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              style={[s.locationBtn, locationLoading && s.btnDisabled]}
+              onPress={getCurrentLocation}
+              disabled={locationLoading}
+            >
+              {locationLoading ? (
+                <ActivityIndicator color="#f97316" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="locate-outline" size={16} color="#f97316" />
+                  <Text style={s.locationBtnText}>ใช้ตำแหน่งปัจจุบัน</Text>
+                </>
+              )}
+            </Pressable>
+          )}
+
           {/* Images */}
           <Text style={s.label}>รูปภาพ ({images.length}/10)</Text>
           <View style={s.imageGrid}>
@@ -408,7 +461,12 @@ const s = StyleSheet.create({
     color: "#111827",
     marginBottom: 4,
   },
-  textarea: { height: 130, paddingTop: 12 },
+  textarea: { height: 200, paddingTop: 12 },
+  locationResult: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff7ed", borderRadius: 10, borderWidth: 1, borderColor: "#fed7aa", paddingHorizontal: 14, paddingVertical: 12 },
+  locationResultText: { flex: 1, fontSize: 13, color: "#c2410c", fontWeight: "500" },
+  locationClear: { fontSize: 13, color: "#9ca3af", fontWeight: "600" },
+  locationBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#fff", borderRadius: 10, borderWidth: 1, borderColor: "#e5e7eb", paddingVertical: 14 },
+  locationBtnText: { fontSize: 14, color: "#f97316", fontWeight: "600" },
   row: { flexDirection: "row", gap: 10, alignItems: "center" },
   condBtn: {
     flex: 1,
