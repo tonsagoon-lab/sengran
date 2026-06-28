@@ -114,6 +114,10 @@ export default function EquipmentCreateScreen() {
     });
     if (result.canceled || result.assets.length === 0) return;
 
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) { Alert.alert("กรุณาเข้าสู่ระบบใหม่"); return; }
+    if (!userId.current) userId.current = currentUser.id;
+
     setUploading(true);
     const newImages: { uri: string; path: string }[] = [];
     let failCount = 0;
