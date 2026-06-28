@@ -2,14 +2,18 @@ import { createContext, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { Stack, router } from "expo-router";
 import { Session } from "@supabase/supabase-js";
+import Constants from "expo-constants";
 import { supabase } from "../lib/supabase";
 import {
   getUnreadMessageCount,
   getUnreadNotificationCount,
 } from "../lib/notifications";
 
-// Lazy load to avoid crash in Expo Go on Android SDK 53+
+// Skip expo-notifications in Expo Go on Android (removed in SDK 53)
+const isExpoGo = Constants.executionEnvironment === "storeClient";
+
 function getNotifications() {
+  if (isExpoGo) return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require("expo-notifications") as typeof import("expo-notifications");
