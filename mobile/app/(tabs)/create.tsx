@@ -64,8 +64,10 @@ export default function CreateListingScreen() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const listingId = useRef(generateId());
+  const userId = useRef<string | null>(null);
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => { userId.current = user?.id ?? null; });
     loadOptions();
   }, []);
 
@@ -198,7 +200,8 @@ export default function CreateListingScreen() {
       try {
         const ext = (asset.uri.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z]/g, "") || "jpg";
         const mimeType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
-        const storagePath = `${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const uid = userId.current ?? (await supabase.auth.getUser()).data.user?.id;
+        const storagePath = `${uid}/${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
         const response = await fetch(asset.uri);
         const arrayBuffer = await response.arrayBuffer();

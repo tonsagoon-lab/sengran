@@ -48,8 +48,10 @@ export default function EquipmentCreateScreen() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const listingId = useRef(generateId());
+  const userId = useRef<string | null>(null);
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => { userId.current = user?.id ?? null; });
     loadOptions();
   }, []);
 
@@ -119,11 +121,12 @@ export default function EquipmentCreateScreen() {
       try {
         const ext = (asset.uri.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z]/g, "") || "jpg";
         const mimeType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
-        const storagePath = `${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const uid = userId.current ?? (await supabase.auth.getUser()).data.user?.id;
+        const storagePath = `${uid}/${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const response = await fetch(asset.uri);
         const arrayBuffer = await response.arrayBuffer();
         const { error } = await supabase.storage.from("listings").upload(storagePath, arrayBuffer, { contentType: mimeType });
-        if (error) { failCount++; } else { newImages.push({ uri: asset.uri, path: storagePath }); }
+        if (error) { console.error("upload error:", JSON.stringify(error)); failCount++; } else { newImages.push({ uri: asset.uri, path: storagePath }); }
       } catch { failCount++; }
     }
 
