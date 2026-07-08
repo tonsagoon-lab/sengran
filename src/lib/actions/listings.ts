@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { listingSchema } from "@/lib/schemas/listing";
-import { stripHtmlTags } from "@/lib/utils/html";
+import { stripHtmlTags, sanitizeRichHtml } from "@/lib/utils/html";
 import { rateLimit } from "@/lib/rate-limit";
 import type { SearchListing } from "@/lib/db/listings";
 
@@ -187,8 +187,7 @@ export async function createListingAction(
 
   const raw = Object.fromEntries(formData.entries());
 
-  // Validate description as plain text (strip HTML first)
-  const descHtml = raw.description as string;
+  const descHtml = sanitizeRichHtml(raw.description as string);
   const descText = stripHtmlTags(descHtml);
   const rawForValidation = { ...raw, description: descText };
 
@@ -238,21 +237,29 @@ export async function createListingAction(
   // Insert amenities
   const amenityIds = formData.getAll("amenity_ids[]") as string[];
   if (amenityIds.length > 0) {
-    await supabase.from("listing_amenities").insert(
+    const { error: amenityError } = await supabase.from("listing_amenities").insert(
       amenityIds.map((aid) => ({ listing_id: listingId, amenity_id: Number(aid) }))
     );
+    if (amenityError) {
+      await supabase.from("listings").delete().eq("id", listingId);
+      return { error: `บันทึกสิ่งอำนวยความสะดวกไม่สำเร็จ: ${amenityError.message}` };
+    }
   }
 
   // Insert image rows
   const imagePaths = formData.getAll("image_paths[]") as string[];
   if (imagePaths.length > 0) {
-    await supabase.from("listing_images").insert(
+    const { error: imageError } = await supabase.from("listing_images").insert(
       imagePaths.map((path, idx) => ({
         listing_id: listingId,
         storage_path: path,
         display_order: idx,
       }))
     );
+    if (imageError) {
+      await supabase.from("listings").delete().eq("id", listingId);
+      return { error: `บันทึกรูปภาพไม่สำเร็จ: ${imageError.message}` };
+    }
   }
 
   revalidatePath("/my-listings");
@@ -299,7 +306,7 @@ export async function updateListingAction(
   }
 
   const raw = Object.fromEntries(formData.entries());
-  const descHtml = raw.description as string;
+  const descHtml = sanitizeRichHtml(raw.description as string);
   const descText = stripHtmlTags(descHtml);
   const rawForValidation = { ...raw, description: descText };
 
@@ -371,14 +378,18 @@ export async function deleteListingAction(listingId: string): Promise<{ error?: 
   } = await supabase.auth.getUser();
   if (!user) return { error: "ไม่ได้เข้าสู่ระบบ" };
 
+  const { data: owned } = await supabase
+    .from("listings")
+    .select("id")
+    .eq("id", listingId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!owned) return { error: "ไม่พบประกาศหรือไม่มีสิทธิ์" };
+
   const { data: images } = await supabase
     .from("listing_images")
     .select("storage_path")
     .eq("listing_id", listingId);
-
-  if (images && images.length > 0) {
-    await supabase.storage.from("listings").remove(images.map((i) => i.storage_path));
-  }
 
   const { error } = await supabase
     .from("listings")
@@ -387,6 +398,15 @@ export async function deleteListingAction(listingId: string): Promise<{ error?: 
     .eq("user_id", user.id);
 
   if (error) return { error: error.message };
+
+  if (images && images.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from("listings")
+      .remove(images.map((i) => i.storage_path));
+    if (storageError) {
+      console.error("Failed to remove listing images from storage:", storageError.message);
+    }
+  }
 
   revalidatePath("/my-listings");
   revalidatePath("/listings");

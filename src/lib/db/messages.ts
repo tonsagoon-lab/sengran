@@ -119,22 +119,20 @@ export async function getOrCreateConversation(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || user.id === sellerId) return null;
 
-  // Try existing
   const { data: existing } = await supabase
     .from("conversations")
     .select("id")
     .eq("listing_id", listingId)
     .eq("buyer_id", user.id)
-    .single();
+    .maybeSingle();
 
   if (existing) return existing.id;
 
-  // Create new
   const { data: created } = await supabase
     .from("conversations")
     .insert({ listing_id: listingId, buyer_id: user.id, seller_id: sellerId })
     .select("id")
-    .single();
+    .maybeSingle();
 
   return created?.id ?? null;
 }

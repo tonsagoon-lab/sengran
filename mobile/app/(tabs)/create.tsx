@@ -178,10 +178,13 @@ export default function CreateListingScreen() {
   const pendingStatus = useRef<"published" | "draft" | null>(null);
   const listingId = useRef(generateId());
   const userId = useRef<string | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     supabase.auth.getUser().then(({ data: { user } }) => { userId.current = user?.id ?? null; });
     loadOptions();
+    return () => { mountedRef.current = false; };
   }, []);
 
   async function loadOptions() {
@@ -344,6 +347,15 @@ export default function CreateListingScreen() {
       }
     }
 
+    if (!mountedRef.current) {
+      if (newImages.length > 0) {
+        await supabase.storage
+          .from("listings")
+          .remove(newImages.map((i) => i.path))
+          .catch(() => {});
+      }
+      return;
+    }
     setImages((prev) => [...prev, ...newImages]);
     setUploading(false);
 

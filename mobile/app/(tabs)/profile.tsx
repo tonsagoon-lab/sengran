@@ -21,6 +21,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { supabase } from "../../lib/supabase";
 import { resolveImageUrl } from "../../lib/image-url";
 import { SessionContext, UnreadCountsContext } from "../_layout";
@@ -845,6 +847,31 @@ function EditTab({ initialProfile, email, onSaved }: { initialProfile: UserProfi
   const [mobile, setMobile] = useState(initialProfile?.mobile ?? "");
   const [lineId, setLineId] = useState(initialProfile?.line_id ?? "");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDeleteAccount() {
+    Alert.alert(
+      "ลบบัญชีถาวร",
+      "ยืนยันการลบบัญชี? ข้อมูลทั้งหมดจะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้",
+      [
+        { text: "ยกเลิก", style: "cancel" },
+        {
+          text: "ลบถาวร",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            const { error } = await supabase.rpc("delete_my_account");
+            if (error) {
+              setDeleting(false);
+              Alert.alert("ลบบัญชีไม่สำเร็จ", error.message);
+              return;
+            }
+            await supabase.auth.signOut();
+          },
+        },
+      ]
+    );
+  }
 
   useEffect(() => {
     if (initialProfile) {
@@ -879,6 +906,29 @@ function EditTab({ initialProfile, email, onSaved }: { initialProfile: UserProfi
         <Pressable style={[es.saveBtn, saving && es.btnDisabled]} onPress={handleSave} disabled={saving}>
           {saving ? <ActivityIndicator color="#fff" /> : <Text style={es.saveBtnText}>บันทึก</Text>}
         </Pressable>
+
+        <View style={es.legalRow}>
+          <Pressable onPress={() => router.push("/legal/terms")}>
+            <Text style={es.legalLink}>ข้อกำหนดการใช้งาน</Text>
+          </Pressable>
+          <Text style={es.legalDivider}>·</Text>
+          <Pressable onPress={() => router.push("/legal/privacy")}>
+            <Text style={es.legalLink}>นโยบายความเป็นส่วนตัว</Text>
+          </Pressable>
+        </View>
+
+        <View style={es.dangerZone}>
+          <Text style={es.dangerZoneTitle}>โซนอันตราย</Text>
+          <Pressable style={es.deleteBtn} onPress={handleDeleteAccount} disabled={deleting}>
+            {deleting
+              ? <ActivityIndicator color="#dc2626" />
+              : <Text style={es.deleteBtnText}>ลบบัญชีถาวร</Text>
+            }
+          </Pressable>
+          <Text style={es.dangerZoneNote}>
+            การลบบัญชีจะลบข้อมูลทั้งหมดของท่านออกจากระบบอย่างถาวร รวมถึงประกาศ ข้อความ และรายการที่บันทึกไว้ ไม่สามารถกู้คืนได้
+          </Text>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -895,6 +945,7 @@ export default function ProfileScreen() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>("saved");
   const [userId, setUserId] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   useFocusEffect(useCallback(() => {
     if (session) loadProfile();
@@ -919,6 +970,58 @@ export default function ProfileScreen() {
       { text: "ยกเลิก", style: "cancel" },
       { text: "ออกจากระบบ", style: "destructive", onPress: () => supabase.auth.signOut() },
     ]);
+  }
+
+  async function pickAvatar() {
+    if (avatarUploading) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("ต้องการสิทธิ์", "กรุณาอนุญาตให้แอปเข้าถึงรูปภาพ");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (result.canceled || result.assets.length === 0) return;
+
+    const asset = result.assets[0];
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { Alert.alert("กรุณาเข้าสู่ระบบใหม่"); return; }
+
+    setAvatarUploading(true);
+    try {
+      const manipulated = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 400 } }],
+        { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      const path = `${user.id}/avatar.jpg`;
+      const response = await fetch(manipulated.uri);
+      const arrayBuffer = await response.arrayBuffer();
+
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, arrayBuffer, { contentType: "image/jpeg", upsert: true });
+      if (upErr) throw upErr;
+
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+      const bustedUrl = `${publicUrl}?t=${Date.now()}`;
+
+      const { error: dbErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: bustedUrl })
+        .eq("id", user.id);
+      if (dbErr) throw dbErr;
+
+      setProfile((p) => (p ? { ...p, avatar_url: bustedUrl } : p));
+    } catch (e: any) {
+      Alert.alert("อัปโหลดไม่สำเร็จ", e?.message ?? "ลองอีกครั้ง");
+    } finally {
+      setAvatarUploading(false);
+    }
   }
 
   if (!session) {
@@ -962,9 +1065,21 @@ export default function ProfileScreen() {
       {/* User header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarInitial}>{initial}</Text>
-          </View>
+          <Pressable style={styles.avatarWrap} onPress={pickAvatar} disabled={avatarUploading}>
+            <View style={styles.avatar}>
+              {profile?.avatar_url ? (
+                <Image source={{ uri: profile.avatar_url }} style={styles.avatarImg} />
+              ) : (
+                <Text style={styles.avatarInitial}>{initial}</Text>
+              )}
+            </View>
+            <View style={styles.avatarBadge}>
+              {avatarUploading
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="camera" size={11} color="#fff" />
+              }
+            </View>
+          </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.displayName} numberOfLines={1}>{profile?.display_name ?? "ผู้ใช้"}</Text>
             <Text style={styles.emailSub} numberOfLines={1}>{email}</Text>
@@ -1020,12 +1135,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: "#f3f4f6", backgroundColor: "#fff",
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  avatarWrap: { position: "relative", flexShrink: 0 },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: "#ffedd5", alignItems: "center", justifyContent: "center",
-    borderWidth: 2, borderColor: "#fed7aa", flexShrink: 0,
+    borderWidth: 2, borderColor: "#fed7aa", overflow: "hidden",
   },
+  avatarImg: { width: "100%", height: "100%", resizeMode: "cover" },
   avatarInitial: { fontSize: 18, fontWeight: "700", color: "#ea580c" },
+  avatarBadge: {
+    position: "absolute", right: -2, bottom: -2,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: "#f97316", alignItems: "center", justifyContent: "center",
+    borderWidth: 1.5, borderColor: "#fff",
+  },
   displayName: { fontSize: 15, fontWeight: "700", color: "#111827" },
   emailSub: { fontSize: 12, color: "#9ca3af", marginTop: 1 },
   logoutBtn: {
@@ -1267,4 +1390,15 @@ const es = StyleSheet.create({
   saveBtn: { backgroundColor: "#f97316", borderRadius: 12, paddingVertical: 15, alignItems: "center", marginTop: 24 },
   btnDisabled: { opacity: 0.6 },
   saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  legalRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 28 },
+  legalLink: { fontSize: 12, color: "#6b7280", textDecorationLine: "underline" },
+  legalDivider: { fontSize: 12, color: "#d1d5db" },
+  dangerZone: { marginTop: 40, paddingTop: 20, borderTopWidth: 1, borderTopColor: "#fee2e2", gap: 10 },
+  dangerZoneTitle: { fontSize: 12, fontWeight: "700", color: "#dc2626", letterSpacing: 0.5 },
+  deleteBtn: {
+    borderWidth: 1, borderColor: "#fecaca", backgroundColor: "#fff5f5",
+    borderRadius: 10, paddingVertical: 12, alignItems: "center",
+  },
+  deleteBtnText: { color: "#dc2626", fontSize: 14, fontWeight: "700" },
+  dangerZoneNote: { fontSize: 11, color: "#9ca3af", lineHeight: 17 },
 });

@@ -16,7 +16,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sengran.app",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +27,11 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.sengran.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -33,7 +40,13 @@
     "plugins": [
       "expo-router",
       "expo-apple-authentication",
-      "expo-image-picker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "แอปนี้ต้องการเข้าถึงรูปภาพเพื่ออัปโหลดรูปประกาศและรูปโปรไฟล์",
+          "cameraPermission": "แอปนี้ต้องการเข้าถึงกล้องเพื่อถ่ายรูปประกาศ"
+        }
+      ],
       "expo-web-browser",
       [
         "expo-location",
@@ -49,6 +62,13 @@
           "defaultChannel": "default"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "859a44b1-74f5-4386-a895-028d24176229"
+      }
+    },
+    "owner": "sale4biz"
   }
 }

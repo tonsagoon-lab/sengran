@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { supabase } from "../../lib/supabase";
 
@@ -13,7 +13,18 @@ export default function AuthCallbackScreen() {
     if (accessToken && refreshToken) {
       supabase.auth
         .setSession({ access_token: accessToken, refresh_token: refreshToken })
-        .then(() => router.replace("/(tabs)"));
+        .then(({ error }) => {
+          if (error) {
+            Alert.alert("เข้าสู่ระบบไม่สำเร็จ", error.message);
+            router.replace("/auth/login");
+            return;
+          }
+          router.replace("/(tabs)");
+        })
+        .catch(() => {
+          Alert.alert("เข้าสู่ระบบไม่สำเร็จ", "กรุณาลองใหม่อีกครั้ง");
+          router.replace("/auth/login");
+        });
     } else {
       router.replace("/(tabs)");
     }

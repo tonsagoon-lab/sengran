@@ -1,5 +1,5 @@
 import { createContext, useEffect, useRef, useState } from "react";
-import { Platform } from "react-native";
+import { Platform, StatusBar } from "react-native";
 import { Stack, router } from "expo-router";
 import { Session } from "@supabase/supabase-js";
 import Constants from "expo-constants";
@@ -140,10 +140,13 @@ export default function RootLayout() {
   return (
     <SessionContext.Provider value={session}>
       <UnreadCountsContext.Provider value={{ counts, refresh }}>
+        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="auth" />
           <Stack.Screen name="listing/[slug]" />
+          <Stack.Screen name="legal/privacy" />
+          <Stack.Screen name="legal/terms" />
         </Stack>
       </UnreadCountsContext.Provider>
     </SessionContext.Provider>

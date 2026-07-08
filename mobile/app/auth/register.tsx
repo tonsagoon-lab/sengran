@@ -190,7 +190,7 @@ export default function RegisterScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -328,6 +328,13 @@ export default function RegisterScreen() {
               <Text style={styles.linkHighlight}>เข้าสู่ระบบ</Text>
             </Text>
           </Pressable>
+
+          <Text style={styles.legalNote}>
+            การสมัครสมาชิกถือว่าท่านยอมรับ{" "}
+            <Text style={styles.legalLink} onPress={() => router.push("/legal/terms")}>ข้อกำหนดการใช้งาน</Text>
+            {" "}และ{" "}
+            <Text style={styles.legalLink} onPress={() => router.push("/legal/privacy")}>นโยบายความเป็นส่วนตัว</Text>
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -412,4 +419,6 @@ const styles = StyleSheet.create({
   link: { alignItems: "center", paddingTop: 20 },
   linkText: { fontSize: 14, color: "#6b7280" },
   linkHighlight: { color: "#f97316", fontWeight: "600" },
+  legalNote: { fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 18, lineHeight: 18, paddingHorizontal: 8 },
+  legalLink: { color: "#f97316", textDecorationLine: "underline" },
 });
