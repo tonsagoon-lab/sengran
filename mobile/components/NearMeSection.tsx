@@ -18,10 +18,22 @@ import type { Listing } from "../lib/types";
 
 const LOCATION_KEY = "user_location";
 const DENIED_KEY = "user_location_denied";
-const RADIUS_OPTIONS = [5, 10, 25, 50];
-const INITIAL_RADIUS = 10;
+const RADIUS_OPTIONS = [5, 10, 15, 25, 50];
+const INITIAL_RADIUS = 15;
 const EXPANDED_RADIUS = 50;
 const MOVE_THRESHOLD_M = 500; // re-fetch ถ้าขยับเกิน 500 เมตร
+const GPS_TIMEOUT_MS = 12_000;
+
+async function getPositionWithTimeout(accuracy: Location.LocationAccuracy) {
+  const last = await Location.getLastKnownPositionAsync({ maxAge: 60_000 });
+  if (last) return last;
+  return Promise.race([
+    Location.getCurrentPositionAsync({ accuracy }),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("gps-timeout")), GPS_TIMEOUT_MS)
+    ),
+  ]);
+}
 
 type State =
   | { phase: "prompt" }
@@ -99,9 +111,7 @@ export function NearMeSection() {
       const { status } = await Location.getForegroundPermissionsAsync();
       if (status !== "granted") return;
 
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      const loc = await getPositionWithTimeout(Location.Accuracy.Balanced);
       const { latitude: lat, longitude: lng } = loc.coords;
 
       const dLat = (lat - oldLat) * 111_000;
@@ -128,9 +138,7 @@ export function NearMeSection() {
         setState({ phase: "denied" });
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
+      const loc = await getPositionWithTimeout(Location.Accuracy.High);
       const { latitude: lat, longitude: lng } = loc.coords;
       await AsyncStorage.setItem(LOCATION_KEY, JSON.stringify({ lat, lng }));
       const cur = state;
@@ -152,9 +160,7 @@ export function NearMeSection() {
         setState({ phase: "denied" });
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      const loc = await getPositionWithTimeout(Location.Accuracy.Balanced);
       const { latitude: lat, longitude: lng } = loc.coords;
       await AsyncStorage.setItem(LOCATION_KEY, JSON.stringify({ lat, lng }));
       await fetchNearby(lat, lng, radius);
@@ -365,10 +371,21 @@ export function NearMeSection() {
       )}
 
       {state.phase === "denied" && (
-        <Pressable style={styles.deniedWrap} onPress={clearDenied}>
-          <Ionicons name="location-outline" size={20} color="#9ca3af" />
-          <Text style={styles.deniedText}>เปิดใช้ตำแหน่งอีกครั้ง</Text>
-        </Pressable>
+        <View style={styles.deniedWrap}>
+          <Text style={styles.deniedText}>
+            ยังไม่ได้เปิดใช้ตำแหน่ง — เลือกจังหวัดเพื่อดูร้านในพื้นที่นั้นแทน
+          </Text>
+          <View style={styles.deniedActions}>
+            <Pressable style={styles.deniedBtnPrimary} onPress={() => router.push("/(tabs)/browse")}>
+              <Ionicons name="map-outline" size={14} color="#fff" />
+              <Text style={styles.deniedBtnPrimaryText}>เลือกจังหวัด</Text>
+            </Pressable>
+            <Pressable style={styles.deniedBtnSecondary} onPress={clearDenied}>
+              <Ionicons name="locate-outline" size={14} color="#6b7280" />
+              <Text style={styles.deniedBtnSecondaryText}>เปิดใช้ตำแหน่ง</Text>
+            </Pressable>
+          </View>
+        </View>
       )}
     </View>
   );
@@ -452,9 +469,21 @@ const styles = StyleSheet.create({
   refreshBtnSmallText: { fontSize: 12, color: "#6b7280", fontWeight: "500" },
 
   deniedWrap: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    marginHorizontal: 16, padding: 12,
+    marginHorizontal: 16, padding: 14, gap: 10,
     backgroundColor: "#f9fafb", borderRadius: 12, borderWidth: 1, borderColor: "#e5e7eb",
   },
-  deniedText: { fontSize: 13, color: "#6b7280" },
+  deniedText: { fontSize: 13, color: "#6b7280", lineHeight: 18 },
+  deniedActions: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  deniedBtnPrimary: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 999, backgroundColor: "#f97316",
+  },
+  deniedBtnPrimaryText: { fontSize: 12, fontWeight: "600", color: "#fff" },
+  deniedBtnSecondary: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 999, borderWidth: 1, borderColor: "#e5e7eb", backgroundColor: "#fff",
+  },
+  deniedBtnSecondaryText: { fontSize: 12, fontWeight: "500", color: "#6b7280" },
 });

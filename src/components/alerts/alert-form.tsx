@@ -25,7 +25,14 @@ const TYPE_OPTIONS = [
   { value: "both", label: "เซ้งและให้เช่า" },
 ];
 
-const RADIUS_OPTIONS = [5, 10, 25, 50];
+const RADIUS_OPTIONS = [5, 10, 15, 25, 50];
+const DEFAULT_RADIUS = 15;
+
+// New alerts default to "nearby". Existing alerts open in whichever mode they were saved in.
+function defaultLocMode(editing?: AlertPreference): "province" | "nearby" {
+  if (!editing) return "nearby";
+  return editing.center_lat != null ? "nearby" : "province";
+}
 
 export function AlertForm({ provinces, categories, editing, onDone, trigger }: Props) {
   const [open, setOpen] = useState(false);
@@ -33,23 +40,21 @@ export function AlertForm({ provinces, categories, editing, onDone, trigger }: P
   const [error, setError] = useState<string | null>(null);
 
   // Location mode
-  const [locMode, setLocMode] = useState<"province" | "nearby">(
-    editing?.center_lat != null ? "nearby" : "province"
-  );
+  const [locMode, setLocMode] = useState<"province" | "nearby">(defaultLocMode(editing));
   const [selectedProvinces, setSelectedProvinces] = useState<number[]>(editing?.province_ids ?? []);
   const [provinceSearch, setProvinceSearch] = useState("");
   const [centerLat, setCenterLat] = useState<number | null>(editing?.center_lat ?? null);
   const [centerLng, setCenterLng] = useState<number | null>(editing?.center_lng ?? null);
-  const [radiusKm, setRadiusKm] = useState<number>(editing?.radius_km ?? 10);
+  const [radiusKm, setRadiusKm] = useState<number>(editing?.radius_km ?? DEFAULT_RADIUS);
   const [gpsLoading, setGpsLoading] = useState(false);
 
   function resetForm() {
-    setLocMode(editing?.center_lat != null ? "nearby" : "province");
+    setLocMode(defaultLocMode(editing));
     setSelectedProvinces(editing?.province_ids ?? []);
     setProvinceSearch("");
     setCenterLat(editing?.center_lat ?? null);
     setCenterLng(editing?.center_lng ?? null);
-    setRadiusKm(editing?.radius_km ?? 10);
+    setRadiusKm(editing?.radius_km ?? DEFAULT_RADIUS);
     setError(null);
   }
 
@@ -65,17 +70,24 @@ export function AlertForm({ provinces, categories, editing, onDone, trigger }: P
   }
 
   function fetchGPS() {
-    if (!navigator.geolocation) { setError("เบราว์เซอร์ไม่รองรับ Geolocation"); return; }
+    if (!navigator.geolocation) {
+      setError("เบราว์เซอร์ไม่รองรับ ระบบระบุตำแหน่ง กรุณาเลือกจังหวัดแทน");
+      setLocMode("province");
+      return;
+    }
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCenterLat(pos.coords.latitude);
         setCenterLng(pos.coords.longitude);
         setGpsLoading(false);
+        setError(null);
       },
       () => {
-        setError("ไม่สามารถดึงตำแหน่งได้ กรุณาอนุญาตการเข้าถึงตำแหน่ง");
+        // GPS denied/failed → fall back to province picker so user can still save a rule
         setGpsLoading(false);
+        setLocMode("province");
+        setError("ไม่สามารถเข้าถึงตำแหน่งได้ กรุณาเลือกจังหวัดแทน");
       }
     );
   }

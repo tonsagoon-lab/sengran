@@ -124,7 +124,7 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
           type: "gps",
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-          radiusKm: 10,
+          radiusKm: 15,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(loc));
         setLocation(loc);
@@ -143,7 +143,7 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
               type: "gps",
               lat: pos.coords.latitude,
               lng: pos.coords.longitude,
-              radiusKm: 10,
+              radiusKm: 15,
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(loc));
             setLocation(loc);
