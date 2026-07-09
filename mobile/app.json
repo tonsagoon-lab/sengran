@@ -24,7 +24,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#25252A"
       },
       "package": "com.sengran.app",
       "edgeToEdgeEnabled": true,

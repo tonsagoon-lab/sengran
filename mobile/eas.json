@@ -32,9 +32,7 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "tonsagoon@gmail.com",
-        "ascAppId": "",
-        "appleTeamId": ""
+        "appleId": "tonsagoon@gmail.com"
       }
     }
   }

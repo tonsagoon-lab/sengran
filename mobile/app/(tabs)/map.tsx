@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Image,
+  Linking,
+  Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
-  Linking,
-  Platform,
-  ScrollView,
 } from "react-native";
-import MapView, { Marker, Callout, Region } from "react-native-maps";
+import { WebView } from "react-native-webview";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,13 +23,14 @@ import { resolveImageUrl } from "../../lib/image-url";
 import type { Listing } from "../../lib/types";
 
 const fmt = new Intl.NumberFormat("th-TH");
+const MODE_KEY = "map_default_mode";
+const GPS_TIMEOUT_MS = 12_000;
 
-const THAILAND: Region = {
-  latitude: 13.0,
-  longitude: 101.5,
-  latitudeDelta: 12,
-  longitudeDelta: 10,
-};
+type MapMode =
+  | { type: "nearby"; lat: number; lng: number }
+  | { type: "province"; provinceId: number; name: string };
+
+type Province = { id: number; name_th: string };
 
 const TYPE_COLOR: Record<string, string> = {
   sale: "#1d4ed8",
@@ -43,24 +47,219 @@ function priceLabel(item: Listing): string {
 
 type FilterType = "all" | "sale" | "rent" | "both";
 
+const FILTERS: { key: FilterType; label: string }[] = [
+  { key: "all", label: "ทั้งหมด" },
+  { key: "sale", label: "เซ้ง" },
+  { key: "rent", label: "เช่า" },
+  { key: "both", label: "เซ้ง+เช่า" },
+];
+
+async function getPositionWithTimeout() {
+  const last = await Location.getLastKnownPositionAsync({ maxAge: 60_000 });
+  if (last) return last;
+  return Promise.race([
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("gps-timeout")), GPS_TIMEOUT_MS)
+    ),
+  ]);
+}
+
+const LEAFLET_HTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+  html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; background: #f3f4f6; }
+  .map-pin-wrap {
+    display: flex; flex-direction: column; align-items: center; cursor: pointer;
+    width: 100%; height: 100%; justify-content: flex-end;
+  }
+  .map-pin-bubble {
+    color: #fff; border-radius: 8px; padding: 4px 10px;
+    font-size: 12px; font-weight: 700; white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.28); letter-spacing: -0.3px; line-height: 1.4;
+  }
+  .map-pin-tail { display: block; margin-top: -1px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15)); }
+  .cluster-bubble {
+    background: #f97316; color: #fff; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border: 3px solid #fff; width: 100%; height: 100%;
+  }
+  .leaflet-container { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .leaflet-control-attribution { font-size: 9px !important; }
+  .user-dot { width: 16px; height: 16px; border-radius: 50%; background: #2563eb; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(37,99,235,0.4); }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+  var post = function(msg) {
+    if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+      window.ReactNativeWebView.postMessage(JSON.stringify(msg));
+    }
+  };
+
+  var THAILAND_BOUNDS = [[5.5, 97.3], [20.5, 105.7]];
+  var TYPE_COLOR = { sale: '#1d4ed8', rent: '#15803d', both: '#7c3aed' };
+
+  var map = L.map('map', {
+    zoomControl: false,
+    maxBounds: THAILAND_BOUNDS,
+    maxBoundsViscosity: 0.8,
+  }).setView([13.7563, 100.5018], 6);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors', maxZoom: 19, minZoom: 6,
+  }).addTo(map);
+
+  var cluster = L.markerClusterGroup({
+    maxClusterRadius: 60,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    iconCreateFunction: function(c) {
+      var count = c.getChildCount();
+      var size = count < 10 ? 36 : count < 50 ? 42 : 50;
+      return L.divIcon({
+        html: '<div class="cluster-bubble">' + count + '</div>',
+        className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
+      });
+    },
+  });
+  map.addLayer(cluster);
+
+  var allListings = [];
+  var currentTypeFilter = 'all';
+  var currentProvinceId = null;
+  var userMarker = null;
+
+  function inThailand(lat, lng) {
+    return lat >= 5.5 && lat <= 20.5 && lng >= 97.3 && lng <= 105.7;
+  }
+  function passesFilter(l) {
+    if (!inThailand(l.latitude, l.longitude)) return false;
+    if (currentProvinceId != null && l.province_id !== currentProvinceId) return false;
+    if (currentTypeFilter === 'all') return true;
+    if (currentTypeFilter === 'sale') return l.listing_type === 'sale' || l.listing_type === 'both';
+    if (currentTypeFilter === 'rent') return l.listing_type === 'rent' || l.listing_type === 'both';
+    if (currentTypeFilter === 'both') return l.listing_type === 'both';
+    return true;
+  }
+
+  function priceLabel(l) {
+    if (l.listing_type === 'rent' && l.rent_price) return '฿' + l.rent_price.toLocaleString('th-TH') + '/ด.';
+    if (l.sale_price) return '฿' + l.sale_price.toLocaleString('th-TH');
+    return 'ติดต่อ';
+  }
+
+  function render(fit) {
+    cluster.clearLayers();
+    var shown = allListings.filter(passesFilter);
+    shown.forEach(function(l) {
+      var color = TYPE_COLOR[l.listing_type] || '#f97316';
+      var label = priceLabel(l);
+      var w = Math.max(60, label.length * 8 + 20);
+      var icon = L.divIcon({
+        className: '',
+        html: '<div class="map-pin-wrap">' +
+              '<div class="map-pin-bubble" style="background:' + color + '">' + label + '</div>' +
+              '<svg class="map-pin-tail" width="14" height="10" viewBox="0 0 14 10"><polygon points="7,10 0,0 14,0" fill="' + color + '"/></svg>' +
+              '</div>',
+        iconSize: [w, 34], iconAnchor: [w/2, 34],
+      });
+      var marker = L.marker([l.latitude, l.longitude], { icon: icon });
+      marker.on('click', function() { post({ type: 'select', id: l.id }); });
+      cluster.addLayer(marker);
+    });
+    if (fit && shown.length > 1) {
+      var bounds = L.latLngBounds(shown.map(function(l) { return [l.latitude, l.longitude]; }));
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
+    } else if (fit && shown.length === 1) {
+      map.setView([shown[0].latitude, shown[0].longitude], 13);
+    }
+  }
+
+  window.setListings = function(data) {
+    allListings = data;
+    render(false);
+    post({ type: 'ready' });
+  };
+  window.setTypeFilter = function(f) { currentTypeFilter = f; render(false); };
+  window.setProvinceFilter = function(pid) { currentProvinceId = pid; render(true); };
+  window.centerOn = function(lat, lng, zoom) {
+    if (userMarker) { map.removeLayer(userMarker); }
+    userMarker = L.marker([lat, lng], {
+      icon: L.divIcon({ className: '', html: '<div class="user-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] })
+    }).addTo(map);
+    map.flyTo([lat, lng], zoom || 13, { duration: 0.8 });
+  };
+
+  post({ type: 'loaded' });
+</script>
+</body>
+</html>`;
+
 export default function MapScreen() {
-  const mapRef = useRef<MapView>(null);
+  const webRef = useRef<WebView>(null);
   const [listings, setListings] = useState<Listing[]>([]);
+  const [byId, setById] = useState<Record<string, Listing>>({});
+  const [provinces, setProvinces] = useState<Province[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Listing | null>(null);
   const [filterType, setFilterType] = useState<FilterType>("all");
+  const [webReady, setWebReady] = useState(false);
+  const [mode, setMode] = useState<MapMode | null>(null);
+  const [showIntro, setShowIntro] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [provincePickerOpen, setProvincePickerOpen] = useState(false);
+  const [initChecked, setInitChecked] = useState(false);
 
   useEffect(() => {
     fetchListings();
-    centerOnUser();
+    fetchProvinces();
+    loadSavedMode();
   }, []);
+
+  useEffect(() => {
+    if (webReady && listings.length > 0) {
+      const payload = listings.map((l) => ({
+        id: l.id,
+        latitude: l.latitude,
+        longitude: l.longitude,
+        province_id: l.province_id,
+        listing_type: l.listing_type,
+        sale_price: l.sale_price,
+        rent_price: l.rent_price,
+      }));
+      webRef.current?.injectJavaScript(
+        `window.setListings(${JSON.stringify(payload)}); true;`
+      );
+      applyMode(mode);
+    }
+  }, [webReady, listings]);
+
+  useEffect(() => {
+    if (webReady) {
+      webRef.current?.injectJavaScript(
+        `window.setTypeFilter(${JSON.stringify(filterType)}); true;`
+      );
+    }
+  }, [webReady, filterType]);
 
   async function fetchListings() {
     const { data } = await supabase
       .from("listings")
       .select(`
         id, slug, title, listing_type, sale_price, rent_price,
-        latitude, longitude, district, published_at,
+        latitude, longitude, district, published_at, province_id,
         listing_images(storage_path, display_order),
         provinces(name_th),
         categories(name_th, slug)
@@ -70,32 +269,119 @@ export default function MapScreen() {
       .not("longitude", "is", null)
       .order("published_at", { ascending: false })
       .limit(300);
-    setListings((data ?? []) as unknown as Listing[]);
+    const rows = (data ?? []) as unknown as Listing[];
+    const idMap: Record<string, Listing> = {};
+    rows.forEach((r) => { idMap[r.id] = r; });
+    setListings(rows);
+    setById(idMap);
     setLoading(false);
   }
 
-  async function centerOnUser() {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return;
-    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    mapRef.current?.animateToRegion({
-      latitude: loc.coords.latitude,
-      longitude: loc.coords.longitude,
-      latitudeDelta: 0.15,
-      longitudeDelta: 0.15,
-    }, 800);
+  async function fetchProvinces() {
+    const { data } = await supabase
+      .from("provinces")
+      .select("id, name_th")
+      .order("name_th");
+    setProvinces((data ?? []) as Province[]);
   }
 
-  const filtered = listings.filter((l) => {
-    if (filterType === "all") return true;
-    if (filterType === "sale") return l.listing_type === "sale" || l.listing_type === "both";
-    if (filterType === "rent") return l.listing_type === "rent" || l.listing_type === "both";
-    return l.listing_type === filterType;
-  });
+  async function loadSavedMode() {
+    try {
+      const raw = await AsyncStorage.getItem(MODE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as MapMode;
+        if (saved.type === "nearby") {
+          // re-request GPS silently so it's current
+          try {
+            const loc = await getPositionWithTimeout();
+            const next = { type: "nearby" as const, lat: loc.coords.latitude, lng: loc.coords.longitude };
+            setMode(next);
+            AsyncStorage.setItem(MODE_KEY, JSON.stringify(next));
+          } catch {
+            setMode(saved);
+          }
+        } else {
+          setMode(saved);
+        }
+      } else {
+        setShowIntro(true);
+      }
+    } catch {
+      setShowIntro(true);
+    } finally {
+      setInitChecked(true);
+    }
+  }
 
-  const cover = selected?.listing_images
-    ?.slice()
-    .sort((a, b) => a.display_order - b.display_order)[0];
+  function applyMode(m: MapMode | null) {
+    if (!m || !webReady) return;
+    if (m.type === "nearby") {
+      webRef.current?.injectJavaScript(
+        `window.setProvinceFilter(null); window.centerOn(${m.lat}, ${m.lng}, 12); true;`
+      );
+    } else if (m.type === "province") {
+      webRef.current?.injectJavaScript(
+        `window.setProvinceFilter(${m.provinceId}); true;`
+      );
+    }
+  }
+
+  useEffect(() => {
+    if (webReady && mode) applyMode(mode);
+  }, [webReady, mode]);
+
+  async function pickNearby() {
+    setGpsLoading(true);
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      setGpsLoading(false);
+      // fallback to province picker
+      setProvincePickerOpen(true);
+      return;
+    }
+    try {
+      const loc = await getPositionWithTimeout();
+      const next: MapMode = { type: "nearby", lat: loc.coords.latitude, lng: loc.coords.longitude };
+      await AsyncStorage.setItem(MODE_KEY, JSON.stringify(next));
+      setMode(next);
+      setShowIntro(false);
+    } catch {
+      setProvincePickerOpen(true);
+    } finally {
+      setGpsLoading(false);
+    }
+  }
+
+  async function pickProvince(p: Province) {
+    const next: MapMode = { type: "province", provinceId: p.id, name: p.name_th };
+    await AsyncStorage.setItem(MODE_KEY, JSON.stringify(next));
+    setMode(next);
+    setShowIntro(false);
+    setProvincePickerOpen(false);
+  }
+
+  function openChangeLocation() {
+    setSelected(null);
+    setShowIntro(true);
+  }
+
+  function handleMessage(e: { nativeEvent: { data: string } }) {
+    try {
+      const msg = JSON.parse(e.nativeEvent.data);
+      if (msg.type === "loaded") setWebReady(true);
+      else if (msg.type === "select" && msg.id) {
+        const listing = byId[msg.id];
+        if (listing) setSelected(listing);
+      }
+    } catch {}
+  }
+
+  const cover = useMemo(() => {
+    if (!selected) return null;
+    return selected.listing_images
+      ?.slice()
+      .sort((a, b) => a.display_order - b.display_order)[0] ?? null;
+  }, [selected]);
   const coverUrl = cover ? resolveImageUrl(cover.storage_path) : null;
 
   function openMaps() {
@@ -106,12 +392,11 @@ export default function MapScreen() {
     Linking.openURL(url);
   }
 
-  const FILTERS: { key: FilterType; label: string }[] = [
-    { key: "all", label: "ทั้งหมด" },
-    { key: "sale", label: "เซ้ง" },
-    { key: "rent", label: "เช่า" },
-    { key: "both", label: "เซ้ง+เช่า" },
-  ];
+  const modeLabel = mode?.type === "nearby"
+    ? "ใกล้ตัวคุณ"
+    : mode?.type === "province"
+    ? mode.name
+    : null;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -121,64 +406,60 @@ export default function MapScreen() {
           <Ionicons name="map" size={20} color="#f97316" />
           <Text style={styles.headerTitle}>แผนที่เซ้ง</Text>
         </View>
+        {modeLabel && (
+          <Pressable style={styles.locChip} onPress={openChangeLocation}>
+            <Ionicons name="location" size={12} color="#f97316" />
+            <Text style={styles.locChipText} numberOfLines={1}>{modeLabel}</Text>
+            <Ionicons name="chevron-down" size={12} color="#9ca3af" />
+          </Pressable>
+        )}
       </View>
 
       {/* Filter pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
-        {FILTERS.map((f) => (
-          <Pressable
-            key={f.key}
-            style={[styles.pill, filterType === f.key && styles.pillActive]}
-            onPress={() => setFilterType(f.key)}
-          >
-            <Text style={[styles.pillText, filterType === f.key && styles.pillTextActive]}>
-              {f.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <View style={styles.filterBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          {FILTERS.map((f) => (
+            <Pressable
+              key={f.key}
+              style={[styles.pill, filterType === f.key && styles.pillActive]}
+              onPress={() => setFilterType(f.key)}
+            >
+              <Text style={[styles.pillText, filterType === f.key && styles.pillTextActive]}>
+                {f.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
 
-      {/* Map */}
+      {/* Map (WebView + Leaflet) */}
       <View style={styles.mapWrap}>
-        {loading && (
-          <View style={styles.loadingOverlay}>
+        <WebView
+          ref={webRef}
+          originWhitelist={["*"]}
+          source={{ html: LEAFLET_HTML, baseUrl: "https://sengran.local/" }}
+          onMessage={handleMessage}
+          javaScriptEnabled
+          domStorageEnabled
+          setSupportMultipleWindows={false}
+          style={styles.map}
+        />
+        {(loading || !webReady) && (
+          <View style={styles.loadingOverlay} pointerEvents="none">
             <ActivityIndicator color="#f97316" size="large" />
           </View>
         )}
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={THAILAND}
-          showsUserLocation
-          showsMyLocationButton={false}
-          onPress={() => setSelected(null)}
-        >
-          {filtered.map((l) => {
-            if (!l.latitude || !l.longitude) return null;
-            const color = TYPE_COLOR[l.listing_type] ?? "#f97316";
-            return (
-              <Marker
-                key={l.id}
-                coordinate={{ latitude: l.latitude, longitude: l.longitude }}
-                onPress={() => setSelected(l)}
-                tracksViewChanges={false}
-              >
-                <View style={[styles.pin, { backgroundColor: color }]}>
-                  <Text style={styles.pinText}>{priceLabel(l)}</Text>
-                </View>
-              </Marker>
-            );
-          })}
-        </MapView>
 
-        {/* My location button */}
-        <Pressable style={styles.locBtn} onPress={centerOnUser}>
-          <Ionicons name="locate" size={20} color="#374151" />
-        </Pressable>
+        {/* My location button — only when in nearby mode or no mode */}
+        {mode?.type !== "province" && (
+          <Pressable style={styles.locBtn} onPress={pickNearby}>
+            <Ionicons name="locate" size={20} color="#374151" />
+          </Pressable>
+        )}
       </View>
 
       {/* Bottom card when marker selected */}
@@ -218,6 +499,85 @@ export default function MapScreen() {
           </Pressable>
         </View>
       )}
+
+      {/* Intro modal — pick nearby or province */}
+      <Modal
+        visible={initChecked && showIntro}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { if (mode) setShowIntro(false); }}
+      >
+        <View style={styles.introBackdrop}>
+          <View style={styles.introCard}>
+            <Text style={styles.introEmoji}>📍</Text>
+            <Text style={styles.introTitle}>ค้นหาร้านในแผนที่</Text>
+            <Text style={styles.introSub}>
+              เลือกดูร้านใกล้ตัว หรือดูตามจังหวัดที่สนใจ
+            </Text>
+
+            <Pressable
+              style={[styles.introBtn, styles.introBtnPrimary]}
+              onPress={pickNearby}
+              disabled={gpsLoading}
+            >
+              {gpsLoading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="locate" size={18} color="#fff" />
+                  <Text style={styles.introBtnPrimaryText}>ใกล้ตัวฉัน</Text>
+                </>
+              )}
+            </Pressable>
+
+            <Pressable
+              style={[styles.introBtn, styles.introBtnSecondary]}
+              onPress={() => setProvincePickerOpen(true)}
+              disabled={gpsLoading}
+            >
+              <Ionicons name="map-outline" size={18} color="#f97316" />
+              <Text style={styles.introBtnSecondaryText}>เลือกจังหวัด</Text>
+            </Pressable>
+
+            {mode && (
+              <Pressable onPress={() => setShowIntro(false)}>
+                <Text style={styles.introSkip}>ยกเลิก</Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Province picker sheet */}
+      <Modal
+        visible={provincePickerOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setProvincePickerOpen(false)}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={() => setProvincePickerOpen(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>เลือกจังหวัด</Text>
+              <Pressable onPress={() => setProvincePickerOpen(false)}>
+                <Ionicons name="close" size={22} color="#6b7280" />
+              </Pressable>
+            </View>
+            <FlatList
+              data={provinces}
+              keyExtractor={(p) => String(p.id)}
+              renderItem={({ item }) => (
+                <Pressable style={styles.provinceRow} onPress={() => pickProvince(item)}>
+                  <Text style={styles.provinceRowText}>{item.name_th}</Text>
+                  {mode?.type === "province" && mode.provinceId === item.id && (
+                    <Ionicons name="checkmark" size={18} color="#f97316" />
+                  )}
+                </Pressable>
+              )}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -225,14 +585,33 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
+    gap: 8,
   },
   headerTitleWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
   headerTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  locChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "#fff7ed",
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    maxWidth: 180,
+  },
+  locChipText: { fontSize: 12, fontWeight: "600", color: "#c2410c", flexShrink: 1 },
+
+  filterBar: { flexGrow: 0, flexShrink: 0 },
+  filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, alignItems: "center" },
   pill: {
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -244,11 +623,12 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: "#f97316", borderColor: "#f97316" },
   pillText: { fontSize: 13, fontWeight: "600", color: "#374151" },
   pillTextActive: { color: "#fff" },
+
   mapWrap: { flex: 1 },
-  map: { flex: 1 },
+  map: { flex: 1, backgroundColor: "#f3f4f6" },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#f9fafb",
+    backgroundColor: "rgba(249,250,251,0.85)",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
@@ -269,17 +649,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  pin: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  pinText: { color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: -0.3 },
+
   card: {
     position: "absolute",
     bottom: 20,
@@ -322,4 +692,78 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
+  // Intro modal
+  introBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  introCard: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 22,
+    alignItems: "center",
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  introEmoji: { fontSize: 40 },
+  introTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  introSub: { fontSize: 13, color: "#6b7280", textAlign: "center", marginBottom: 6 },
+  introBtn: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  introBtnPrimary: { backgroundColor: "#f97316" },
+  introBtnPrimaryText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  introBtnSecondary: { backgroundColor: "#fff", borderWidth: 1.5, borderColor: "#f97316" },
+  introBtnSecondaryText: { color: "#f97316", fontSize: 15, fontWeight: "700" },
+  introSkip: { fontSize: 13, color: "#9ca3af", marginTop: 4, paddingVertical: 4 },
+
+  // Province sheet
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.5)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "75%",
+    paddingBottom: 12,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  sheetTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  provinceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f9fafb",
+  },
+  provinceRowText: { fontSize: 15, color: "#374151" },
 });
