@@ -31,6 +31,7 @@ type MapMode =
   | { type: "province"; provinceId: number; name: string };
 
 type Province = { id: number; name_th: string };
+type Category = { id: number; name_th: string; slug: string; icon: string | null };
 
 const TYPE_COLOR: Record<string, string> = {
   sale: "#1d4ed8",
@@ -148,6 +149,7 @@ const LEAFLET_HTML = `<!DOCTYPE html>
   var allListings = [];
   var currentTypeFilter = 'all';
   var currentProvinceId = null;
+  var currentCategoryId = null;
   var currentTimeCutoff = null; // epoch ms; null = no time filter
   var userMarker = null;
 
@@ -157,6 +159,7 @@ const LEAFLET_HTML = `<!DOCTYPE html>
   function passesFilter(l) {
     if (!inThailand(l.latitude, l.longitude)) return false;
     if (currentProvinceId != null && l.province_id !== currentProvinceId) return false;
+    if (currentCategoryId != null && l.category_id !== currentCategoryId) return false;
     if (currentTimeCutoff != null) {
       if (!l.published_at_ms || l.published_at_ms < currentTimeCutoff) return false;
     }
@@ -208,6 +211,7 @@ const LEAFLET_HTML = `<!DOCTYPE html>
   window.setTypeFilter = function(f) { currentTypeFilter = f; render(false); };
   window.setProvinceFilter = function(pid) { currentProvinceId = pid; render(true); };
   window.setTimeCutoff = function(cutoff) { currentTimeCutoff = cutoff; render(false); };
+  window.setCategoryFilter = function(cid) { currentCategoryId = cid; render(false); };
   window.centerOn = function(lat, lng, zoom) {
     if (userMarker) { map.removeLayer(userMarker); }
     userMarker = L.marker([lat, lng], {
@@ -226,6 +230,8 @@ export default function MapScreen() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [byId, setById] = useState<Record<string, Listing>>({});
   const [provinces, setProvinces] = useState<Province[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Listing | null>(null);
   const [filterType, setFilterType] = useState<FilterType>("all");
@@ -240,6 +246,7 @@ export default function MapScreen() {
   useEffect(() => {
     fetchListings();
     fetchProvinces();
+    fetchCategories();
     loadSavedMode();
   }, []);
 
@@ -250,6 +257,7 @@ export default function MapScreen() {
         latitude: l.latitude,
         longitude: l.longitude,
         province_id: l.province_id,
+        category_id: l.category_id,
         listing_type: l.listing_type,
         sale_price: l.sale_price,
         rent_price: l.rent_price,
@@ -280,12 +288,19 @@ export default function MapScreen() {
     );
   }, [webReady, timeFilter]);
 
+  useEffect(() => {
+    if (!webReady) return;
+    webRef.current?.injectJavaScript(
+      `window.setCategoryFilter(${categoryId == null ? "null" : categoryId}); true;`
+    );
+  }, [webReady, categoryId]);
+
   async function fetchListings() {
     const { data } = await supabase
       .from("listings")
       .select(`
         id, slug, title, listing_type, sale_price, rent_price,
-        latitude, longitude, district, published_at, province_id,
+        latitude, longitude, district, published_at, province_id, category_id,
         listing_images(storage_path, display_order),
         provinces(name_th),
         categories(name_th, slug)
@@ -309,6 +324,16 @@ export default function MapScreen() {
       .select("id, name_th")
       .order("name_th");
     setProvinces((data ?? []) as Province[]);
+  }
+
+  async function fetchCategories() {
+    const { data } = await supabase
+      .from("categories")
+      .select("id, name_th, slug, icon")
+      .eq("category_type", "shop")
+      .eq("is_active", true)
+      .order("display_order");
+    setCategories((data ?? []) as Category[]);
   }
 
   async function loadSavedMode() {
@@ -456,6 +481,35 @@ export default function MapScreen() {
             >
               <Text style={[styles.pillText, filterType === f.key && styles.pillTextActive]}>
                 {f.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Category pills */}
+      <View style={styles.filterBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRowSecondary}
+        >
+          <Pressable
+            style={[styles.pillSm, categoryId === null && styles.pillSmActive]}
+            onPress={() => setCategoryId(null)}
+          >
+            <Text style={[styles.pillSmText, categoryId === null && styles.pillSmTextActive]}>
+              ทุกหมวด
+            </Text>
+          </Pressable>
+          {categories.map((c) => (
+            <Pressable
+              key={c.id}
+              style={[styles.pillSm, categoryId === c.id && styles.pillSmActive]}
+              onPress={() => setCategoryId(c.id)}
+            >
+              <Text style={[styles.pillSmText, categoryId === c.id && styles.pillSmTextActive]}>
+                {c.name_th}
               </Text>
             </Pressable>
           ))}
