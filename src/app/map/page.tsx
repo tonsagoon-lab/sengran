@@ -17,7 +17,7 @@ export default async function MapPage() {
   ]);
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-neutral-100 overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-3.5rem)] bg-neutral-100 overflow-hidden">
       <TopMenuBar />
       <div
         className="flex-1 min-h-0 px-0 sm:px-4 pt-0 sm:pt-3 sm:pb-[10px]"
