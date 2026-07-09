@@ -43,13 +43,22 @@ const TYPE_COLOR: Record<string, string> = {
 interface MapViewProps {
   listings: MapListing[];
   targetCenter?: [number, number] | null;
+  userLocation?: [number, number] | null;
+  autoLocate?: boolean;
 }
 
-export function MapView({ listings, targetCenter }: MapViewProps) {
+export function MapView({
+  listings,
+  targetCenter,
+  userLocation,
+  autoLocate = true,
+}: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clusterGroupRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userMarkerRef = useRef<any>(null);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
   const [selected, setSelected] = useState<MapListing | null>(null);
   const [ready, setReady] = useState(false);
@@ -113,9 +122,10 @@ export function MapView({ listings, targetCenter }: MapViewProps) {
     };
   }, []);
 
-  // GPS centering — run once after map is ready
+  // Auto GPS centering — only if loader didn't provide userLocation/targetCenter
   useEffect(() => {
     if (!ready || !mapInstanceRef.current || !leafletRef.current) return;
+    if (!autoLocate) return;
     const map = mapInstanceRef.current;
     const L = leafletRef.current;
 
@@ -156,13 +166,38 @@ export function MapView({ listings, targetCenter }: MapViewProps) {
     );
     if (!navigator.geolocation) fallbackFit();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, [ready, autoLocate]);
 
   // Fly to province center when targetCenter changes
   useEffect(() => {
     if (!ready || !mapInstanceRef.current || !targetCenter) return;
     mapInstanceRef.current.flyTo(targetCenter, 11, { duration: 1.2 });
   }, [ready, targetCenter]);
+
+  // User location dot + fly-to for "nearby" mode
+  useEffect(() => {
+    if (!ready || !mapInstanceRef.current || !leafletRef.current) return;
+    const map = mapInstanceRef.current;
+    const L = leafletRef.current;
+
+    if (userMarkerRef.current) {
+      map.removeLayer(userMarkerRef.current);
+      userMarkerRef.current = null;
+    }
+    if (!userLocation) return;
+
+    const [lat, lng] = userLocation;
+    const dot = L.marker([lat, lng], {
+      icon: L.divIcon({
+        className: "",
+        html: '<div class="user-dot"></div>',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+      }),
+    }).addTo(map);
+    userMarkerRef.current = dot;
+    map.flyTo([lat, lng], 12, { duration: 1.0 });
+  }, [ready, userLocation]);
 
   // Re-render markers when listings (filter) changes
   useEffect(() => {
@@ -248,6 +283,14 @@ export function MapView({ listings, targetCenter }: MapViewProps) {
         }
         .leaflet-container { font-family: inherit; }
         .leaflet-control-attribution { font-size: 9px !important; }
+        .user-dot {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #2563eb;
+          border: 3px solid #fff;
+          box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35);
+        }
       `}</style>
 
       <div ref={mapRef} className="w-full h-full" />

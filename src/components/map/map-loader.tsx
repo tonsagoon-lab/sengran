@@ -1,9 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  Loader2,
+  LocateFixed,
+  MapPin,
+  X,
+} from "lucide-react";
 import type { MapListing } from "@/lib/db/listings";
 
 // Province center coordinates (lat, lng)
@@ -99,14 +106,32 @@ const MapView = dynamic(
   }
 );
 
-const TYPE_OPTIONS = [
+type MapMode =
+  | { type: "nearby"; lat: number; lng: number }
+  | { type: "province"; name: string };
+
+const MODE_KEY = "map_default_mode_web";
+
+const TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "ทั้งหมด" },
   { value: "sale", label: "เซ้ง" },
   { value: "rent", label: "ให้เช่า" },
   { value: "both", label: "เซ้ง+เช่า" },
 ];
 
-interface Category { id: number; name_th: string; slug: string }
+const TIME_OPTIONS: { value: string; label: string; months: number | null }[] = [
+  { value: "", label: "ทั้งหมด", months: null },
+  { value: "12m", label: "12 เดือน", months: 12 },
+  { value: "6m", label: "6 เดือน", months: 6 },
+  { value: "3m", label: "3 เดือน", months: 3 },
+  { value: "1m", label: "1 เดือน", months: 1 },
+];
+
+interface Category {
+  id: number;
+  name_th: string;
+  slug: string;
+}
 
 interface MapLoaderProps {
   listings: MapListing[];
@@ -116,117 +141,411 @@ interface MapLoaderProps {
 export function MapLoader({ listings, categories }: MapLoaderProps) {
   const [typeFilter, setTypeFilter] = useState("");
   const [catFilter, setCatFilter] = useState("");
-  const [provinceFilter, setProvinceFilter] = useState("");
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [timeFilter, setTimeFilter] = useState("");
+
+  const [mode, setMode] = useState<MapMode | null>(null);
+  const [modeReady, setModeReady] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const [typeSheetOpen, setTypeSheetOpen] = useState(false);
+  const [catSheetOpen, setCatSheetOpen] = useState(false);
+  const [timeSheetOpen, setTimeSheetOpen] = useState(false);
+  const [provinceSheetOpen, setProvinceSheetOpen] = useState(false);
+
+  // Restore mode from localStorage on first mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(MODE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as MapMode;
+        if (saved?.type === "nearby" && typeof saved.lat === "number") {
+          setMode(saved);
+        } else if (saved?.type === "province" && typeof saved.name === "string") {
+          setMode(saved);
+        } else {
+          setShowIntro(true);
+        }
+      } else {
+        setShowIntro(true);
+      }
+    } catch {
+      setShowIntro(true);
+    } finally {
+      setModeReady(true);
+    }
+  }, []);
+
+  const saveMode = useCallback((m: MapMode) => {
+    setMode(m);
+    try {
+      localStorage.setItem(MODE_KEY, JSON.stringify(m));
+    } catch {}
+  }, []);
+
+  const pickNearby = useCallback(() => {
+    if (!navigator.geolocation) {
+      setProvinceSheetOpen(true);
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        saveMode({ type: "nearby", lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setShowIntro(false);
+        setGpsLoading(false);
+      },
+      () => {
+        setGpsLoading(false);
+        setProvinceSheetOpen(true);
+      },
+      { timeout: 8000, enableHighAccuracy: false }
+    );
+  }, [saveMode]);
+
+  const pickProvince = useCallback(
+    (name: string) => {
+      saveMode({ type: "province", name });
+      setShowIntro(false);
+      setProvinceSheetOpen(false);
+    },
+    [saveMode]
+  );
 
   const filtered = useMemo(() => {
+    const cutoff = (() => {
+      const entry = TIME_OPTIONS.find((t) => t.value === timeFilter);
+      return entry?.months != null ? Date.now() - entry.months * 30 * 24 * 3600 * 1000 : null;
+    })();
+    const provinceName = mode?.type === "province" ? mode.name : "";
     return listings.filter((l) => {
       if (typeFilter && l.listing_type !== typeFilter) return false;
       if (catFilter && l.categories?.slug !== catFilter) return false;
-      if (provinceFilter && l.provinces?.name_th !== provinceFilter) return false;
+      if (provinceName && l.provinces?.name_th !== provinceName) return false;
+      if (cutoff != null) {
+        if (!l.published_at) return false;
+        if (Date.parse(l.published_at) < cutoff) return false;
+      }
       return true;
     });
-  }, [listings, typeFilter, catFilter, provinceFilter]);
+  }, [listings, typeFilter, catFilter, timeFilter, mode]);
 
-  const targetCenter = useMemo<[number, number] | null>(() => {
-    if (!provinceFilter) return null;
-    return PROVINCE_CENTERS[provinceFilter] ?? null;
-  }, [provinceFilter]);
+  const userLocation: [number, number] | null =
+    mode?.type === "nearby" ? [mode.lat, mode.lng] : null;
+  const targetCenter: [number, number] | null =
+    mode?.type === "province" ? PROVINCE_CENTERS[mode.name] ?? null : null;
 
-  const activeCount = [typeFilter, catFilter, provinceFilter].filter(Boolean).length;
+  const modeLabel =
+    mode?.type === "nearby"
+      ? "ใกล้ตัวคุณ"
+      : mode?.type === "province"
+      ? mode.name
+      : "เลือกตำแหน่ง";
+
+  const typeLabel = TYPE_OPTIONS.find((t) => t.value === typeFilter)?.label ?? "ทั้งหมด";
+  const catLabel =
+    catFilter === "" ? "ทุกหมวด" : categories.find((c) => c.slug === catFilter)?.name_th ?? "ทุกหมวด";
+  const timeLabel = TIME_OPTIONS.find((t) => t.value === timeFilter)?.label ?? "ทั้งหมด";
+
+  const typeActive = typeFilter !== "";
+  const catActive = catFilter !== "";
+  const timeActive = timeFilter !== "";
 
   return (
     <div className="relative h-full">
-      {/* Map — clipped to rounded container */}
-      <div className="absolute inset-0 rounded-2xl overflow-hidden">
-        <MapView listings={filtered} targetCenter={targetCenter} />
+      {/* Map — clipped to rounded container on desktop, edge-to-edge on mobile */}
+      <div className="absolute inset-0 sm:rounded-2xl overflow-hidden">
+        <MapView
+          listings={filtered}
+          userLocation={userLocation}
+          targetCenter={targetCenter}
+          autoLocate={modeReady && !mode}
+        />
       </div>
 
-      {/* Top-left: Back */}
-      <div className="absolute top-3 left-3 z-[1000]">
+      {/* Top row: Back + Mode pill */}
+      <div className="pointer-events-none absolute top-3 left-3 right-3 z-[1000] flex items-center gap-2">
         <Link
           href="/listings"
-          className="flex items-center gap-1.5 h-9 rounded-full bg-white px-3 text-sm font-medium text-neutral-700 shadow-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+          className="pointer-events-auto flex h-10 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-semibold text-neutral-700 shadow-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          กลับ
+          <span className="hidden sm:inline">กลับ</span>
         </Link>
+
+        <button
+          onClick={() => setShowIntro(true)}
+          className="pointer-events-auto flex flex-1 sm:flex-none h-10 items-center justify-center gap-1.5 rounded-full bg-orange-500 px-4 text-sm font-bold text-white shadow-lg shadow-orange-500/40 hover:bg-orange-600 transition-colors max-w-[240px]"
+        >
+          <MapPin className="h-4 w-4 shrink-0" />
+          <span className="truncate">{modeLabel}</span>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+        </button>
       </div>
 
-      {/* Top-right: Filter */}
-      <div className="absolute top-3 right-3 z-[1000]">
+      {/* Filter chip row */}
+      <div className="pointer-events-none absolute top-16 left-0 right-0 z-[999]">
+        <div className="pointer-events-auto flex gap-2 overflow-x-auto no-scrollbar px-3 py-2">
+          <FilterChip
+            label={`ประเภท: ${typeLabel}`}
+            active={typeActive}
+            onClick={() => setTypeSheetOpen(true)}
+          />
+          <FilterChip
+            label={`หมวด: ${catLabel}`}
+            active={catActive}
+            onClick={() => setCatSheetOpen(true)}
+          />
+          <FilterChip
+            label={`เวลา: ${timeLabel}`}
+            active={timeActive}
+            onClick={() => setTimeSheetOpen(true)}
+          />
+          {(typeActive || catActive || timeActive) && (
+            <button
+              onClick={() => {
+                setTypeFilter("");
+                setCatFilter("");
+                setTimeFilter("");
+              }}
+              className="shrink-0 flex items-center gap-1 h-9 rounded-full bg-white px-3 text-xs font-semibold text-neutral-500 border border-neutral-200 shadow hover:text-red-500 hover:border-red-200 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+              ล้าง
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Locate-me FAB (bottom-right, above zoom controls) */}
+      {mode?.type !== "province" && (
         <button
-          onClick={() => setPanelOpen((v) => !v)}
-          className={`flex items-center gap-2 h-10 rounded-full px-4 text-sm font-bold shadow-lg border-2 transition-all ${
-            activeCount > 0 || panelOpen
-              ? "bg-orange-500 text-white border-orange-500"
-              : "bg-white text-orange-500 border-orange-400 hover:bg-orange-50"
-          }`}
+          onClick={pickNearby}
+          disabled={gpsLoading}
+          className="absolute bottom-24 right-3 z-[1000] flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg border border-neutral-200 hover:bg-neutral-50 disabled:opacity-60 transition-colors"
+          aria-label="ตำแหน่งของฉัน"
         >
-          <SlidersHorizontal className="h-4 w-4" />
-          กรอง{activeCount > 0 ? ` (${activeCount})` : ""}
+          {gpsLoading ? (
+            <Loader2 className="h-5 w-5 text-neutral-500 animate-spin" />
+          ) : (
+            <LocateFixed className="h-5 w-5 text-neutral-700" />
+          )}
         </button>
+      )}
 
-        {panelOpen && (
-          <div className="absolute top-12 right-0 w-64 rounded-2xl bg-white shadow-2xl border border-neutral-200 p-5 space-y-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-neutral-800">กรองประกาศ</p>
-              <button onClick={() => setPanelOpen(false)}>
-                <X className="h-4 w-4 text-neutral-400 hover:text-neutral-700" />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">ประเภท</p>
-              <div className="grid grid-cols-2 gap-2">
-                {TYPE_OPTIONS.map((opt) => (
-                  <button key={opt.value} onClick={() => setTypeFilter(opt.value)}
-                    className={`rounded-xl py-2.5 text-sm font-semibold border-2 transition-all ${
-                      typeFilter === opt.value
-                        ? "bg-orange-500 text-white border-orange-500"
-                        : "bg-white text-neutral-600 border-neutral-200 hover:border-orange-400"
-                    }`}>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">ประเภทร้าน</p>
-              <div className="relative">
-                <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}
-                  className="w-full appearance-none rounded-xl border-2 border-neutral-200 bg-neutral-50 py-2.5 pl-3 pr-8 text-sm focus:outline-none focus:border-orange-400">
-                  <option value="">ทุกประเภท</option>
-                  {categories.map((c) => <option key={c.id} value={c.slug}>{c.name_th}</option>)}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">จังหวัด</p>
-              <div className="relative">
-                <select value={provinceFilter} onChange={(e) => setProvinceFilter(e.target.value)}
-                  className="w-full appearance-none rounded-xl border-2 border-neutral-200 bg-neutral-50 py-2.5 pl-3 pr-8 text-sm focus:outline-none focus:border-orange-400">
-                  <option value="">ทุกจังหวัด</option>
-                  {Object.keys(PROVINCE_CENTERS).sort().map((name) => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
-              </div>
-            </div>
-
-            {activeCount > 0 && (
-              <button onClick={() => { setTypeFilter(""); setCatFilter(""); setProvinceFilter(""); }}
-                className="w-full rounded-xl border-2 border-neutral-200 py-2.5 text-sm font-medium text-neutral-500 hover:text-red-500 hover:border-red-300 transition-colors">
-                ล้างตัวกรอง
+      {/* Intro modal — nearby or province */}
+      {modeReady && showIntro && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-slate-900/55 p-6">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="mb-1 text-center text-4xl">📍</div>
+            <h2 className="text-center text-lg font-bold text-neutral-900">
+              ค้นหาร้านในแผนที่
+            </h2>
+            <p className="mb-5 mt-1 text-center text-sm text-neutral-500">
+              เลือกดูร้านใกล้ตัว หรือดูตามจังหวัดที่สนใจ
+            </p>
+            <button
+              onClick={pickNearby}
+              disabled={gpsLoading}
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 py-3 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-70 transition-colors"
+            >
+              {gpsLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LocateFixed className="h-4 w-4" />
+              )}
+              ใกล้ตัวฉัน
+            </button>
+            <button
+              onClick={() => setProvinceSheetOpen(true)}
+              disabled={gpsLoading}
+              className="mb-1 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-orange-500 bg-white py-3 text-sm font-bold text-orange-500 hover:bg-orange-50 transition-colors"
+            >
+              <MapPin className="h-4 w-4" />
+              เลือกจังหวัด
+            </button>
+            {mode && (
+              <button
+                onClick={() => setShowIntro(false)}
+                className="mt-2 w-full py-2 text-center text-xs text-neutral-400 hover:text-neutral-600"
+              >
+                ยกเลิก
               </button>
             )}
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Type sheet */}
+      <BottomSheet
+        open={typeSheetOpen}
+        title="เลือกประเภท"
+        onClose={() => setTypeSheetOpen(false)}
+      >
+        {TYPE_OPTIONS.map((opt) => (
+          <SheetRow
+            key={opt.value}
+            label={opt.label}
+            active={typeFilter === opt.value}
+            onClick={() => {
+              setTypeFilter(opt.value);
+              setTypeSheetOpen(false);
+            }}
+          />
+        ))}
+      </BottomSheet>
+
+      {/* Category sheet */}
+      <BottomSheet
+        open={catSheetOpen}
+        title="เลือกหมวดหมู่"
+        onClose={() => setCatSheetOpen(false)}
+      >
+        <SheetRow
+          label="ทุกหมวด"
+          active={catFilter === ""}
+          onClick={() => {
+            setCatFilter("");
+            setCatSheetOpen(false);
+          }}
+        />
+        {categories.map((c) => (
+          <SheetRow
+            key={c.id}
+            label={c.name_th}
+            active={catFilter === c.slug}
+            onClick={() => {
+              setCatFilter(c.slug);
+              setCatSheetOpen(false);
+            }}
+          />
+        ))}
+      </BottomSheet>
+
+      {/* Time sheet */}
+      <BottomSheet
+        open={timeSheetOpen}
+        title="ช่วงเวลาที่ประกาศ"
+        onClose={() => setTimeSheetOpen(false)}
+      >
+        {TIME_OPTIONS.map((opt) => (
+          <SheetRow
+            key={opt.value}
+            label={opt.label}
+            active={timeFilter === opt.value}
+            onClick={() => {
+              setTimeFilter(opt.value);
+              setTimeSheetOpen(false);
+            }}
+          />
+        ))}
+      </BottomSheet>
+
+      {/* Province sheet */}
+      <BottomSheet
+        open={provinceSheetOpen}
+        title="เลือกจังหวัด"
+        onClose={() => setProvinceSheetOpen(false)}
+      >
+        {Object.keys(PROVINCE_CENTERS)
+          .sort((a, b) => a.localeCompare(b, "th"))
+          .map((name) => (
+            <SheetRow
+              key={name}
+              label={name}
+              active={mode?.type === "province" && mode.name === name}
+              onClick={() => pickProvince(name)}
+            />
+          ))}
+      </BottomSheet>
+
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+    </div>
+  );
+}
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 flex items-center gap-1 h-9 rounded-full border px-3.5 text-xs font-semibold shadow transition-colors ${
+        active
+          ? "bg-orange-500 border-orange-500 text-white"
+          : "bg-white border-neutral-200 text-neutral-700 hover:border-orange-300"
+      }`}
+    >
+      <span className="max-w-[140px] truncate">{label}</span>
+      <ChevronDown className={`h-3.5 w-3.5 ${active ? "text-white" : "text-neutral-400"}`} />
+    </button>
+  );
+}
+
+function BottomSheet({
+  open,
+  title,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[1100] flex items-end justify-center bg-slate-900/50 sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[75vh] flex flex-col animate-in slide-in-from-bottom duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
+          <h3 className="text-base font-bold text-neutral-900">{title}</h3>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100"
+            aria-label="ปิด"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="overflow-y-auto pb-4">{children}</div>
       </div>
     </div>
+  );
+}
+
+function SheetRow({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center justify-between px-5 py-3.5 text-left text-[15px] border-b border-neutral-50 last:border-b-0 hover:bg-neutral-50 transition-colors ${
+        active ? "text-orange-600 font-semibold" : "text-neutral-700"
+      }`}
+    >
+      <span>{label}</span>
+      {active && <span className="text-orange-500 text-lg">✓</span>}
+    </button>
   );
 }

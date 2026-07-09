@@ -566,6 +566,7 @@ export type MapListing = {
   latitude: number;
   longitude: number;
   district: string | null;
+  published_at: string | null;
   listing_images: Array<{ storage_path: string; display_order: number }>;
   provinces: { name_th: string } | null;
   categories: { name_th: string; slug: string } | null;
@@ -576,7 +577,7 @@ export async function getMapListings(offset = 0, limit = 10): Promise<MapListing
   const { data } = await supabase
     .from("listings")
     .select(`
-      id, slug, title, listing_type, sale_price, rent_price, latitude, longitude, district,
+      id, slug, title, listing_type, sale_price, rent_price, latitude, longitude, district, published_at,
       listing_images(storage_path, display_order),
       provinces(name_th),
       categories(name_th, slug)
