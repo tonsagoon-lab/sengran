@@ -358,7 +358,24 @@ export default function MapScreen() {
           setMode(saved);
         }
       } else {
-        setShowIntro(true);
+        // First visit — try nearby by default; fall back to intro on denial/timeout
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== "granted") {
+            setShowIntro(true);
+            return;
+          }
+          const loc = await getPositionWithTimeout();
+          const next: MapMode = {
+            type: "nearby",
+            lat: loc.coords.latitude,
+            lng: loc.coords.longitude,
+          };
+          await AsyncStorage.setItem(MODE_KEY, JSON.stringify(next));
+          setMode(next);
+        } catch {
+          setShowIntro(true);
+        }
       }
     } catch {
       setShowIntro(true);
