@@ -46,12 +46,21 @@ function priceLabel(item: Listing): string {
 }
 
 type FilterType = "all" | "sale" | "rent" | "both";
+type TimeFilter = "all" | "1m" | "3m" | "6m" | "12m";
 
 const FILTERS: { key: FilterType; label: string }[] = [
   { key: "all", label: "ทั้งหมด" },
   { key: "sale", label: "เซ้ง" },
   { key: "rent", label: "เช่า" },
   { key: "both", label: "เซ้ง+เช่า" },
+];
+
+const TIME_FILTERS: { key: TimeFilter; label: string; months: number | null }[] = [
+  { key: "all", label: "ทั้งหมด", months: null },
+  { key: "12m", label: "12 เดือน", months: 12 },
+  { key: "6m", label: "6 เดือน", months: 6 },
+  { key: "3m", label: "3 เดือน", months: 3 },
+  { key: "1m", label: "1 เดือน", months: 1 },
 ];
 
 async function getPositionWithTimeout() {
@@ -139,6 +148,7 @@ const LEAFLET_HTML = `<!DOCTYPE html>
   var allListings = [];
   var currentTypeFilter = 'all';
   var currentProvinceId = null;
+  var currentTimeCutoff = null; // epoch ms; null = no time filter
   var userMarker = null;
 
   function inThailand(lat, lng) {
@@ -147,6 +157,9 @@ const LEAFLET_HTML = `<!DOCTYPE html>
   function passesFilter(l) {
     if (!inThailand(l.latitude, l.longitude)) return false;
     if (currentProvinceId != null && l.province_id !== currentProvinceId) return false;
+    if (currentTimeCutoff != null) {
+      if (!l.published_at_ms || l.published_at_ms < currentTimeCutoff) return false;
+    }
     if (currentTypeFilter === 'all') return true;
     if (currentTypeFilter === 'sale') return l.listing_type === 'sale' || l.listing_type === 'both';
     if (currentTypeFilter === 'rent') return l.listing_type === 'rent' || l.listing_type === 'both';
@@ -194,6 +207,7 @@ const LEAFLET_HTML = `<!DOCTYPE html>
   };
   window.setTypeFilter = function(f) { currentTypeFilter = f; render(false); };
   window.setProvinceFilter = function(pid) { currentProvinceId = pid; render(true); };
+  window.setTimeCutoff = function(cutoff) { currentTimeCutoff = cutoff; render(false); };
   window.centerOn = function(lat, lng, zoom) {
     if (userMarker) { map.removeLayer(userMarker); }
     userMarker = L.marker([lat, lng], {
@@ -215,6 +229,7 @@ export default function MapScreen() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Listing | null>(null);
   const [filterType, setFilterType] = useState<FilterType>("all");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [webReady, setWebReady] = useState(false);
   const [mode, setMode] = useState<MapMode | null>(null);
   const [showIntro, setShowIntro] = useState(false);
@@ -238,6 +253,7 @@ export default function MapScreen() {
         listing_type: l.listing_type,
         sale_price: l.sale_price,
         rent_price: l.rent_price,
+        published_at_ms: l.published_at ? Date.parse(l.published_at) : null,
       }));
       webRef.current?.injectJavaScript(
         `window.setListings(${JSON.stringify(payload)}); true;`
@@ -253,6 +269,16 @@ export default function MapScreen() {
       );
     }
   }, [webReady, filterType]);
+
+  useEffect(() => {
+    if (!webReady) return;
+    const entry = TIME_FILTERS.find((t) => t.key === timeFilter);
+    const cutoff =
+      entry?.months != null ? Date.now() - entry.months * 30 * 24 * 3600 * 1000 : null;
+    webRef.current?.injectJavaScript(
+      `window.setTimeCutoff(${cutoff == null ? "null" : cutoff}); true;`
+    );
+  }, [webReady, timeFilter]);
 
   async function fetchListings() {
     const { data } = await supabase
@@ -429,6 +455,27 @@ export default function MapScreen() {
               onPress={() => setFilterType(f.key)}
             >
               <Text style={[styles.pillText, filterType === f.key && styles.pillTextActive]}>
+                {f.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Time-range pills */}
+      <View style={styles.filterBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRowSecondary}
+        >
+          {TIME_FILTERS.map((f) => (
+            <Pressable
+              key={f.key}
+              style={[styles.pillSm, timeFilter === f.key && styles.pillSmActive]}
+              onPress={() => setTimeFilter(f.key)}
+            >
+              <Text style={[styles.pillSmText, timeFilter === f.key && styles.pillSmTextActive]}>
                 {f.label}
               </Text>
             </Pressable>
@@ -623,6 +670,19 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: "#f97316", borderColor: "#f97316" },
   pillText: { fontSize: 13, fontWeight: "600", color: "#374151" },
   pillTextActive: { color: "#fff" },
+
+  filterRowSecondary: { paddingHorizontal: 16, paddingBottom: 8, gap: 6, alignItems: "center" },
+  pillSm: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#fff",
+  },
+  pillSmActive: { backgroundColor: "#fff7ed", borderColor: "#fdba74" },
+  pillSmText: { fontSize: 11, fontWeight: "600", color: "#6b7280" },
+  pillSmTextActive: { color: "#c2410c" },
 
   mapWrap: { flex: 1 },
   map: { flex: 1, backgroundColor: "#f3f4f6" },
