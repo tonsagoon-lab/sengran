@@ -242,6 +242,9 @@ export default function MapScreen() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [provincePickerOpen, setProvincePickerOpen] = useState(false);
   const [initChecked, setInitChecked] = useState(false);
+  const [typeSheetOpen, setTypeSheetOpen] = useState(false);
+  const [categorySheetOpen, setCategorySheetOpen] = useState(false);
+  const [timeSheetOpen, setTimeSheetOpen] = useState(false);
 
   useEffect(() => {
     fetchListings();
@@ -449,91 +452,82 @@ export default function MapScreen() {
     ? mode.name
     : null;
 
+  const typeLabel = FILTERS.find((f) => f.key === filterType)?.label ?? "ทั้งหมด";
+  const timeLabel = TIME_FILTERS.find((t) => t.key === timeFilter)?.label ?? "ทั้งหมด";
+  const categoryLabel =
+    categoryId == null
+      ? "ทุกหมวด"
+      : categories.find((c) => c.id === categoryId)?.name_th ?? "ทุกหมวด";
+
+  const typeActive = filterType !== "all";
+  const categoryActive = categoryId !== null;
+  const timeActive = timeFilter !== "all";
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Header */}
+      {/* Header — prominent location button */}
       <View style={styles.header}>
         <View style={styles.headerTitleWrap}>
           <Ionicons name="map" size={20} color="#f97316" />
           <Text style={styles.headerTitle}>แผนที่เซ้ง</Text>
         </View>
-        {modeLabel && (
-          <Pressable style={styles.locChip} onPress={openChangeLocation}>
-            <Ionicons name="location" size={12} color="#f97316" />
-            <Text style={styles.locChipText} numberOfLines={1}>{modeLabel}</Text>
-            <Ionicons name="chevron-down" size={12} color="#9ca3af" />
-          </Pressable>
-        )}
+        <Pressable style={styles.locHero} onPress={openChangeLocation}>
+          <Ionicons name="location" size={16} color="#fff" />
+          <Text style={styles.locHeroText} numberOfLines={1}>
+            {modeLabel ?? "เลือกตำแหน่ง"}
+          </Text>
+          <Ionicons name="chevron-down" size={14} color="#fff" />
+        </Pressable>
       </View>
 
-      {/* Filter pills */}
+      {/* Filter chips — tap to open selection sheet */}
       <View style={styles.filterBar}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          {FILTERS.map((f) => (
-            <Pressable
-              key={f.key}
-              style={[styles.pill, filterType === f.key && styles.pillActive]}
-              onPress={() => setFilterType(f.key)}
-            >
-              <Text style={[styles.pillText, filterType === f.key && styles.pillTextActive]}>
-                {f.label}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Category pills */}
-      <View style={styles.filterBar}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRowSecondary}
+          contentContainerStyle={styles.chipRow}
         >
           <Pressable
-            style={[styles.pillSm, categoryId === null && styles.pillSmActive]}
-            onPress={() => setCategoryId(null)}
+            style={[styles.chip, typeActive && styles.chipActive]}
+            onPress={() => setTypeSheetOpen(true)}
           >
-            <Text style={[styles.pillSmText, categoryId === null && styles.pillSmTextActive]}>
-              ทุกหมวด
+            <Text style={[styles.chipText, typeActive && styles.chipTextActive]}>
+              ประเภท: {typeLabel}
             </Text>
+            <Ionicons
+              name="chevron-down"
+              size={13}
+              color={typeActive ? "#fff" : "#9ca3af"}
+            />
           </Pressable>
-          {categories.map((c) => (
-            <Pressable
-              key={c.id}
-              style={[styles.pillSm, categoryId === c.id && styles.pillSmActive]}
-              onPress={() => setCategoryId(c.id)}
-            >
-              <Text style={[styles.pillSmText, categoryId === c.id && styles.pillSmTextActive]}>
-                {c.name_th}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
 
-      {/* Time-range pills */}
-      <View style={styles.filterBar}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRowSecondary}
-        >
-          {TIME_FILTERS.map((f) => (
-            <Pressable
-              key={f.key}
-              style={[styles.pillSm, timeFilter === f.key && styles.pillSmActive]}
-              onPress={() => setTimeFilter(f.key)}
-            >
-              <Text style={[styles.pillSmText, timeFilter === f.key && styles.pillSmTextActive]}>
-                {f.label}
-              </Text>
-            </Pressable>
-          ))}
+          <Pressable
+            style={[styles.chip, categoryActive && styles.chipActive]}
+            onPress={() => setCategorySheetOpen(true)}
+          >
+            <Text style={[styles.chipText, categoryActive && styles.chipTextActive]}>
+              หมวด: {categoryLabel}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={13}
+              color={categoryActive ? "#fff" : "#9ca3af"}
+            />
+          </Pressable>
+
+          <Pressable
+            style={[styles.chip, timeActive && styles.chipActive]}
+            onPress={() => setTimeSheetOpen(true)}
+          >
+            <Text style={[styles.chipText, timeActive && styles.chipTextActive]}>
+              เวลา: {timeLabel}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={13}
+              color={timeActive ? "#fff" : "#9ca3af"}
+            />
+          </Pressable>
         </ScrollView>
       </View>
 
@@ -649,6 +643,113 @@ export default function MapScreen() {
         </View>
       </Modal>
 
+      {/* Type picker sheet */}
+      <Modal
+        visible={typeSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setTypeSheetOpen(false)}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={() => setTypeSheetOpen(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>เลือกประเภท</Text>
+              <Pressable onPress={() => setTypeSheetOpen(false)}>
+                <Ionicons name="close" size={22} color="#6b7280" />
+              </Pressable>
+            </View>
+            {FILTERS.map((f) => (
+              <Pressable
+                key={f.key}
+                style={styles.provinceRow}
+                onPress={() => {
+                  setFilterType(f.key);
+                  setTypeSheetOpen(false);
+                }}
+              >
+                <Text style={styles.provinceRowText}>{f.label}</Text>
+                {filterType === f.key && (
+                  <Ionicons name="checkmark" size={18} color="#f97316" />
+                )}
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Category picker sheet */}
+      <Modal
+        visible={categorySheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCategorySheetOpen(false)}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={() => setCategorySheetOpen(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>เลือกหมวดหมู่</Text>
+              <Pressable onPress={() => setCategorySheetOpen(false)}>
+                <Ionicons name="close" size={22} color="#6b7280" />
+              </Pressable>
+            </View>
+            <FlatList
+              data={[{ id: -1, name_th: "ทุกหมวด", slug: "all", icon: null } as Category, ...categories]}
+              keyExtractor={(c) => String(c.id)}
+              renderItem={({ item }) => {
+                const isAll = item.id === -1;
+                const active = isAll ? categoryId === null : categoryId === item.id;
+                return (
+                  <Pressable
+                    style={styles.provinceRow}
+                    onPress={() => {
+                      setCategoryId(isAll ? null : item.id);
+                      setCategorySheetOpen(false);
+                    }}
+                  >
+                    <Text style={styles.provinceRowText}>{item.name_th}</Text>
+                    {active && <Ionicons name="checkmark" size={18} color="#f97316" />}
+                  </Pressable>
+                );
+              }}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Time picker sheet */}
+      <Modal
+        visible={timeSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setTimeSheetOpen(false)}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={() => setTimeSheetOpen(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>ช่วงเวลาที่ประกาศ</Text>
+              <Pressable onPress={() => setTimeSheetOpen(false)}>
+                <Ionicons name="close" size={22} color="#6b7280" />
+              </Pressable>
+            </View>
+            {TIME_FILTERS.map((f) => (
+              <Pressable
+                key={f.key}
+                style={styles.provinceRow}
+                onPress={() => {
+                  setTimeFilter(f.key);
+                  setTimeSheetOpen(false);
+                }}
+              >
+                <Text style={styles.provinceRowText}>{f.label}</Text>
+                {timeFilter === f.key && (
+                  <Ionicons name="checkmark" size={18} color="#f97316" />
+                )}
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Province picker sheet */}
       <Modal
         visible={provincePickerOpen}
@@ -697,46 +798,40 @@ const styles = StyleSheet.create({
   },
   headerTitleWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
   headerTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  locChip: {
+  locHero: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#f97316",
+    maxWidth: 220,
+    shadowColor: "#f97316",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  locHeroText: { fontSize: 13, fontWeight: "700", color: "#fff", flexShrink: 1 },
+
+  filterBar: { flexGrow: 0, flexShrink: 0 },
+  chipRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, alignItems: "center" },
+  chip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: "#fff7ed",
-    borderWidth: 1,
-    borderColor: "#fed7aa",
-    maxWidth: 180,
-  },
-  locChipText: { fontSize: 12, fontWeight: "600", color: "#c2410c", flexShrink: 1 },
-
-  filterBar: { flexGrow: 0, flexShrink: 0 },
-  filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, alignItems: "center" },
-  pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1.5,
     borderColor: "#e5e7eb",
     backgroundColor: "#fff",
+    maxWidth: 200,
   },
-  pillActive: { backgroundColor: "#f97316", borderColor: "#f97316" },
-  pillText: { fontSize: 13, fontWeight: "600", color: "#374151" },
-  pillTextActive: { color: "#fff" },
-
-  filterRowSecondary: { paddingHorizontal: 16, paddingBottom: 8, gap: 6, alignItems: "center" },
-  pillSm: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#fff",
-  },
-  pillSmActive: { backgroundColor: "#fff7ed", borderColor: "#fdba74" },
-  pillSmText: { fontSize: 11, fontWeight: "600", color: "#6b7280" },
-  pillSmTextActive: { color: "#c2410c" },
+  chipActive: { backgroundColor: "#f97316", borderColor: "#f97316" },
+  chipText: { fontSize: 12.5, fontWeight: "600", color: "#374151", flexShrink: 1 },
+  chipTextActive: { color: "#fff" },
 
   mapWrap: { flex: 1 },
   map: { flex: 1, backgroundColor: "#f3f4f6" },
