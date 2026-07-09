@@ -1064,6 +1064,13 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* User header */}
       <View style={styles.header}>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/my-listings"))}
+          hitSlop={8}
+        >
+          <Ionicons name="chevron-back" size={22} color="#374151" />
+        </Pressable>
         <View style={styles.headerLeft}>
           <Pressable style={styles.avatarWrap} onPress={pickAvatar} disabled={avatarUploading}>
             <View style={styles.avatar}>
@@ -1135,6 +1142,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: "#f3f4f6", backgroundColor: "#fff",
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  backBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: "center", justifyContent: "center",
+    marginRight: 4,
+  },
   avatarWrap: { position: "relative", flexShrink: 0 },
   avatar: {
     width: 44, height: 44, borderRadius: 22,

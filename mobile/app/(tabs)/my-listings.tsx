@@ -194,10 +194,15 @@ export default function MyListingsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>ประกาศของฉัน</Text>
-        <Pressable style={styles.newBtn} onPress={() => router.push("/(tabs)/create")}>
-          <Ionicons name="add" size={16} color="#fff" />
-          <Text style={styles.newBtnText}>ลงประกาศ</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable style={styles.newBtn} onPress={() => router.push("/(tabs)/create")}>
+            <Ionicons name="add" size={16} color="#fff" />
+            <Text style={styles.newBtnText}>ลงประกาศ</Text>
+          </Pressable>
+          <Pressable style={styles.profileBtn} onPress={() => router.push("/(tabs)/profile")}>
+            <Ionicons name="person-circle-outline" size={30} color="#374151" />
+          </Pressable>
+        </View>
       </View>
 
       {/* CTA Banner */}
@@ -249,6 +254,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f3f4f6",
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   newBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -259,6 +265,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   newBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  profileBtn: { padding: 2 },
 
   // CTA row
   ctaRow: {

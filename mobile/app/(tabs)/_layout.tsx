@@ -16,10 +16,10 @@ type TabConfig = {
 
 const TABS: TabConfig[] = [
   { name: "index",       label: "ร้านเซ้ง",  icon: "home-outline",          iconActive: "home" },
-  { name: "browse",      label: "ขายอุปกรณ์", icon: "cart-outline",          iconActive: "cart" },
+  { name: "map",         label: "แผนที่",    icon: "map-outline",           iconActive: "map" },
   { name: "create",      label: "ลงประกาศ", icon: "add",                   iconActive: "add", primary: true },
+  { name: "browse",      label: "ขายอุปกรณ์", icon: "cart-outline",          iconActive: "cart" },
   { name: "my-listings", label: "ของฉัน",   icon: "document-text-outline", iconActive: "document-text" },
-  { name: "profile",     label: "โปรไฟล์",  icon: "person-outline",        iconActive: "person" },
 ];
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -51,7 +51,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           );
         }
 
-        const isProfile = tab.name === "profile";
+        const showUnreadBadge = tab.name === "my-listings";
 
         return (
           <Pressable key={route.key} onPress={onPress} style={styles.tabItem}>
@@ -65,7 +65,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 size={22}
                 color={focused ? "#fb923c" : "#9ca3af"}
               />
-              {isProfile && totalUnread > 0 && (
+              {showUnreadBadge && totalUnread > 0 && (
                 <View style={styles.badgeDot}>
                   {totalUnread <= 9 && (
                     <Text style={styles.badgeDotText}>{totalUnread}</Text>
@@ -178,10 +178,11 @@ export default function TabsLayout() {
   return (
     <Tabs tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="browse" />
+      <Tabs.Screen name="map" />
       <Tabs.Screen name="create" />
+      <Tabs.Screen name="browse" />
       <Tabs.Screen name="my-listings" />
-      <Tabs.Screen name="profile" />
+      <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="alerts" options={{ href: null }} />
       <Tabs.Screen name="messages" options={{ href: null }} />
       <Tabs.Screen name="saved" options={{ href: null }} />

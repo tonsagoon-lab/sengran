@@ -15,9 +15,9 @@ import * as Location from "expo-location";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase } from "../lib/supabase";
-import { resolveImageUrl } from "../lib/image-url";
-import type { Listing } from "../lib/types";
+import { supabase } from "../../lib/supabase";
+import { resolveImageUrl } from "../../lib/image-url";
+import type { Listing } from "../../lib/types";
 
 const fmt = new Intl.NumberFormat("th-TH");
 
@@ -117,11 +117,10 @@ export default function MapScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={20} color="#374151" />
-        </Pressable>
-        <Text style={styles.headerTitle}>แผนที่เซ้ง</Text>
-        <View style={{ width: 36 }} />
+        <View style={styles.headerTitleWrap}>
+          <Ionicons name="map" size={20} color="#f97316" />
+          <Text style={styles.headerTitle}>แผนที่เซ้ง</Text>
+        </View>
       </View>
 
       {/* Filter pills */}
@@ -226,22 +225,12 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#f3f4f6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  headerTitleWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
   headerTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
   filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   pill: {
