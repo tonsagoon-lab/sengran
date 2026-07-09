@@ -283,6 +283,9 @@ export function MapView({
         }
         .leaflet-container { font-family: inherit; }
         .leaflet-control-attribution { font-size: 9px !important; }
+        .leaflet-bottom.leaflet-right {
+          margin-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+        }
         .user-dot {
           width: 16px;
           height: 16px;
@@ -297,7 +300,10 @@ export function MapView({
 
       {/* Bottom popup card */}
       {selected && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md z-[1000]">
+        <div
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md z-[1000]"
+          style={{ bottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border">
             <button
               onClick={() => setSelected(null)}

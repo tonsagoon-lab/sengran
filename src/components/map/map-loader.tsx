@@ -322,7 +322,7 @@ export function MapLoader({ listings, categories }: MapLoaderProps) {
         <button
           onClick={pickNearby}
           disabled={gpsLoading}
-          className="absolute bottom-24 right-3 z-[1000] flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg border border-neutral-200 hover:bg-neutral-50 disabled:opacity-60 transition-colors"
+          className="absolute bottom-32 right-3 z-[1000] flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg border border-neutral-200 hover:bg-neutral-50 disabled:opacity-60 transition-colors"
           aria-label="ตำแหน่งของฉัน"
         >
           {gpsLoading ? (
