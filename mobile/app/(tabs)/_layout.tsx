@@ -42,8 +42,9 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         if (tab.primary) {
           return (
             <Pressable key={route.key} onPress={onPress} style={styles.tabItem}>
+              <View style={styles.topIndicator} />
               <View style={styles.primaryBtn}>
-                <Ionicons name="add" size={26} color="#fff" />
+                <Ionicons name="add" size={28} color="#fff" />
               </View>
               <Text style={styles.tabLabelInactive}>{tab.label}</Text>
             </Pressable>
@@ -54,11 +55,15 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
         return (
           <Pressable key={route.key} onPress={onPress} style={styles.tabItem}>
+            <View style={styles.topIndicator}>
+              {focused && <View style={styles.topIndicatorPill} />}
+            </View>
             <View style={styles.iconWrap}>
+              {focused && <View style={styles.activeGlow} />}
               <Ionicons
                 name={focused ? tab.iconActive : tab.icon}
-                size={24}
-                color={focused ? "#f97316" : "#9ca3af"}
+                size={22}
+                color={focused ? "#fb923c" : "#9ca3af"}
               />
               {isProfile && totalUnread > 0 && (
                 <View style={styles.badgeDot}>
@@ -81,29 +86,52 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    paddingTop: 10,
+    backgroundColor: "#0f172a",
+    paddingTop: 0,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 10,
   },
   tabItem: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    gap: 3,
-    paddingVertical: 4,
-    minHeight: 52,
+    justifyContent: "flex-start",
+    gap: 2,
+    paddingBottom: 2,
+    minHeight: 48,
   },
-  iconWrap: { position: "relative" },
+  topIndicator: {
+    height: 2.5,
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 3,
+  },
+  topIndicatorPill: {
+    height: 2.5,
+    width: 22,
+    borderRadius: 2,
+    backgroundColor: "#f97316",
+  },
+  iconWrap: {
+    position: "relative",
+    width: 36,
+    height: 26,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeGlow: {
+    position: "absolute",
+    width: 32,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(249, 115, 22, 0.12)",
+  },
   badgeDot: {
     position: "absolute",
-    top: -3,
-    right: -6,
+    top: 0,
+    right: 2,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
@@ -112,12 +140,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 3,
     borderWidth: 1.5,
-    borderColor: "#fff",
+    borderColor: "#0f172a",
   },
   badgeDotText: { color: "#fff", fontSize: 9, fontWeight: "700" },
-  tabLabel: { fontSize: 10, fontWeight: "500", color: "#9ca3af" },
-  tabLabelActive: { color: "#f97316", fontWeight: "700" },
-  tabLabelInactive: { fontSize: 10, fontWeight: "500", color: "#9ca3af" },
+  tabLabel: {
+    fontSize: 10.5,
+    fontWeight: "500",
+    color: "#94a3b8",
+    letterSpacing: 0.2,
+  },
+  tabLabelActive: { color: "#fb923c", fontWeight: "700" },
+  tabLabelInactive: {
+    fontSize: 10.5,
+    fontWeight: "500",
+    color: "#94a3b8",
+    letterSpacing: 0.2,
+  },
   primaryBtn: {
     width: 46,
     height: 46,
@@ -125,12 +163,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#f97316",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -16,
+    marginTop: -12,
+    borderWidth: 3,
+    borderColor: "#0f172a",
     shadowColor: "#f97316",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.45,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 7,
   },
 });
 
