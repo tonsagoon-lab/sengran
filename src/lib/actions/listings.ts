@@ -129,15 +129,28 @@ export async function getNearMeListings(
       .eq("status", "published")
       .neq("listing_type", "equipment")
       .order("published_at", { ascending: false })
-      .limit(20);
+      .limit(60);
 
     const filtered = ((data ?? []) as unknown as SearchListing[])
       .filter((l) => hasValidImage(l))
       .slice(0, 4);
-    return {
-      listings: filtered,
-      total: count ?? 0,
-    };
+
+    if (filtered.length > 0) {
+      return { listings: filtered, total: count ?? 0 };
+    }
+
+    // Province has no listings with images → fall back to latest anywhere
+    const { data: latest, count: latestCount } = await supabase
+      .from("listings")
+      .select(NEAR_ME_SELECT, { count: "exact" })
+      .eq("status", "published")
+      .neq("listing_type", "equipment")
+      .order("published_at", { ascending: false })
+      .limit(60);
+    const filteredLatest = ((latest ?? []) as unknown as SearchListing[])
+      .filter((l) => hasValidImage(l))
+      .slice(0, 4);
+    return { listings: filteredLatest, total: latestCount ?? 0 };
   }
 }
 
