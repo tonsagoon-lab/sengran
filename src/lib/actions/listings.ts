@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { listingSchema } from "@/lib/schemas/listing";
-import { stripHtmlTags, sanitizeRichHtml } from "@/lib/utils/html";
+import { stripHtmlTags } from "@/lib/utils/html";
+import { sanitizeRichHtml } from "@/lib/utils/sanitize-server";
 import { rateLimit } from "@/lib/rate-limit";
 import type { SearchListing } from "@/lib/db/listings";
 
