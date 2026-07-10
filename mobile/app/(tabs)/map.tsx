@@ -401,13 +401,18 @@ export default function MapScreen() {
     if (webReady && mode) applyMode(mode);
   }, [webReady, mode]);
 
+  function openProvincePicker() {
+    // iOS can't stack two Modals reliably — dismiss intro first, then open picker after the animation.
+    setShowIntro(false);
+    setTimeout(() => setProvincePickerOpen(true), 300);
+  }
+
   async function pickNearby() {
     setGpsLoading(true);
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
       setGpsLoading(false);
-      // fallback to province picker
-      setProvincePickerOpen(true);
+      openProvincePicker();
       return;
     }
     try {
@@ -417,7 +422,7 @@ export default function MapScreen() {
       setMode(next);
       setShowIntro(false);
     } catch {
-      setProvincePickerOpen(true);
+      openProvincePicker();
     } finally {
       setGpsLoading(false);
     }
@@ -644,7 +649,7 @@ export default function MapScreen() {
 
             <Pressable
               style={[styles.introBtn, styles.introBtnSecondary]}
-              onPress={() => setProvincePickerOpen(true)}
+              onPress={openProvincePicker}
               disabled={gpsLoading}
             >
               <Ionicons name="map-outline" size={18} color="#f97316" />
