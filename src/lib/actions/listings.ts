@@ -7,7 +7,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { listingSchema } from "@/lib/schemas/listing";
 import { stripHtmlTags } from "@/lib/utils/html";
-import { sanitizeRichHtml } from "@/lib/utils/sanitize-server";
 import { rateLimit } from "@/lib/rate-limit";
 import type { SearchListing } from "@/lib/db/listings";
 
@@ -204,6 +203,7 @@ export async function createListingAction(
 
   const raw = Object.fromEntries(formData.entries());
 
+  const { sanitizeRichHtml } = await import("@/lib/utils/sanitize-server");
   const descHtml = sanitizeRichHtml(raw.description as string);
   const descText = stripHtmlTags(descHtml);
   const rawForValidation = { ...raw, description: descText };
@@ -323,6 +323,7 @@ export async function updateListingAction(
   }
 
   const raw = Object.fromEntries(formData.entries());
+  const { sanitizeRichHtml } = await import("@/lib/utils/sanitize-server");
   const descHtml = sanitizeRichHtml(raw.description as string);
   const descText = stripHtmlTags(descHtml);
   const rawForValidation = { ...raw, description: descText };
