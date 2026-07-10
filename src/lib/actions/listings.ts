@@ -55,12 +55,13 @@ export async function getNearMeListings(
 
     if (gpsMatches.length > 0) {
       // Fetch more than needed to account for no-image filtering
-      const ids = gpsMatches.slice(0, 20).map((r) => r.id);
+      const ids = gpsMatches.slice(0, 60).map((r) => r.id);
       const { data: rawData } = await supabase
         .from("listings")
         .select(NEAR_ME_SELECT)
         .in("id", ids)
-        .eq("status", "published");
+        .eq("status", "published")
+        .neq("listing_type", "equipment");
 
       const data = (rawData ?? []) as unknown as SearchListing[];
       const byId = new Map(data.map((l) => [l.id, l]));
@@ -68,7 +69,10 @@ export async function getNearMeListings(
         .map((id) => byId.get(id))
         .filter((x): x is SearchListing => !!x && hasValidImage(x))
         .slice(0, 4);
-      return { listings: ordered, total: gpsMatches.length };
+      if (ordered.length > 0) {
+        return { listings: ordered, total: gpsMatches.length };
+      }
+      // else fall through to province/latest fallback
     }
 
     // Fallback: no GPS-tagged listings nearby → find nearest province via wide radius search
