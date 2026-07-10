@@ -10,10 +10,9 @@ import { stripHtmlTags, sanitizeRichHtml } from "@/lib/utils/html";
 import { rateLimit } from "@/lib/rate-limit";
 import type { SearchListing } from "@/lib/db/listings";
 
-const IMAGE_EXT_RE = /\.(jpe?g|png|webp|gif|avif)(\?|$)/i;
 function hasValidImage(l: SearchListing): boolean {
   return Array.isArray(l.listing_images) &&
-    l.listing_images.some((img) => !!img.storage_path && IMAGE_EXT_RE.test(img.storage_path));
+    l.listing_images.some((img) => typeof img.storage_path === "string" && img.storage_path.trim().length > 0);
 }
 
 const NEAR_ME_SELECT = `
