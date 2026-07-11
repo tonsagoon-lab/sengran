@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "mobile", "scripts", "design_handoff_sengran_app", "supabase"]
+  "exclude": ["node_modules", "mobile", "scripts", "design_handoff_sengran_app", "supabase", "sengran-agent"]
 }
