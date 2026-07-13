@@ -334,6 +334,29 @@ export async function updateListingAction(
   }
 
   const d = parsed.data;
+
+  // Look up current status/published_at to compute status transition
+  const { data: current } = await updateClient
+    .from("listings")
+    .select("status, published_at")
+    .eq("id", listingId)
+    .single();
+
+  const requestedStatus = (raw.status as "published" | "draft" | undefined) ?? undefined;
+  const statusFields: Record<string, string | null> = {};
+  if (requestedStatus && current) {
+    statusFields.status = requestedStatus;
+    if (requestedStatus === "published" && current.status !== "published") {
+      // Draft → Published: stamp published_at + expires_at (90 days)
+      statusFields.published_at = new Date().toISOString();
+      statusFields.expires_at = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    } else if (requestedStatus === "draft" && current.status === "published") {
+      // Published → Draft: clear published_at so it doesn't rank
+      statusFields.published_at = null;
+      statusFields.expires_at = null;
+    }
+  }
+
   let query = updateClient
     .from("listings")
     .update({
@@ -355,6 +378,7 @@ export async function updateListingAction(
       longitude: d.longitude ? Number(d.longitude) : null,
       video_url: d.video_url || null,
       ...contactFields,
+      ...statusFields,
     })
     .eq("id", listingId);
 

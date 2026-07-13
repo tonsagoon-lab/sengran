@@ -975,7 +975,7 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit ? "บันทึกการแก้ไข" : "เผยแพร่ประกาศ"}
+              {isEdit && listing?.status === "published" ? "บันทึกการแก้ไข" : "เผยแพร่ประกาศ"}
             </Button>
           </div>
         )}
