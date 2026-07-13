@@ -69,17 +69,22 @@ function SortableImage({ id, src, onRemove, isFirst }: SortableImageProps) {
       )}
       <button
         type="button"
-        onClick={onRemove}
-        className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="absolute top-1 right-1 z-10 bg-black/70 text-white rounded-full p-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+        aria-label="ลบรูป"
       >
-        <X className="h-3 w-3" />
+        <X className="h-4 w-4" />
       </button>
       <div
         {...attributes}
         {...listeners}
-        className="absolute top-1 left-1 bg-black/60 text-white rounded-full p-0.5 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-1 left-1 bg-black/70 text-white rounded-full p-1.5 cursor-grab opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-none"
       >
-        <GripVertical className="h-3 w-3" />
+        <GripVertical className="h-4 w-4" />
       </div>
     </div>
   );
