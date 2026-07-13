@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DeleteListingButton } from "./delete-listing-button";
 import { ListingStatusButtons } from "./listing-status-buttons";
 import { PromoteButtons } from "./promote-button";
+import { resolveImageUrl } from "@/lib/utils/image-url";
 import type { ListingWithImages } from "@/lib/db/listings";
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -34,7 +35,7 @@ interface ListingCardProps {
 export function ListingCard({ listing }: ListingCardProps) {
   const coverImage = listing.listing_images.sort((a, b) => a.display_order - b.display_order)[0];
   const coverUrl = coverImage
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/listings/${coverImage.storage_path}`
+    ? resolveImageUrl(coverImage.storage_path, 160, 65, "cover", 160)
     : null;
 
   const status = STATUS_LABELS[listing.status] ?? { label: listing.status, variant: "secondary" as const };

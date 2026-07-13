@@ -8,9 +8,6 @@ export function resolveImageUrl(
   resize?: "cover" | "contain" | "fill",
   height?: number
 ): string {
-  // Suppress unused-parameter warnings — kept for call-site compatibility
-  void width; void quality; void resize; void height;
-
   if (storagePath.startsWith("http://") || storagePath.startsWith("https://")) {
     return storagePath;
   }
@@ -18,6 +15,14 @@ export function resolveImageUrl(
   if (storagePath.startsWith("wp/")) {
     return `${R2_PUBLIC_URL}/${storagePath}`;
   }
-  // Supabase Storage — use direct public URL (image transformation not enabled)
+  // Supabase Storage: use render endpoint when transform params are given, else raw object URL
+  if (width || height || quality) {
+    const params = new URLSearchParams();
+    if (width) params.set("width", String(width));
+    if (height) params.set("height", String(height));
+    if (resize) params.set("resize", resize);
+    if (quality) params.set("quality", String(quality));
+    return `${SUPABASE_URL}/storage/v1/render/image/public/listings/${storagePath}?${params.toString()}`;
+  }
   return `${SUPABASE_URL}/storage/v1/object/public/listings/${storagePath}`;
 }

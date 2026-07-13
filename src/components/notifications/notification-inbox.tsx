@@ -7,13 +7,12 @@ import { Bell, CheckCheck, X } from "lucide-react";
 import type { Notification } from "@/lib/db/alerts";
 import { Button } from "@/components/ui/button";
 import { deleteNotificationAction } from "@/lib/actions/alerts";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+import { resolveImageUrl } from "@/lib/utils/image-url";
 
 function coverUrl(n: Notification) {
   const img = n.listings?.listing_images?.[0];
   if (!img) return null;
-  return `${SUPABASE_URL}/storage/v1/object/public/listings/${img.storage_path}`;
+  return resolveImageUrl(img.storage_path, 96, 65, "cover", 96);
 }
 
 function timeAgo(iso: string) {
