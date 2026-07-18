@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -91,9 +92,12 @@ function ListingCardV({
     >
       <View style={styles.cardVImageWrap}>
         {imageUrl && !imgError ? (
-          <Image
+          <ExpoImage
             source={{ uri: imageUrl }}
             style={styles.cardVImage}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={150}
             onError={() => setImgError(true)}
           />
         ) : (
@@ -325,7 +329,7 @@ export default function HomeScreen() {
         {/* Search bar */}
         <Pressable
           style={styles.searchBar}
-          onPress={() => router.push("/(tabs)/browse")}
+          onPress={() => router.push("/listings")}
         >
           <Ionicons name="search-outline" size={18} color="#9ca3af" />
           <Text style={styles.searchPlaceholder}>ค้นหาร้าน...</Text>
@@ -338,14 +342,14 @@ export default function HomeScreen() {
             <SectionHeader
               title="หมวดหมู่"
               linkLabel="ดูทั้งหมด"
-              onLink={() => router.push("/(tabs)/browse")}
+              onLink={() => router.push("/listings")}
             />
             <View style={styles.catGrid}>
               {categories.slice(0, 4).map((cat) => (
                 <Pressable
                   key={cat.id}
                   style={styles.catItem}
-                  onPress={() => router.push(`/(tabs)/browse?cat=${cat.id}`)}
+                  onPress={() => router.push(`/listings?cat=${cat.id}`)}
                 >
                   <View style={styles.catBubble}>
                     <Ionicons name={getCatIcon(cat.icon)} size={20} color="#ea580c" />
@@ -368,7 +372,7 @@ export default function HomeScreen() {
             <SectionHeader
               title="✅ ฝากเซ้ง-ประเมินราคาแล้ว"
               linkLabel="ดูทั้งหมด"
-              onLink={() => router.push("/(tabs)/browse")}
+              onLink={() => router.push("/listings")}
             />
             <View style={styles.latestGrid}>
               {editorialPicks.map((item) => (
@@ -388,7 +392,7 @@ export default function HomeScreen() {
             <SectionHeader
               title="ประกาศแนะนำ"
               linkLabel="ดูทั้งหมด"
-              onLink={() => router.push("/(tabs)/browse")}
+              onLink={() => router.push("/listings")}
             />
             <ScrollView
               horizontal
@@ -413,7 +417,7 @@ export default function HomeScreen() {
             <SectionHeader
               title="🆕 ประกาศล่าสุด"
               linkLabel="ดูทั้งหมด"
-              onLink={() => router.push("/(tabs)/browse")}
+              onLink={() => router.push("/listings")}
             />
             <View style={styles.latestGrid}>
               {latest.slice(0, 8).map((item) => (
@@ -438,10 +442,12 @@ export default function HomeScreen() {
                   onPress={() => b.link_url && Linking.openURL(b.link_url)}
                   disabled={!b.link_url}
                 >
-                  <Image
+                  <ExpoImage
                     source={{ uri: b.image_url }}
                     style={styles.bannerImg}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={150}
                   />
                 </Pressable>
               ))}

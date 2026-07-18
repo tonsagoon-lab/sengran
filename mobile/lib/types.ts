@@ -42,6 +42,8 @@ export type ListingDetail = Listing & {
   profiles: {
     display_name: string | null;
     avatar_url: string | null;
+    mobile: string | null;
+    line_id: string | null;
   } | null;
 };
 

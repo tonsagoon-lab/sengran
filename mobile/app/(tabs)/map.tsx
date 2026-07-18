@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Linking,
   Modal,
   Platform,
@@ -12,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { WebView } from "react-native-webview";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
@@ -588,7 +588,7 @@ export default function MapScreen() {
           >
             <View style={styles.cardImg}>
               {coverUrl ? (
-                <Image source={{ uri: coverUrl }} style={styles.cardImgInner} />
+                <ExpoImage source={{ uri: coverUrl }} style={styles.cardImgInner} contentFit="cover" cachePolicy="memory-disk" transition={150} />
               ) : (
                 <View style={[styles.cardImgInner, styles.cardImgPlaceholder]}>
                   <Text style={{ fontSize: 24 }}>🏪</Text>

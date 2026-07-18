@@ -363,7 +363,7 @@ export function NearMeSection() {
               <Ionicons name="locate-outline" size={14} color="#6b7280" />
               <Text style={styles.refreshBtnSmallText}>อัปเดตตำแหน่ง</Text>
             </Pressable>
-            <Pressable style={styles.browseLinkBtn} onPress={() => router.push("/(tabs)/browse")}>
+            <Pressable style={styles.browseLinkBtn} onPress={() => router.push("/listings")}>
               <Text style={styles.browseLinkText}>ดูร้านทั้งหมด →</Text>
             </Pressable>
           </View>
@@ -376,7 +376,7 @@ export function NearMeSection() {
             ยังไม่ได้เปิดใช้ตำแหน่ง — เลือกจังหวัดเพื่อดูร้านในพื้นที่นั้นแทน
           </Text>
           <View style={styles.deniedActions}>
-            <Pressable style={styles.deniedBtnPrimary} onPress={() => router.push("/(tabs)/browse")}>
+            <Pressable style={styles.deniedBtnPrimary} onPress={() => router.push("/listings")}>
               <Ionicons name="map-outline" size={14} color="#fff" />
               <Text style={styles.deniedBtnPrimaryText}>เลือกจังหวัด</Text>
             </Pressable>

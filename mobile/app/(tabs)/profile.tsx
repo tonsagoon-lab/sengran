@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -16,6 +15,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -109,7 +109,7 @@ function SavedRow({ item, onPress, onUnsave }: { item: Listing; onPress: () => v
     <Pressable style={ss.row} onPress={onPress}>
       <View style={ss.imgWrap}>
         {cover && !imgErr ? (
-          <Image source={{ uri: resolveImageUrl(cover.storage_path) }} style={ss.img} onError={() => setImgErr(true)} />
+          <ExpoImage source={{ uri: resolveImageUrl(cover.storage_path) }} style={ss.img} contentFit="cover" cachePolicy="memory-disk" transition={150} onError={() => setImgErr(true)} />
         ) : (
           <View style={[ss.img, ss.imgPlaceholder]}><Text style={{ fontSize: 22 }}>🏪</Text></View>
         )}
@@ -215,7 +215,7 @@ function SavedTab() {
           <View style={ss.empty}>
             <Ionicons name="bookmark-outline" size={48} color="#d1d5db" />
             <Text style={ss.emptyTitle}>ยังไม่มีประกาศที่บันทึก</Text>
-            <Pressable onPress={() => router.push("/(tabs)/browse")}>
+            <Pressable onPress={() => router.push("/listings")}>
               <Text style={ss.emptyLink}>เริ่มค้นหา →</Text>
             </Pressable>
           </View>
@@ -810,7 +810,7 @@ function NotificationsTab({ userId, onRead }: { userId: string; onRead: () => vo
             {isUnread && <View style={ns.unreadDot} />}
             <View style={ns.imgWrap}>
               {cover ? (
-                <Image source={{ uri: resolveImageUrl(cover.storage_path) }} style={ns.img} />
+                <ExpoImage source={{ uri: resolveImageUrl(cover.storage_path) }} style={ns.img} contentFit="cover" cachePolicy="memory-disk" transition={150} />
               ) : (
                 <View style={[ns.img, ns.imgPlaceholder]}><Text style={{ fontSize: 20 }}>🏪</Text></View>
               )}
@@ -1075,7 +1075,7 @@ export default function ProfileScreen() {
           <Pressable style={styles.avatarWrap} onPress={pickAvatar} disabled={avatarUploading}>
             <View style={styles.avatar}>
               {profile?.avatar_url ? (
-                <Image source={{ uri: profile.avatar_url }} style={styles.avatarImg} />
+                <ExpoImage source={{ uri: profile.avatar_url }} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" transition={150} />
               ) : (
                 <Text style={styles.avatarInitial}>{initial}</Text>
               )}

@@ -14,10 +14,23 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { makeRedirectUri } from "expo-auth-session";
 import { supabase } from "../../lib/supabase";
+import { setupNearbyAlertAfterSignup } from "../../lib/setup-location-alert";
+
+let finishing = false;
+async function finishAuth() {
+  if (finishing) return;
+  finishing = true;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    setupNearbyAlertAfterSignup(user.id);
+  }
+  router.replace("/(tabs)");
+}
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -59,13 +72,13 @@ export default function RegisterScreen() {
     const sub = Linking.addEventListener("url", async ({ url }) => {
       if (url.includes("access_token")) {
         const ok = await applyTokensFromUrl(url);
-        if (ok) router.replace("/(tabs)");
+        if (ok) await finishAuth();
       } else if (url.includes("code=")) {
         try {
           const code = new URL(url).searchParams.get("code");
           if (code) {
             const { error } = await supabase.auth.exchangeCodeForSession(code);
-            if (!error) router.replace("/(tabs)");
+            if (!error) await finishAuth();
           }
         } catch {}
       }
@@ -91,12 +104,12 @@ export default function RegisterScreen() {
         const url = result.url;
         if (url.includes("access_token")) {
           const ok = await applyTokensFromUrl(url);
-          if (ok) router.replace("/(tabs)");
+          if (ok) await finishAuth();
         } else if (url.includes("code=")) {
           const code = new URL(url).searchParams.get("code");
           if (code) {
             const { error } = await supabase.auth.exchangeCodeForSession(code);
-            if (!error) router.replace("/(tabs)");
+            if (!error) await finishAuth();
           }
         }
       }
@@ -122,7 +135,7 @@ export default function RegisterScreen() {
       const result = await WebBrowser.openAuthSessionAsync(lineUrl, "sengran://");
       if (result.type === "success" && result.url) {
         const ok = await applyTokensFromUrl(result.url);
-        if (ok) router.replace("/(tabs)");
+        if (ok) await finishAuth();
       }
     } catch {
       Alert.alert("เกิดข้อผิดพลาด", "ลอง LINE login ใหม่อีกครั้ง");
@@ -145,7 +158,7 @@ export default function RegisterScreen() {
         token: credential.identityToken,
       });
       if (error) Alert.alert("เข้าสู่ระบบไม่สำเร็จ", error.message);
-      else router.replace("/(tabs)");
+      else await finishAuth();
     } catch (e: unknown) {
       if ((e as { code?: string }).code !== "ERR_REQUEST_CANCELED") {
         Alert.alert("เกิดข้อผิดพลาด", "ลอง Apple login ใหม่อีกครั้ง");
@@ -179,7 +192,7 @@ export default function RegisterScreen() {
     }
 
     if (data.session) {
-      router.replace("/(tabs)");
+      await finishAuth();
     } else {
       Alert.alert(
         "สมัครสมาชิกสำเร็จ",
@@ -191,6 +204,18 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+      <View style={styles.header}>
+        <Pressable
+          style={styles.headerBack}
+          hitSlop={12}
+          onPress={() => {
+            if (router.canGoBack()) router.back();
+            else router.replace("/(tabs)");
+          }}
+        >
+          <Ionicons name="chevron-back" size={26} color="#111827" />
+        </Pressable>
+      </View>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -343,6 +368,14 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
+  header: { height: 44, justifyContent: "center", paddingHorizontal: 8 },
+  headerBack: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+  },
   inner: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
   logoRow: { flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 8 },
   logo: { fontSize: 36 },

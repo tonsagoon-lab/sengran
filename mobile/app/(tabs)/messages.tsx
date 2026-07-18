@@ -2,12 +2,12 @@ import { useContext, useEffect, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -113,7 +113,7 @@ export default function MessagesScreen() {
                 style={[styles.item, item.unread_count > 0 && styles.itemUnread]}
               >
                 {coverUrl ? (
-                  <Image source={{ uri: coverUrl }} style={styles.avatar} />
+                  <ExpoImage source={{ uri: coverUrl }} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={150} />
                 ) : (
                   <View style={[styles.avatar, styles.avatarFallback]}>
                     <Ionicons name="storefront-outline" size={20} color="#9ca3af" />

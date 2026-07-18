@@ -2,13 +2,13 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -71,7 +71,7 @@ function SavedRow({ item, onPress, onUnsave }: { item: Listing; onPress: () => v
     <Pressable style={styles.row} onPress={onPress}>
       <View style={styles.rowImgWrap}>
         {imageUrl && !imgError ? (
-          <Image source={{ uri: imageUrl }} style={styles.rowImg} onError={() => setImgError(true)} />
+          <ExpoImage source={{ uri: imageUrl }} style={styles.rowImg} contentFit="cover" cachePolicy="memory-disk" transition={150} onError={() => setImgError(true)} />
         ) : (
           <View style={[styles.rowImg, styles.rowImgPlaceholder]}>
             <Text style={{ fontSize: 22 }}>🏪</Text>
@@ -254,7 +254,7 @@ export default function SavedScreen() {
             <View style={styles.emptyWrap}>
               <Ionicons name="bookmark-outline" size={48} color="#d1d5db" />
               <Text style={styles.emptyTitle}>ยังไม่มีประกาศที่บันทึก</Text>
-              <Pressable onPress={() => router.push("/(tabs)/browse")}>
+              <Pressable onPress={() => router.push("/listings")}>
                 <Text style={styles.emptyLink}>เริ่มค้นหา →</Text>
               </Pressable>
             </View>

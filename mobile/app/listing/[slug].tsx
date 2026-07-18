@@ -1,20 +1,24 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
-  Image,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   Share,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { resolveImageUrl } from "../../lib/image-url";
@@ -22,6 +26,16 @@ import { SessionContext } from "../_layout";
 import type { ListingDetail } from "../../lib/types";
 
 const { width: W } = Dimensions.get("window");
+
+const REPORT_REASONS = [
+  "ข้อมูลเท็จหรือทำให้เข้าใจผิด",
+  "ประกาศซ้ำ",
+  "ราคาไม่ถูกต้อง",
+  "ร้านถูกขายหรือเซ้งแล้ว",
+  "รูปภาพไม่ตรงกับความเป็นจริง",
+  "เนื้อหาไม่เหมาะสม",
+  "อื่นๆ",
+];
 
 function stripHtml(html: string): string {
   return html
@@ -60,6 +74,7 @@ function TypeBadge({ type }: { type: BadgeType }) {
 export default function ListingDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const session = useContext(SessionContext);
   const [listing, setListing] = useState<ListingDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,6 +82,10 @@ export default function ListingDetailScreen() {
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState(false);
   const [savingLoading, setSavingLoading] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDetail, setReportDetail] = useState("");
+  const [reportStatus, setReportStatus] = useState<"idle" | "sending" | "done">("idle");
 
   useEffect(() => {
     if (!slug) return;
@@ -82,7 +101,7 @@ export default function ListingDetailScreen() {
          view_count, published_at, status,
          listing_images(id, storage_path, display_order),
          categories(name_th, slug), provinces(name_th, slug),
-         profiles!listings_user_id_fkey(display_name, avatar_url)`
+         profiles!listings_user_id_fkey(display_name, avatar_url, mobile, line_id)`
       )
       .eq("slug", slug)
       .in("status", ["published", "expired"])
@@ -128,24 +147,53 @@ export default function ListingDetailScreen() {
     if (!listing) return;
     await Share.share({
       title: listing.title,
-      message: `${listing.title}\nhttps://sengran.com/listing/${listing.slug}`,
+      message: `${listing.title}\nhttps://www.xn--72ch7bybxexd0cc.com/property/${listing.slug}`,
     });
   }
 
 
   function handleCall() {
-    if (!listing?.contact_mobile) return;
-    Linking.openURL(`tel:${listing.contact_mobile.replace(/[^0-9+]/g, "")}`);
+    if (!phone) return;
+    Linking.openURL(`tel:${phone.replace(/[^0-9+]/g, "")}`);
   }
 
   function handleLine() {
-    if (!listing?.contact_line) return;
-    Linking.openURL(`https://line.me/R/ti/p/~${listing.contact_line}`);
+    if (!lineId) return;
+    const seg = lineId.startsWith("@") ? lineId : `~${lineId}`;
+    Linking.openURL(`https://line.me/R/ti/p/${seg}`);
   }
 
   function handleMessage() {
     if (!listing) return;
     router.push(`/messages/${listing.id}`);
+  }
+
+  function openReport() {
+    if (!session) {
+      router.push("/auth/login");
+      return;
+    }
+    setReportReason("");
+    setReportDetail("");
+    setReportStatus("idle");
+    setReportOpen(true);
+  }
+
+  async function submitReport() {
+    if (!listing || !reportReason || reportStatus === "sending") return;
+    setReportStatus("sending");
+    const { error } = await supabase.from("reports").insert({
+      listing_id: listing.id,
+      reporter_id: session?.user.id ?? null,
+      reason: reportReason,
+      detail: reportDetail.trim() || null,
+    });
+    if (error) {
+      setReportStatus("idle");
+      Alert.alert("ส่งไม่สำเร็จ", "กรุณาลองใหม่อีกครั้ง");
+      return;
+    }
+    setReportStatus("done");
   }
 
   function handleOpenMaps() {
@@ -192,8 +240,18 @@ export default function ListingDetailScreen() {
 
   const sellerInitial = profile?.display_name?.charAt(0)?.toUpperCase() ?? "?";
 
-  const hasMobile = !!listing.contact_mobile;
-  const hasLine = !!listing.contact_line;
+  const isPlaceholder = (v: string | null | undefined) =>
+    !v || v === "ไม่ระบุ" || v.trim() === "";
+
+  const phone = isPlaceholder(listing.contact_mobile)
+    ? profile?.mobile ?? null
+    : listing.contact_mobile;
+  const lineId = isPlaceholder(listing.contact_line)
+    ? profile?.line_id ?? null
+    : listing.contact_line;
+
+  const hasMobile = !!phone;
+  const hasLine = !!lineId;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["bottom"]}>
@@ -212,9 +270,12 @@ export default function ListingDetailScreen() {
                   setActiveImage(Math.round(e.nativeEvent.contentOffset.x / W))
                 }
                 renderItem={({ item }) => (
-                  <Image
+                  <ExpoImage
                     source={{ uri: resolveImageUrl(item.storage_path) }}
                     style={styles.galleryImg}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={150}
                     onError={() =>
                       setFailedImages((prev) => new Set([...prev, item.storage_path]))
                     }
@@ -236,7 +297,14 @@ export default function ListingDetailScreen() {
           )}
 
           {/* Back button */}
-          <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Pressable
+            style={[styles.backBtn, { top: insets.top + 8 }]}
+            hitSlop={12}
+            onPress={() => {
+              if (router.canGoBack()) router.back();
+              else router.replace("/");
+            }}
+          >
             <Ionicons name="chevron-back" size={22} color="#111827" />
           </Pressable>
         </View>
@@ -252,8 +320,9 @@ export default function ListingDetailScreen() {
               </View>
             )}
             <View style={{ flex: 1 }} />
-            <Pressable style={styles.iconBtn} onPress={handleShare}>
-              <Ionicons name="share-outline" size={20} color="#6b7280" />
+            <Pressable style={styles.shareBtn} onPress={handleShare}>
+              <Ionicons name="share-social-outline" size={16} color="#c2410c" />
+              <Text style={styles.shareBtnText}>แชร์</Text>
             </Pressable>
             <Pressable style={styles.iconBtn} onPress={handleSave} disabled={savingLoading}>
               {savingLoading ? (
@@ -384,17 +453,23 @@ export default function ListingDetailScreen() {
                   {profile.display_name ?? "ผู้ขาย"}
                 </Text>
                 <Text style={styles.sellerMeta}>ผู้ขาย · ตอบเร็ว</Text>
-                {listing.contact_mobile ? (
-                  <Text style={styles.sellerContact}>📞 {listing.contact_mobile}</Text>
+                {phone ? (
+                  <Text style={styles.sellerContact}>📞 {phone}</Text>
                 ) : null}
-                {listing.contact_line ? (
-                  <Text style={styles.sellerContact}>💬 LINE: {listing.contact_line}</Text>
+                {lineId ? (
+                  <Text style={styles.sellerContact}>💬 LINE: {lineId}</Text>
                 ) : null}
               </View>
               <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
             </View>
           )}
 
+
+          {/* Report */}
+          <Pressable onPress={openReport} style={styles.reportLink} hitSlop={8}>
+            <Ionicons name="flag-outline" size={13} color="#9ca3af" />
+            <Text style={styles.reportLinkText}>แจ้งปัญหาประกาศนี้</Text>
+          </Pressable>
 
           {/* Spacer for sticky bar */}
           <View style={{ height: 24 }} />
@@ -403,14 +478,19 @@ export default function ListingDetailScreen() {
 
       {/* Sticky contact bar */}
       <View style={styles.stickyBar}>
-        <Pressable
-          style={[styles.contactBtn, hasMobile ? styles.callBtn : styles.btnDisabled]}
-          onPress={handleCall}
-          disabled={!hasMobile}
-        >
-          <Ionicons name="call-outline" size={18} color="#fff" />
-          <Text style={styles.contactBtnText}>โทร</Text>
-        </Pressable>
+        {hasMobile && (
+          <Pressable style={[styles.contactBtn, styles.callBtn]} onPress={handleCall}>
+            <Ionicons name="call-outline" size={18} color="#fff" />
+            <Text style={styles.contactBtnText}>โทร</Text>
+          </Pressable>
+        )}
+
+        {hasLine && (
+          <Pressable style={[styles.contactBtn, styles.lineBtn]} onPress={handleLine}>
+            <Text style={styles.lineLogoText}>L</Text>
+            <Text style={styles.contactBtnText}>LINE</Text>
+          </Pressable>
+        )}
 
         <Pressable
           style={[styles.contactBtn, styles.msgBtn]}
@@ -419,14 +499,95 @@ export default function ListingDetailScreen() {
           <Ionicons name="chatbubble-outline" size={18} color="#fff" />
           <Text style={styles.contactBtnText}>ข้อความ</Text>
         </Pressable>
-
-        {hasLine && (
-          <Pressable style={[styles.contactBtn, styles.lineBtn]} onPress={handleLine}>
-            <Text style={styles.lineLogoText}>L</Text>
-            <Text style={styles.contactBtnText}>LINE</Text>
-          </Pressable>
-        )}
       </View>
+
+      {/* Report modal */}
+      <Modal
+        visible={reportOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReportOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.reportBackdrop}
+        >
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setReportOpen(false)} />
+          <View style={styles.reportSheet}>
+            <View style={styles.reportHeader}>
+              <Text style={styles.reportTitle}>แจ้งปัญหาประกาศนี้</Text>
+              <Pressable onPress={() => setReportOpen(false)} hitSlop={12}>
+                <Ionicons name="close" size={22} color="#9ca3af" />
+              </Pressable>
+            </View>
+
+            {reportStatus === "done" ? (
+              <View style={styles.reportDone}>
+                <Text style={styles.reportDoneEmoji}>✅</Text>
+                <Text style={styles.reportDoneText}>รับเรื่องแล้ว ขอบคุณที่แจ้ง</Text>
+                <Pressable
+                  onPress={() => setReportOpen(false)}
+                  style={styles.reportDoneBtn}
+                >
+                  <Text style={styles.reportDoneBtnText}>ปิด</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.reportLabel}>เหตุผล *</Text>
+                <View style={{ gap: 4 }}>
+                  {REPORT_REASONS.map((r) => (
+                    <Pressable
+                      key={r}
+                      onPress={() => setReportReason(r)}
+                      style={styles.reportRadioRow}
+                      hitSlop={4}
+                    >
+                      <View
+                        style={[
+                          styles.reportRadio,
+                          reportReason === r && styles.reportRadioActive,
+                        ]}
+                      >
+                        {reportReason === r && <View style={styles.reportRadioDot} />}
+                      </View>
+                      <Text style={styles.reportRadioText}>{r}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <Text style={[styles.reportLabel, { marginTop: 12 }]}>
+                  รายละเอียดเพิ่มเติม (ไม่บังคับ)
+                </Text>
+                <TextInput
+                  value={reportDetail}
+                  onChangeText={setReportDetail}
+                  multiline
+                  numberOfLines={3}
+                  placeholder="อธิบายเพิ่มเติม..."
+                  placeholderTextColor="#9ca3af"
+                  style={styles.reportInput}
+                />
+
+                <Pressable
+                  onPress={submitReport}
+                  disabled={!reportReason || reportStatus === "sending"}
+                  style={[
+                    styles.reportSubmit,
+                    (!reportReason || reportStatus === "sending") && styles.reportSubmitDisabled,
+                  ]}
+                >
+                  {reportStatus === "sending" ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.reportSubmitText}>ส่งรายงาน</Text>
+                  )}
+                </Pressable>
+              </>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -463,6 +624,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  shareBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: "#fff7ed",
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+  },
+  shareBtnText: { fontSize: 13, fontWeight: "700", color: "#c2410c" },
 
   // Content
   content: { paddingHorizontal: 16, paddingTop: 16 },
@@ -616,7 +789,93 @@ const styles = StyleSheet.create({
   callBtn: { backgroundColor: "#f97316" },
   lineBtn: { backgroundColor: "#06C755" },
   msgBtn: { backgroundColor: "#3b82f6" },
-  btnDisabled: { backgroundColor: "#d1d5db" },
   contactBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   lineLogoText: { color: "#fff", fontSize: 15, fontWeight: "900", fontStyle: "italic" },
+
+  // Report
+  reportLink: {
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
+  },
+  reportLinkText: { fontSize: 12, color: "#9ca3af" },
+  reportBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  reportSheet: {
+    width: "100%",
+    maxWidth: 400,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 18,
+    gap: 12,
+  },
+  reportHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  reportTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  reportLabel: { fontSize: 12, fontWeight: "600", color: "#374151", marginBottom: 6 },
+  reportRadioRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 6,
+  },
+  reportRadio: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: "#d1d5db",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reportRadioActive: { borderColor: "#f97316" },
+  reportRadioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#f97316" },
+  reportRadioText: { fontSize: 14, color: "#374151" },
+  reportInput: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#111827",
+    minHeight: 70,
+    textAlignVertical: "top",
+  },
+  reportSubmit: {
+    backgroundColor: "#ef4444",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  reportSubmitDisabled: { opacity: 0.5 },
+  reportSubmitText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  reportDone: {
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+  },
+  reportDoneEmoji: { fontSize: 32 },
+  reportDoneText: { fontSize: 14, color: "#374151" },
+  reportDoneBtn: {
+    marginTop: 8,
+    backgroundColor: "#f97316",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  reportDoneBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
 });

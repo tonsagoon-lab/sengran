@@ -124,19 +124,16 @@ export default function EquipmentCreateScreen() {
 
     for (const asset of result.assets) {
       try {
-        const rawExt = (asset.uri.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z]/g, "") || "jpg";
-        const needsConvert = ["heic", "heif", "webp"].includes(rawExt);
-        const finalUri = needsConvert
-          ? (await ImageManipulator.manipulateAsync(asset.uri, [], { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG })).uri
-          : asset.uri;
-        const ext = needsConvert ? "jpg" : rawExt;
-        const mimeMap: Record<string, string> = { png: "image/png", gif: "image/gif" };
-        const mimeType = needsConvert ? "image/jpeg" : (mimeMap[ext] ?? "image/jpeg");
+        const resized = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 1600 } }],
+          { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG }
+        );
         const uid = userId.current ?? (await supabase.auth.getUser()).data.user?.id;
-        const storagePath = `${uid}/${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const response = await fetch(finalUri);
+        const storagePath = `${uid}/${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+        const response = await fetch(resized.uri);
         const arrayBuffer = await response.arrayBuffer();
-        const { error } = await supabase.storage.from("listings").upload(storagePath, arrayBuffer, { contentType: mimeType });
+        const { error } = await supabase.storage.from("listings").upload(storagePath, arrayBuffer, { contentType: "image/jpeg" });
         if (error) { console.error("upload error:", JSON.stringify(error)); failCount++; } else { newImages.push({ uri: asset.uri, path: storagePath }); }
       } catch { failCount++; }
     }
@@ -409,7 +406,11 @@ export default function EquipmentCreateScreen() {
             {images.map((img) => (
               <View key={img.path} style={s.imageThumb}>
                 <Image source={{ uri: img.uri }} style={s.thumbImg} />
-                <Pressable style={s.removeBtn} onPress={() => removeImage(img.path)}>
+                <Pressable
+                  style={s.removeBtn}
+                  onPress={() => removeImage(img.path)}
+                  hitSlop={12}
+                >
                   <Text style={s.removeBtnText}>✕</Text>
                 </Pressable>
               </View>
@@ -538,10 +539,11 @@ const s = StyleSheet.create({
   thumbImg: { width: "100%", height: "100%" },
   removeBtn: {
     position: "absolute", top: 4, right: 4,
-    backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 10,
-    width: 20, height: 20, alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.75)", borderRadius: 14,
+    width: 28, height: 28, alignItems: "center", justifyContent: "center",
+    zIndex: 10,
   },
-  removeBtnText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  removeBtnText: { color: "#fff", fontSize: 14, fontWeight: "700", lineHeight: 16 },
   addImageBtn: {
     width: 90, height: 90, borderRadius: 8,
     borderWidth: 1.5, borderColor: "#e5e7eb", borderStyle: "dashed",

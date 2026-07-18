@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -204,7 +205,6 @@ export default function EditListingScreen() {
       quality: 0.8,
       allowsMultipleSelection: true,
       selectionLimit: 10 - images.length,
-      base64: true,
     });
 
     if (result.canceled || result.assets.length === 0) return;
@@ -214,12 +214,15 @@ export default function EditListingScreen() {
 
     for (const asset of result.assets) {
       try {
-        if (!asset.base64) { failCount++; continue; }
-        const ext = (asset.uri.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z]/g, "") || "jpg";
-        const mimeType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
-        const storagePath = `${id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const bytes = Uint8Array.from(atob(asset.base64), (c) => c.charCodeAt(0));
-        const { error } = await supabase.storage.from("listings").upload(storagePath, bytes, { contentType: mimeType });
+        const resized = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 1600 } }],
+          { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        const storagePath = `${id}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+        const response = await fetch(resized.uri);
+        const arrayBuffer = await response.arrayBuffer();
+        const { error } = await supabase.storage.from("listings").upload(storagePath, arrayBuffer, { contentType: "image/jpeg" });
         if (error) { failCount++; }
         else { newImages.push({ uri: asset.uri, path: storagePath, isExisting: false }); }
       } catch { failCount++; }
@@ -457,7 +460,11 @@ export default function EditListingScreen() {
             {images.map((img) => (
               <View key={img.path} style={styles.imageThumb}>
                 <Image source={{ uri: img.uri }} style={styles.thumbImg} />
-                <Pressable style={styles.removeBtn} onPress={() => removeImage(img.path, img.isExisting)}>
+                <Pressable
+                  style={styles.removeBtn}
+                  onPress={() => removeImage(img.path, img.isExisting)}
+                  hitSlop={12}
+                >
                   <Text style={styles.removeBtnText}>✕</Text>
                 </Pressable>
               </View>
@@ -547,8 +554,8 @@ const styles = StyleSheet.create({
   imageGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 },
   imageThumb: { width: 90, height: 90, borderRadius: 8, overflow: "hidden", position: "relative" },
   thumbImg: { width: "100%", height: "100%" },
-  removeBtn: { position: "absolute", top: 4, right: 4, backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 10, width: 20, height: 20, alignItems: "center", justifyContent: "center" },
-  removeBtnText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  removeBtn: { position: "absolute", top: 4, right: 4, backgroundColor: "rgba(0,0,0,0.75)", borderRadius: 14, width: 28, height: 28, alignItems: "center", justifyContent: "center", zIndex: 10 },
+  removeBtnText: { color: "#fff", fontSize: 14, fontWeight: "700", lineHeight: 16 },
   addImageBtn: { width: 90, height: 90, borderRadius: 8, borderWidth: 1.5, borderColor: "#e5e7eb", borderStyle: "dashed", backgroundColor: "#f9fafb", alignItems: "center", justifyContent: "center", gap: 4 },
   addImageIcon: { fontSize: 24 },
   addImageText: { fontSize: 11, color: "#9ca3af" },

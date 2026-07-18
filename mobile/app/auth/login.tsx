@@ -14,10 +14,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { makeRedirectUri } from "expo-auth-session";
 import { supabase } from "../../lib/supabase";
+
+function handleClose() {
+  if (router.canGoBack()) router.back();
+  else router.replace("/(tabs)");
+}
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -167,6 +173,11 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+      <View style={styles.header}>
+        <Pressable style={styles.headerBack} onPress={handleClose} hitSlop={12}>
+          <Ionicons name="chevron-back" size={26} color="#111827" />
+        </Pressable>
+      </View>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -288,7 +299,15 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  inner: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 24, paddingVertical: 32 },
+  header: { height: 44, justifyContent: "center", paddingHorizontal: 8 },
+  headerBack: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+  },
+  inner: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 24, paddingVertical: 16 },
   logoRow: { flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 8 },
   logo: { fontSize: 40 },
   appName: { fontSize: 28, fontWeight: "800", color: "#f97316" },

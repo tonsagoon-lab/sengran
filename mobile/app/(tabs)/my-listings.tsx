@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   Linking,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -118,7 +118,7 @@ export default function MyListingsScreen() {
       <View style={styles.card}>
         <Pressable onPress={() => router.push(`/listing/${item.slug}`)} style={styles.cardMain}>
           {imageUrl ? (
-            <Image source={{ uri: imageUrl }} style={styles.thumb} />
+            <ExpoImage source={{ uri: imageUrl }} style={styles.thumb} contentFit="cover" cachePolicy="memory-disk" transition={150} />
           ) : (
             <View style={[styles.thumb, styles.thumbPlaceholder]}>
               <Text style={{ fontSize: 24 }}>🏪</Text>

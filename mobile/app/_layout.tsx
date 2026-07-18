@@ -144,6 +144,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="auth" />
+          <Stack.Screen name="listings" />
           <Stack.Screen name="listing/[slug]" />
           <Stack.Screen name="legal/privacy" />
           <Stack.Screen name="legal/terms" />

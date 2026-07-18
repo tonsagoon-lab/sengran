@@ -318,17 +318,16 @@ export default function CreateListingScreen() {
 
     for (const asset of result.assets) {
       try {
-        const rawExt = (asset.uri.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z]/g, "") || "jpg";
-        const needsConvert = ["heic", "heif", "webp"].includes(rawExt);
-        const finalUri = needsConvert
-          ? (await ImageManipulator.manipulateAsync(asset.uri, [], { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG })).uri
-          : asset.uri;
-        const ext = needsConvert ? "jpg" : rawExt;
+        const resized = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 1600 } }],
+          { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG }
+        );
         const mimeType = "image/jpeg";
         const uid = userId.current ?? (await supabase.auth.getUser()).data.user?.id;
-        const storagePath = `${uid}/${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const storagePath = `${uid}/${listingId.current}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
 
-        const response = await fetch(finalUri);
+        const response = await fetch(resized.uri);
         const arrayBuffer = await response.arrayBuffer();
 
         const { error } = await supabase.storage
@@ -788,7 +787,11 @@ export default function CreateListingScreen() {
             {images.map((img) => (
               <View key={img.path} style={styles.imageThumb}>
                 <Image source={{ uri: img.uri }} style={styles.thumbImg} />
-                <Pressable style={styles.removeBtn} onPress={() => removeImage(img.path)}>
+                <Pressable
+                  style={styles.removeBtn}
+                  onPress={() => removeImage(img.path)}
+                  hitSlop={12}
+                >
                   <Text style={styles.removeBtnText}>✕</Text>
                 </Pressable>
               </View>
@@ -994,14 +997,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 4,
     right: 4,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: 10,
-    width: 20,
-    height: 20,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    borderRadius: 14,
+    width: 28,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 10,
   },
-  removeBtnText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  removeBtnText: { color: "#fff", fontSize: 14, fontWeight: "700", lineHeight: 16 },
   addImageBtn: {
     width: 90,
     height: 90,
