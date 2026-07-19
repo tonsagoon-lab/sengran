@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   MessageCircle,
   X,
+  Sparkles,
 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { RichTextEditor } from "@/components/rich-text-editor";
+import { AIDescriptionHelper } from "@/components/listings/ai-description-helper";
 import { RichTextDisplay } from "@/components/rich-text-display";
 import { stripHtmlTags } from "@/lib/utils/html";
 import { ProvinceCombobox } from "@/components/listings/province-combobox";
@@ -404,7 +406,10 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   const [quotaInfo, setQuotaInfo] = useState<{ quota: number; current: number } | null>(null);
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
+  const [aiHelperOpen, setAiHelperOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const selectedCategoryName = categories.find((c) => String(c.id) === data.category_id)?.name_th ?? "";
 
   function buildFormData(status: "published" | "draft"): FormData {
     const fd = new FormData();
@@ -668,8 +673,16 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
 
           {/* Description — visual break */}
           <Card>
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
               <CardTitle className="text-sm font-semibold text-neutral-500 uppercase tracking-wide">รายละเอียด</CardTitle>
+              <button
+                type="button"
+                onClick={() => setAiHelperOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 text-xs font-medium text-orange-700 transition-colors"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                AI ช่วยเขียน
+              </button>
             </CardHeader>
             <CardContent>
               <RichTextEditor
@@ -680,6 +693,17 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
               />
             </CardContent>
           </Card>
+
+          <AIDescriptionHelper
+            open={aiHelperOpen}
+            onOpenChange={setAiHelperOpen}
+            title={data.title}
+            categoryName={selectedCategoryName}
+            listingType={data.listing_type}
+            salePrice={data.sale_price}
+            rentPrice={data.rent_price}
+            onAccept={(html) => setData({ description: html })}
+          />
         </div>
       )}
 
