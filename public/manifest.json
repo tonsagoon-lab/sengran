@@ -1,0 +1,54 @@
+{
+  "name": "เซ้งร้าน — ตลาดเซ้ง ขาย ให้เช่า ร้านค้า",
+  "short_name": "เซ้งร้าน",
+  "description": "ตลาดเซ้งร้าน ขายกิจการ รับโอนกิจการ และพื้นที่เชิงพาณิชย์ทั่วประเทศไทย",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
+  "lang": "th-TH",
+  "dir": "ltr",
+  "categories": ["business", "shopping", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ประกาศทั้งหมด",
+      "short_name": "ประกาศ",
+      "url": "/listings",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "ลงประกาศใหม่",
+      "short_name": "ลงประกาศ",
+      "url": "/listings/new",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "ประกาศของฉัน",
+      "short_name": "ของฉัน",
+      "url": "/my-listings",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

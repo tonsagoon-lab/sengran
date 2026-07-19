@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Sarabun } from "next/font/google";
 import "./globals.css";
 import { Suspense } from "react";
@@ -7,6 +7,7 @@ import { Navbar } from "@/components/shared/navbar";
 import { HomeFooter } from "@/components/home/home-footer";
 import { SystemAnnouncementBar } from "@/components/system-announcement-bar";
 import { CookieConsent } from "@/components/cookie-consent";
+import { InstallPrompt } from "@/components/install-prompt";
 import { OAuthCodeHandler } from "@/components/shared/oauth-code-handler";
 import { PageViewTracker } from "@/components/shared/page-view-tracker";
 import { Analytics } from "@vercel/analytics/react";
@@ -39,20 +40,39 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "เซ้งร้าน.com — ขายกิจการ เซ้ง ให้เช่า ทำเลดีทั่วไทย",
     description: "ตลาดเซ้งร้าน ขายกิจการ รับโอนกิจการ และพื้นที่เชิงพาณิชย์ออนไลน์ ทำเลดีทั่วประเทศไทย",
     metadataBase: new URL(BASE_URL),
+    manifest: "/manifest.json",
+    applicationName: "เซ้งร้าน",
+    appleWebApp: {
+      capable: true,
+      title: "เซ้งร้าน",
+      statusBarStyle: "default",
+    },
+    formatDetection: {
+      telephone: false,
+    },
     openGraph: {
       siteName: "เซ้งร้าน.com",
       locale: "th_TH",
       type: "website",
     },
-    ...(faviconUrl ? {
-      icons: {
-        icon: faviconUrl,
-        shortcut: faviconUrl,
-        apple: faviconUrl,
-      },
-    } : {}),
+    icons: faviconUrl
+      ? {
+          icon: faviconUrl,
+          shortcut: faviconUrl,
+          apple: "/icons/apple-touch-icon.png",
+        }
+      : {
+          apple: "/icons/apple-touch-icon.png",
+        },
   };
 }
+
+export const viewport: Viewport = {
+  themeColor: "#f97316",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export default function RootLayout({
   children,
@@ -69,6 +89,7 @@ export default function RootLayout({
         <div className="flex-1">{children}</div>
         <HomeFooter />
         <CookieConsent />
+        <InstallPrompt />
         <Analytics />
       </body>
     </html>
