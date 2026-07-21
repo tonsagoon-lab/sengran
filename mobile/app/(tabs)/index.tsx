@@ -278,6 +278,11 @@ export default function HomeScreen() {
         const picks = (picksRes.data as any[])
           .map((p) => p.listings)
           .filter(Boolean) as Listing[];
+        // Shuffle so a different pick appears first on each visit
+        for (let i = picks.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [picks[i], picks[j]] = [picks[j], picks[i]];
+        }
         setEditorialPicks(picks);
       }
     } catch (e: any) {
@@ -378,7 +383,7 @@ export default function HomeScreen() {
         {/* Near me */}
         <NearMeSection />
 
-        {/* Editorial picks — ประกาศเซ้งด่วน!! */}
+        {/* Editorial picks — ฝากเซ้ง-ประเมินราคา (horizontal scroll) */}
         {editorialPicks.length > 0 && (
           <View style={styles.section}>
             <SectionHeader
@@ -386,15 +391,20 @@ export default function HomeScreen() {
               linkLabel="ดูทั้งหมด"
               onLink={() => router.push("/listings")}
             />
-            <View style={styles.latestGrid}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.featuredScroll}
+            >
               {editorialPicks.map((item) => (
                 <ListingCardV
                   key={item.id}
                   item={item}
+                  width={192}
                   onPress={() => router.push(`/listing/${item.slug}`)}
                 />
               ))}
-            </View>
+            </ScrollView>
           </View>
         )}
 
@@ -432,7 +442,7 @@ export default function HomeScreen() {
               onLink={() => router.push("/listings")}
             />
             <View style={styles.latestGrid}>
-              {latest.slice(0, 8).map((item) => (
+              {latest.slice(0, 6).map((item) => (
                 <ListingCardV
                   key={item.id}
                   item={item}
