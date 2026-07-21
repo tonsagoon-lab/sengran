@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { resolveImageUrl } from "../../lib/image-url";
 import { NearMeSection } from "../../components/NearMeSection";
+import { MapPreviewSection } from "../../components/MapPreviewSection";
 import { UnreadCountsContext } from "../_layout";
 import type { Category, Listing } from "../../lib/types";
 
@@ -181,8 +182,21 @@ function getCatIcon(iconName: string | null | undefined): keyof typeof Ionicons.
 }
 
 const SCREEN_W = Dimensions.get("window").width;
-const CAT_ITEM_W = Math.floor((SCREEN_W - 32 - 24) / 4); // 4 cols, 3 gaps of 8
 const CARD_W = Math.floor((SCREEN_W - 32 - 10) / 2); // 2 cols, 1 gap of 10
+
+// Home-screen category priority order: cafe → restaurant → salon → liquor,
+// then everything else in display_order. Match by name keyword so slug drift
+// doesn't break the ordering.
+const CAT_PRIORITY_KEYWORDS = ["คาเฟ่", "ร้านอาหาร", "เสริมสวย", "เหล้า"];
+function sortCategoriesForHome(cats: Category[]): Category[] {
+  const rankOf = (name: string) => {
+    for (let i = 0; i < CAT_PRIORITY_KEYWORDS.length; i++) {
+      if (name.includes(CAT_PRIORITY_KEYWORDS[i])) return i;
+    }
+    return CAT_PRIORITY_KEYWORDS.length;
+  };
+  return [...cats].sort((a, b) => rankOf(a.name_th) - rankOf(b.name_th));
+}
 
 // ─── Home screen ─────────────────────────────────────────
 export default function HomeScreen() {
@@ -203,12 +217,12 @@ export default function HomeScreen() {
 
   async function loadAll() {
     try {
-      // Load only the 4 featured categories for home screen
+      // Load all active shop categories for horizontal chip strip
       const catsRes = await supabase
         .from("categories")
         .select("id, name_th, slug, icon")
+        .eq("category_type", "shop")
         .eq("is_active", true)
-        .in("slug", ["restaurant", "cafe", "salon", "beauty-clinic"])
         .order("display_order");
 
       if (catsRes.error) {
@@ -336,32 +350,30 @@ export default function HomeScreen() {
           <Ionicons name="options-outline" size={18} color="#9ca3af" />
         </Pressable>
 
-        {/* Categories */}
+        {/* Category chip strip — no header, users scroll horizontally */}
         {categories.length > 0 && (
-          <View style={styles.section}>
-            <SectionHeader
-              title="หมวดหมู่"
-              linkLabel="ดูทั้งหมด"
-              onLink={() => router.push("/listings")}
-            />
-            <View style={styles.catGrid}>
-              {categories.slice(0, 4).map((cat) => (
-                <Pressable
-                  key={cat.id}
-                  style={styles.catItem}
-                  onPress={() => router.push(`/listings?cat=${cat.id}`)}
-                >
-                  <View style={styles.catBubble}>
-                    <Ionicons name={getCatIcon(cat.icon)} size={20} color="#ea580c" />
-                  </View>
-                  <Text style={styles.catLabel} numberOfLines={2}>
-                    {cat.name_th}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.catChipRow}
+            style={styles.catChipScroll}
+          >
+            {sortCategoriesForHome(categories).map((cat) => (
+              <Pressable
+                key={cat.id}
+                style={styles.catChip}
+                onPress={() => router.push(`/listings?cat=${cat.id}`)}
+              >
+                <Text style={styles.catChipLabel} numberOfLines={1}>
+                  {cat.name_th}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         )}
+
+        {/* Map preview */}
+        <MapPreviewSection />
 
         {/* Near me */}
         <NearMeSection />
@@ -575,37 +587,25 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
   sectionLink: { fontSize: 12, color: "#c2410c", fontWeight: "500" },
 
-  // Category grid
-  catGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  // Category chip strip (sits directly under search bar)
+  catChipScroll: { marginTop: 8, marginBottom: 4 },
+  catChipRow: {
     paddingHorizontal: 16,
     gap: 8,
-  },
-  catItem: {
-    width: CAT_ITEM_W,
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
+  },
+  catChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
-  catBubble: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#ffedd5",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  catLabel: {
-    fontSize: 11,
+  catChipLabel: {
+    fontSize: 13,
+    fontWeight: "600",
     color: "#374151",
-    textAlign: "center",
-    lineHeight: 14,
   },
 
   // Banner
