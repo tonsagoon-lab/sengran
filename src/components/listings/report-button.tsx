@@ -18,17 +18,39 @@ export function ReportButton({ listingId }: { listingId: string }) {
   const [reason, setReason] = useState("");
   const [detail, setDetail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string>("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!reason) return;
     setStatus("sending");
-    const res = await fetch("/api/reports", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listingId, reason, detail }),
-    });
-    setStatus(res.ok ? "done" : "error");
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId, reason, detail }),
+      });
+      if (res.ok) {
+        setStatus("done");
+        return;
+      }
+      let msg = "";
+      try {
+        const body = await res.json();
+        msg = body?.error || "";
+      } catch {}
+      if (!msg) {
+        if (res.status === 401) msg = "กรุณาเข้าสู่ระบบก่อนแจ้งปัญหา";
+        else if (res.status === 429) msg = "ส่งรายงานบ่อยเกินไป กรุณารอสักครู่";
+        else msg = `เกิดข้อผิดพลาด (${res.status})`;
+      }
+      setErrorMsg(msg);
+      setStatus("error");
+    } catch {
+      setErrorMsg("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+      setStatus("error");
+    }
   }
 
   return (
@@ -89,7 +111,9 @@ export function ReportButton({ listingId }: { listingId: string }) {
                     placeholder="อธิบายเพิ่มเติม..."
                   />
                 </div>
-                {status === "error" && <p className="text-xs text-red-600">เกิดข้อผิดพลาด กรุณาลองใหม่</p>}
+                {status === "error" && (
+                  <p className="text-xs text-red-600">{errorMsg || "เกิดข้อผิดพลาด กรุณาลองใหม่"}</p>
+                )}
                 <button
                   type="submit"
                   disabled={!reason || status === "sending"}
