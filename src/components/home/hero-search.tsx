@@ -1,10 +1,9 @@
-import { getTotalListingCount, getAllCategories, getAllProvinces } from "@/lib/db/listings";
+import { getAllCategories, getAllProvinces } from "@/lib/db/listings";
 import { SearchBox } from "@/components/listings/search-box";
-import { QuickFilters } from "@/components/home/quick-filters";
+import { FilterSheet } from "@/components/home/filter-sheet";
 
 export async function HeroSearch() {
-  const [count, categories, provinces] = await Promise.all([
-    getTotalListingCount(),
+  const [categories, provinces] = await Promise.all([
     getAllCategories(),
     getAllProvinces(),
   ]);
@@ -21,9 +20,12 @@ export async function HeroSearch() {
           รายการ ทั่วประเทศ กว่า 10 ปี
         </p>
 
-        <SearchBox targetPath="/listings" />
-
-        <QuickFilters categories={categories} provinces={provinces} />
+        <div className="mx-auto flex w-full max-w-xl items-stretch gap-2">
+          <div className="flex-1 min-w-0">
+            <SearchBox targetPath="/listings" />
+          </div>
+          <FilterSheet categories={categories} provinces={provinces} />
+        </div>
       </div>
     </section>
   );
