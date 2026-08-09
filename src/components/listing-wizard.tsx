@@ -63,6 +63,11 @@ interface WizardProps {
   amenities: Amenity[];
   linePackageUrl?: string;
   lineFaakUrl?: string;
+  modalTitle?: string;
+  modalSubtitle?: string;
+  buttonTextPackage?: string;
+  buttonTextFaak?: string;
+  buttonTextView?: string;
   listing?: ListingWithImages & {
     categories?: { name_th: string; slug: string } | null;
     provinces?: { name_th: string; slug: string } | null;
@@ -280,9 +285,18 @@ function migrateState(raw: string, listingId?: string): WizardState | null {
 
 // ── Main wizard ────────────────────────────────────────────────
 
-export function ListingWizard({ userId, categories, provinces, amenities, listing, linePackageUrl, lineFaakUrl }: WizardProps) {
+export function ListingWizard({
+  userId, categories, provinces, amenities, listing,
+  linePackageUrl, lineFaakUrl,
+  modalTitle, modalSubtitle, buttonTextPackage, buttonTextFaak, buttonTextView,
+}: WizardProps) {
   const pkgUrl = linePackageUrl || DEFAULT_LINE_URL;
   const faakUrl = lineFaakUrl || DEFAULT_LINE_URL;
+  const successTitle = modalTitle || "ประกาศเผยแพร่แล้ว!";
+  const successSubtitle = modalSubtitle || "เลือกขั้นตอนถัดไป";
+  const btnPackage = buttonTextPackage || "ซื้อ package เซ้งร้าน";
+  const btnFaak = buttonTextFaak || "ฝากเซ้งร้าน";
+  const btnView = buttonTextView || "ดูประกาศที่ลง";
   const router = useRouter();
   const isEdit = !!listing;
   const storageKey = isEdit ? `${STORAGE_KEY}_${listing?.id}` : STORAGE_KEY;
@@ -923,8 +937,8 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
 
             <div className="flex flex-col items-center text-center space-y-1">
               <CheckCircle2 className="h-10 w-10 text-green-500" />
-              <h2 className="text-lg font-bold text-neutral-900">ประกาศเผยแพร่แล้ว!</h2>
-              <p className="text-sm text-neutral-500">เลือกขั้นตอนถัดไป</p>
+              <h2 className="text-lg font-bold text-neutral-900">{successTitle}</h2>
+              <p className="text-sm text-neutral-500">{successSubtitle}</p>
             </div>
 
             <div className="space-y-3">
@@ -938,12 +952,12 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
                 {MODAL_PACKAGE_IMAGE_URL && (
                   <img
                     src={MODAL_PACKAGE_IMAGE_URL}
-                    alt="ซื้อ package เซ้งร้าน"
+                    alt={btnPackage}
                     className="w-full object-cover"
                   />
                 )}
                 <div className="bg-orange-500 hover:bg-orange-600 py-2.5 text-center font-semibold text-sm text-white">
-                  ซื้อ package เซ้งร้าน
+                  {btnPackage}
                 </div>
               </a>
 
@@ -957,12 +971,12 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
                 {MODAL_FAAK_IMAGE_URL && (
                   <img
                     src={MODAL_FAAK_IMAGE_URL}
-                    alt="ฝากเซ้งร้าน"
+                    alt={btnFaak}
                     className="w-full object-cover"
                   />
                 )}
                 <div className="bg-[#06C755] py-2.5 text-center font-semibold text-sm text-white">
-                  ฝากเซ้งร้าน
+                  {btnFaak}
                 </div>
               </a>
 
@@ -971,7 +985,7 @@ export function ListingWizard({ userId, categories, provinces, amenities, listin
                 onClick={() => { setShowSuccessModal(false); router.push("/my-listings"); }}
                 className="w-full py-2.5 text-sm text-neutral-500 hover:text-neutral-700 hover:underline transition-colors"
               >
-                ดูประกาศที่ลง
+                {btnView}
               </button>
             </div>
           </div>

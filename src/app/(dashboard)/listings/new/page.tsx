@@ -28,7 +28,7 @@ export default async function NewListingPage() {
     getAllProvinces(),
     getAllAmenities(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any).from("system_announcement").select("line_package_url, line_faak_url").eq("id", 1).single() as Promise<{ data: { line_package_url?: string; line_faak_url?: string } | null }>,
+    (supabase as any).from("system_announcement").select("line_package_url, line_faak_url, modal_title, modal_subtitle, button_text_package, button_text_faak, button_text_view").eq("id", 1).single() as Promise<{ data: { line_package_url?: string; line_faak_url?: string; modal_title?: string; modal_subtitle?: string; button_text_package?: string; button_text_faak?: string; button_text_view?: string } | null }>,
   ]);
 
   return (
@@ -49,6 +49,11 @@ export default async function NewListingPage() {
           amenities={amenities}
           linePackageUrl={config.data?.line_package_url ?? undefined}
           lineFaakUrl={config.data?.line_faak_url ?? undefined}
+          modalTitle={config.data?.modal_title ?? undefined}
+          modalSubtitle={config.data?.modal_subtitle ?? undefined}
+          buttonTextPackage={config.data?.button_text_package ?? undefined}
+          buttonTextFaak={config.data?.button_text_faak ?? undefined}
+          buttonTextView={config.data?.button_text_view ?? undefined}
         />
       </ListingTypeChooser>
     </main>

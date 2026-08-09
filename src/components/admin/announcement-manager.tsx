@@ -13,6 +13,11 @@ interface Announcement {
   default_listing_quota: number;
   line_package_url: string;
   line_faak_url: string;
+  modal_title: string;
+  modal_subtitle: string;
+  button_text_package: string;
+  button_text_faak: string;
+  button_text_view: string;
 }
 
 const COLOR_OPTIONS = [
@@ -24,7 +29,15 @@ const COLOR_OPTIONS = [
 ];
 
 export function AnnouncementManager() {
-  const [data, setData] = useState<Announcement>({ message: "", is_active: false, bg_color: "orange", default_listing_quota: 5, line_package_url: "", line_faak_url: "" });
+  const [data, setData] = useState<Announcement>({
+    message: "", is_active: false, bg_color: "orange", default_listing_quota: 5,
+    line_package_url: "", line_faak_url: "",
+    modal_title: "ประกาศเผยแพร่แล้ว!",
+    modal_subtitle: "เลือกขั้นตอนถัดไป",
+    button_text_package: "ซื้อ package เซ้งร้าน",
+    button_text_faak: "ฝากเซ้งร้าน",
+    button_text_view: "ดูประกาศที่ลง",
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -134,6 +147,60 @@ export function AnnouncementManager() {
             placeholder="https://line.me/R/ti/p/~..."
             className="w-full rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
           />
+        </div>
+
+        <div className="border-t pt-4 space-y-3">
+          <p className="text-sm font-semibold text-neutral-700">Pop-up หลังเผยแพร่ประกาศ</p>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">หัวข้อ modal</Label>
+            <input
+              type="text"
+              value={data.modal_title}
+              onChange={(e) => setData({ ...data, modal_title: e.target.value })}
+              className="w-full rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">คำบรรยายใต้หัวข้อ</Label>
+            <input
+              type="text"
+              value={data.modal_subtitle}
+              onChange={(e) => setData({ ...data, modal_subtitle: e.target.value })}
+              className="w-full rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">ข้อความปุ่ม Option 1 (ซื้อ package)</Label>
+            <input
+              type="text"
+              value={data.button_text_package}
+              onChange={(e) => setData({ ...data, button_text_package: e.target.value })}
+              className="w-full rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">ข้อความปุ่ม Option 2 (ฝากเซ้งร้าน)</Label>
+            <input
+              type="text"
+              value={data.button_text_faak}
+              onChange={(e) => setData({ ...data, button_text_faak: e.target.value })}
+              className="w-full rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">ข้อความปุ่ม Option 3 (ดูประกาศ)</Label>
+            <input
+              type="text"
+              value={data.button_text_view}
+              onChange={(e) => setData({ ...data, button_text_view: e.target.value })}
+              className="w-full rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+            />
+          </div>
         </div>
 
         <Button onClick={save} disabled={saving} className="bg-orange-500 hover:bg-orange-600 gap-1.5">
