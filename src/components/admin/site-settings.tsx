@@ -17,7 +17,7 @@ const TABS = [
   { key: "provinces", label: "จังหวัด" },
   { key: "boost", label: "แพ็กเกจ Boost" },
   { key: "announcement", label: "ประกาศระบบ" },
-  { key: "modal", label: "รูป popup" },
+  { key: "modal", label: "Popup หลังลงประกาศ" },
   { key: "favicon", label: "Favicon" },
 ] as const;
 

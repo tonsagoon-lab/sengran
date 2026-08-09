@@ -333,13 +333,121 @@ function ModalImageSlot({ label, path }: { label: string; path: string }) {
   );
 }
 
+interface ModalTexts {
+  modal_title: string;
+  modal_subtitle: string;
+  button_text_package: string;
+  button_text_faak: string;
+  button_text_view: string;
+  line_package_url: string;
+  line_faak_url: string;
+}
+
+const MODAL_TEXT_DEFAULTS: ModalTexts = {
+  modal_title: "ประกาศเผยแพร่แล้ว!",
+  modal_subtitle: "เลือกขั้นตอนถัดไป",
+  button_text_package: "ซื้อ package เซ้งร้าน",
+  button_text_faak: "ฝากเซ้งร้าน",
+  button_text_view: "ดูประกาศที่ลง",
+  line_package_url: "",
+  line_faak_url: "",
+};
+
+function ModalTextsForm() {
+  const [data, setData] = useState<ModalTexts>(MODAL_TEXT_DEFAULTS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/announcement")
+      .then((r) => r.json())
+      .then((full) => {
+        setData({
+          modal_title: full.modal_title ?? MODAL_TEXT_DEFAULTS.modal_title,
+          modal_subtitle: full.modal_subtitle ?? MODAL_TEXT_DEFAULTS.modal_subtitle,
+          button_text_package: full.button_text_package ?? MODAL_TEXT_DEFAULTS.button_text_package,
+          button_text_faak: full.button_text_faak ?? MODAL_TEXT_DEFAULTS.button_text_faak,
+          button_text_view: full.button_text_view ?? MODAL_TEXT_DEFAULTS.button_text_view,
+          line_package_url: full.line_package_url ?? "",
+          line_faak_url: full.line_faak_url ?? "",
+        });
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    await fetch("/api/admin/announcement", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  if (loading) return <p className="text-sm text-neutral-400">กำลังโหลด...</p>;
+
+  const inputCls = "w-full rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300";
+
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <p className="text-sm font-semibold text-neutral-700">ข้อความ + ลิ้งใน popup</p>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">หัวข้อ modal</Label>
+        <input type="text" value={data.modal_title} onChange={(e) => setData({ ...data, modal_title: e.target.value })} className={inputCls} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">คำบรรยายใต้หัวข้อ</Label>
+        <input type="text" value={data.modal_subtitle} onChange={(e) => setData({ ...data, modal_subtitle: e.target.value })} className={inputCls} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">ข้อความปุ่ม Option 1 (ซื้อ package)</Label>
+        <input type="text" value={data.button_text_package} onChange={(e) => setData({ ...data, button_text_package: e.target.value })} className={inputCls} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">LINE ลิงก์ปุ่ม Option 1</Label>
+        <input type="url" value={data.line_package_url} onChange={(e) => setData({ ...data, line_package_url: e.target.value })} placeholder="https://line.me/R/ti/p/~..." className={inputCls} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">ข้อความปุ่ม Option 2 (ฝากเซ้งร้าน)</Label>
+        <input type="text" value={data.button_text_faak} onChange={(e) => setData({ ...data, button_text_faak: e.target.value })} className={inputCls} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">LINE ลิงก์ปุ่ม Option 2</Label>
+        <input type="url" value={data.line_faak_url} onChange={(e) => setData({ ...data, line_faak_url: e.target.value })} placeholder="https://line.me/R/ti/p/~..." className={inputCls} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">ข้อความปุ่ม Option 3 (ดูประกาศ)</Label>
+        <input type="text" value={data.button_text_view} onChange={(e) => setData({ ...data, button_text_view: e.target.value })} className={inputCls} />
+      </div>
+
+      <Button onClick={save} disabled={saving} className="bg-orange-500 hover:bg-orange-600 gap-1.5">
+        {saved ? <><Check className="h-4 w-4" /> บันทึกแล้ว</> : "บันทึกข้อความ"}
+      </Button>
+    </div>
+  );
+}
+
 export function ModalImagesManager() {
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-neutral-500">รูปภาพเหล่านี้จะแสดงใน popup หลังจากลงประกาศสำเร็จ</p>
-      {MODAL_IMAGES.map((item) => (
-        <ModalImageSlot key={item.path} label={item.label} path={item.path} />
-      ))}
+    <div className="space-y-4 max-w-lg">
+      <p className="text-sm text-neutral-500">รูปและข้อความเหล่านี้จะแสดงใน popup หลังจากลงประกาศสำเร็จ</p>
+      <div className="space-y-3">
+        {MODAL_IMAGES.map((item) => (
+          <ModalImageSlot key={item.path} label={item.label} path={item.path} />
+        ))}
+      </div>
+      <ModalTextsForm />
     </div>
   );
 }
