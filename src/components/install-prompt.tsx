@@ -3,10 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, Share, Plus, Smartphone } from "lucide-react";
 
-const DISMISS_KEY = "pwa_install_dismissed_at";
-const VISIT_COUNT_KEY = "pwa_visit_count";
-const DISMISS_COOLDOWN_MS = 1000 * 60 * 60 * 24 * 14;
-const MIN_VISITS_BEFORE_PROMPT = 2;
+const DISMISS_KEY = "pwa_install_dismissed";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -35,13 +32,7 @@ export function InstallPrompt() {
 
   useEffect(() => {
     if (isStandalone()) return;
-
-    const count = parseInt(localStorage.getItem(VISIT_COUNT_KEY) ?? "0", 10) + 1;
-    localStorage.setItem(VISIT_COUNT_KEY, String(count));
-
-    const dismissedAt = parseInt(localStorage.getItem(DISMISS_KEY) ?? "0", 10);
-    if (dismissedAt && Date.now() - dismissedAt < DISMISS_COOLDOWN_MS) return;
-    if (count < MIN_VISITS_BEFORE_PROMPT) return;
+    if (localStorage.getItem(DISMISS_KEY) === "1") return;
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -63,7 +54,7 @@ export function InstallPrompt() {
   }, []);
 
   function dismiss() {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    localStorage.setItem(DISMISS_KEY, "1");
     setVisible(false);
     setShowIOSInstructions(false);
   }
