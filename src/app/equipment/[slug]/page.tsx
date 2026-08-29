@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { startConversationAction } from "@/lib/actions/messages";
 import { ImageGallery } from "@/components/listings/image-gallery";
 import { resolveImageUrl } from "@/lib/utils/image-url";
+import { publicViewCount } from "@/lib/utils/view-count";
 import { ViewCountTracker } from "@/components/listings/view-count-tracker";
 import { ShareButton } from "@/components/listings/share-button";
 import { ReportButton } from "@/components/listings/report-button";
@@ -284,10 +285,15 @@ export default async function EquipmentDetailPage({ params }: Props) {
 
             {/* Meta */}
             <div className="flex items-center gap-4 text-xs text-neutral-400 pt-2">
-              <div className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                <span>{listing.view_count} ครั้ง</span>
-              </div>
+              {(() => {
+                const displayed = publicViewCount(listing.view_count, listing.view_count_seed);
+                return displayed == null ? null : (
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-3 w-3" />
+                    <span>{displayed.toLocaleString("th-TH")} ครั้ง</span>
+                  </div>
+                );
+              })()}
               {listing.published_at && (
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />

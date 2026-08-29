@@ -150,6 +150,7 @@ export type Database = {
           boost_until: string | null;
           boost_rank: number;
           view_count: number;
+          view_count_seed: number | null;
           slug: string;
           published_at: string | null;
           expires_at: string | null;
@@ -188,6 +189,7 @@ export type Database = {
           boost_until?: string | null;
           boost_rank?: number;
           view_count?: number;
+          view_count_seed?: number | null;
           slug: string;
           published_at?: string | null;
           expires_at?: string | null;
@@ -222,6 +224,7 @@ export type Database = {
           boost_until?: string | null;
           boost_rank?: number;
           view_count?: number;
+          view_count_seed?: number | null;
           slug?: string;
           published_at?: string | null;
           expires_at?: string | null;

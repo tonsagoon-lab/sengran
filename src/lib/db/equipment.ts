@@ -52,6 +52,7 @@ export type EquipmentListingWithDetails = {
   longitude: number | null;
   video_url: string | null;
   view_count: number;
+  view_count_seed: number | null;
   published_at: string | null;
   expires_at: string | null;
   contact_name: string;

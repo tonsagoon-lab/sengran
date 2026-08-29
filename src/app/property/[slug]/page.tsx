@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { startConversationAction } from "@/lib/actions/messages";
 import { ImageGallery } from "@/components/listings/image-gallery";
 import { resolveImageUrl } from "@/lib/utils/image-url";
+import { publicViewCount } from "@/lib/utils/view-count";
 import { ViewCountTracker } from "@/components/listings/view-count-tracker";
 import { RichTextDisplay } from "@/components/rich-text-display";
 import { SearchBox } from "@/components/listings/search-box";
@@ -310,12 +311,15 @@ export default async function ListingDetailPage({ params }: Props) {
 
         {/* Meta footer */}
         <div className="flex items-center gap-4 text-xs text-neutral-400 pt-2">
-          {showViewCount && (
-            <div className="flex items-center gap-1">
-              <Eye className="h-3 w-3" />
-              <span>{listing.view_count} ครั้ง</span>
-            </div>
-          )}
+          {showViewCount && (() => {
+            const displayed = publicViewCount(listing.view_count, listing.view_count_seed);
+            return displayed == null ? null : (
+              <div className="flex items-center gap-1">
+                <Eye className="h-3 w-3" />
+                <span>{displayed.toLocaleString("th-TH")} ครั้ง</span>
+              </div>
+            );
+          })()}
           {listing.published_at && (
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
@@ -425,7 +429,7 @@ export default async function ListingDetailPage({ params }: Props) {
       {/* Sticky contact bar (mobile only) */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white px-4 py-3 shadow-lg lg:hidden">
         <div className="mx-auto flex max-w-3xl gap-2">
-          {displayMobile ? (
+          {displayMobile && (
             <a
               href={`tel:${displayMobile}`}
               className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 py-3 font-semibold text-sm text-white transition-colors"
@@ -433,11 +437,6 @@ export default async function ListingDetailPage({ params }: Props) {
               <Phone className="h-4 w-4" />
               โทร
             </a>
-          ) : (
-            <span className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-neutral-200 py-3 font-semibold text-sm text-neutral-400 cursor-not-allowed">
-              <Phone className="h-4 w-4" />
-              โทร
-            </span>
           )}
           {lineId && (
             <a

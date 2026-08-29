@@ -20,6 +20,7 @@ export type Listing = {
   is_featured: boolean | null;
   featured_until: string | null;
   view_count: number;
+  view_count_seed: number | null;
   published_at: string | null;
   category_id: number | null;
   province_id: number | null;

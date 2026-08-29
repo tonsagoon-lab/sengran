@@ -98,7 +98,7 @@ export default function ListingDetailScreen() {
       .select(
         `id, slug, title, description, listing_type, sale_price, rent_price, revenue_amount, revenue_period, district,
          contact_mobile, contact_line, latitude, longitude,
-         view_count, published_at, status,
+         view_count, view_count_seed, published_at, status,
          listing_images(id, storage_path, display_order),
          categories(name_th, slug), provinces(name_th, slug),
          profiles!listings_user_id_fkey(display_name, avatar_url, mobile, line_id)`
@@ -382,11 +382,17 @@ export default function ListingDetailScreen() {
 
           {/* Meta */}
           <View style={styles.metaRow}>
-            <Ionicons name="eye-outline" size={14} color="#9ca3af" />
-            <Text style={styles.metaText}>{listing.view_count.toLocaleString()} ครั้ง</Text>
+            {listing.view_count >= 20 && (
+              <>
+                <Ionicons name="eye-outline" size={14} color="#9ca3af" />
+                <Text style={styles.metaText}>
+                  {(listing.view_count + (listing.view_count_seed ?? 0)).toLocaleString()} ครั้ง
+                </Text>
+              </>
+            )}
             {listing.published_at && (
               <>
-                <Text style={styles.metaDot}>·</Text>
+                {listing.view_count >= 20 && <Text style={styles.metaDot}>·</Text>}
                 <Ionicons name="time-outline" size={14} color="#9ca3af" />
                 <Text style={styles.metaText}>
                   {new Date(listing.published_at).toLocaleDateString("th-TH", {
