@@ -10,6 +10,7 @@ import { CategoryGrid } from "@/components/home/category-grid";
 import { LatestListings } from "@/components/home/latest-listings";
 import { EditorialPicks } from "@/components/home/editorial-picks";
 import { PremiumListings } from "@/components/home/premium-listings";
+import { TrustSection } from "@/components/home/trust-section";
 import { getAllProvinces } from "@/lib/db/listings";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -123,6 +124,11 @@ export default async function HomePage() {
         {/* Premium listings */}
         <Suspense fallback={null}>
           <PremiumListings supabaseUrl={supabaseUrl} />
+        </Suspense>
+
+        {/* Trust / social proof */}
+        <Suspense fallback={null}>
+          <TrustSection />
         </Suspense>
 
         {/* Latest listings */}

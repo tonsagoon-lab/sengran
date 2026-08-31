@@ -8,6 +8,7 @@ import { BoostPackagesManager } from "./boost-packages-manager";
 import { AnnouncementManager } from "./announcement-manager";
 import { FaviconManager } from "./favicon-manager";
 import { GeneralSettingsManager } from "./general-settings-manager";
+import { TestimonialsManager } from "./testimonials-manager";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -18,6 +19,7 @@ const TABS = [
   { key: "boost", label: "แพ็กเกจ Boost" },
   { key: "announcement", label: "ประกาศระบบ" },
   { key: "modal", label: "Popup หลังลงประกาศ" },
+  { key: "testimonials", label: "รีวิวลูกค้า" },
   { key: "favicon", label: "Favicon" },
 ] as const;
 
@@ -62,6 +64,7 @@ export function SiteSettings({ showViewCount, showQuotaUpgradeButton }: SiteSett
         {tab === "boost" && <BoostPackagesManager />}
         {tab === "announcement" && <AnnouncementManager />}
         {tab === "modal" && <ModalImagesManager />}
+        {tab === "testimonials" && <TestimonialsManager />}
         {tab === "favicon" && <FaviconManager />}
       </div>
     </div>

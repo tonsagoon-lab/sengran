@@ -556,6 +556,21 @@ export async function getActiveBanners(): Promise<Banner[]> {
   return (data ?? []) as Banner[];
 }
 
+export type Testimonial = {
+  id: string;
+  message: string;
+};
+
+export async function getActiveTestimonials(): Promise<Testimonial[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("testimonials")
+    .select("id, message")
+    .eq("is_active", true)
+    .order("display_order");
+  return (data ?? []) as Testimonial[];
+}
+
 export type MapListing = {
   id: string;
   slug: string;
