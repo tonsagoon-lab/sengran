@@ -621,21 +621,3 @@ export const getTotalListingCount = unstable_cache(
   { revalidate: 300 }
 );
 
-export const getListingsLastYearCount = unstable_cache(
-  async () => {
-    const supabase = createAnonClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const { count } = await supabase
-      .from("listings")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "published")
-      .gte("published_at", oneYearAgo.toISOString());
-    return count ?? 0;
-  },
-  ["listings-last-year-count"],
-  { revalidate: 300 }
-);
