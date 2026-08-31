@@ -618,6 +618,6 @@ export const getTotalListingCount = unstable_cache(
     return count ?? 0;
   },
   ["total-listing-count"],
-  { revalidate: 300 }
+  { revalidate: 43200 }
 );
 
