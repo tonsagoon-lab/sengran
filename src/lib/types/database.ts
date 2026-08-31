@@ -151,6 +151,9 @@ export type Database = {
           boost_rank: number;
           view_count: number;
           view_count_seed: number | null;
+          promo_type: "percent" | "amount" | null;
+          promo_value: number | null;
+          promo_activated_at: string | null;
           slug: string;
           published_at: string | null;
           expires_at: string | null;
@@ -190,6 +193,9 @@ export type Database = {
           boost_rank?: number;
           view_count?: number;
           view_count_seed?: number | null;
+          promo_type?: "percent" | "amount" | null;
+          promo_value?: number | null;
+          promo_activated_at?: string | null;
           slug: string;
           published_at?: string | null;
           expires_at?: string | null;
@@ -225,6 +231,9 @@ export type Database = {
           boost_rank?: number;
           view_count?: number;
           view_count_seed?: number | null;
+          promo_type?: "percent" | "amount" | null;
+          promo_value?: number | null;
+          promo_activated_at?: string | null;
           slug?: string;
           published_at?: string | null;
           expires_at?: string | null;

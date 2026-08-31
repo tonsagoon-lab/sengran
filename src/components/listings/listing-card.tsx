@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DeleteListingButton } from "./delete-listing-button";
 import { ListingStatusButtons } from "./listing-status-buttons";
 import { PromoteButtons } from "./promote-button";
+import { PromoQuickButton } from "./promo-quick-button";
 import { resolveImageUrl } from "@/lib/utils/image-url";
 import type { ListingWithImages } from "@/lib/db/listings";
 
@@ -98,6 +99,14 @@ export function ListingCard({ listing }: ListingCardProps) {
                 <Pencil className="h-3.5 w-3.5" />
               </Link>
             </Button>
+            {listing.listing_type === "sale" && (
+              <PromoQuickButton
+                listingId={listing.id}
+                salePrice={listing.sale_price}
+                currentPromoType={listing.promo_type}
+                currentPromoValue={listing.promo_value}
+              />
+            )}
             <DeleteListingButton listingId={listing.id} />
           </div>
           <ListingStatusButtons listingId={listing.id} currentStatus={listing.status} />

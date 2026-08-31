@@ -84,6 +84,8 @@ interface WizardState {
   listing_type: ListingType;
   category_id: string;
   sale_price: string;
+  promo_type: "" | "percent" | "amount";
+  promo_value: string;
   rent_price: string;
   deposit_months: string;
   revenue_amount: string;
@@ -115,6 +117,8 @@ const step1Schema = z
     description: z.string().min(30, "กรุณากรอกรายละเอียดอย่างน้อย 30 ตัวอักษร"),
     sale_price: z.string().optional(),
     rent_price: z.string().optional(),
+    promo_type: z.enum(["", "percent", "amount"]).optional(),
+    promo_value: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.listing_type === "sale" || data.listing_type === "both") {
@@ -131,6 +135,23 @@ const step1Schema = z
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "กรุณากรอกราคาเช่า", path: ["rent_price"] });
       } else if (isNaN(n) || n <= 0) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "ราคาเช่าต้องเป็นตัวเลขที่มากกว่า 0", path: ["rent_price"] });
+      }
+    }
+    if (data.promo_type) {
+      if (data.listing_type !== "sale") {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "โปรโมชั่นใช้ได้เฉพาะประเภทเซ้ง", path: ["promo_type"] });
+        return;
+      }
+      const v = Number(data.promo_value?.replace(/,/g, "") ?? "");
+      if (!data.promo_value?.trim() || isNaN(v) || v <= 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "กรุณากรอกส่วนลดที่มากกว่า 0", path: ["promo_value"] });
+      } else if (data.promo_type === "percent" && v >= 100) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "เปอร์เซ็นต์ต้องน้อยกว่า 100", path: ["promo_value"] });
+      } else if (data.promo_type === "amount") {
+        const sale = Number(data.sale_price?.replace(/,/g, "") ?? "");
+        if (sale > 0 && v >= sale) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "ส่วนลดต้องน้อยกว่าราคาเซ้ง", path: ["promo_value"] });
+        }
       }
     }
   });
@@ -228,6 +249,8 @@ function buildInitialState(listing?: WizardProps["listing"]): WizardState {
     listing_type: (listing?.listing_type === "sale" || listing?.listing_type === "rent" || listing?.listing_type === "both") ? listing.listing_type : "sale",
     category_id: listing?.category_id != null ? String(listing.category_id) : "",
     sale_price: listing?.sale_price != null ? String(listing.sale_price) : "",
+    promo_type: listing?.promo_type ?? "",
+    promo_value: listing?.promo_value != null ? String(listing.promo_value) : "",
     rent_price: listing?.rent_price != null ? String(listing.rent_price) : "",
     deposit_months: listing?.deposit_months != null ? String(listing.deposit_months) : "",
     revenue_amount: listing?.revenue_amount != null ? String(listing.revenue_amount) : "",
@@ -262,6 +285,8 @@ function migrateState(raw: string, listingId?: string): WizardState | null {
         : "sale",
       category_id: parsed.category_id ?? "",
       sale_price: parsed.sale_price ?? "",
+      promo_type: ["percent", "amount"].includes(parsed.promo_type) ? parsed.promo_type : "",
+      promo_value: parsed.promo_value ?? "",
       rent_price: parsed.rent_price ?? "",
       deposit_months: parsed.deposit_months ?? "",
       revenue_amount: parsed.revenue_amount ?? "",
@@ -281,6 +306,113 @@ function migrateState(raw: string, listingId?: string): WizardState | null {
   } catch {
     return null;
   }
+}
+
+// ── Promo section (step 1, sale only) ─────────────────────────
+
+function PromoSection({
+  salePrice,
+  promoType,
+  promoValue,
+  errorType,
+  errorValue,
+  onChange,
+}: {
+  salePrice: string;
+  promoType: "" | "percent" | "amount";
+  promoValue: string;
+  errorType?: string;
+  errorValue?: string;
+  onChange: (patch: Partial<WizardState>) => void;
+}) {
+  const enabled = !!promoType;
+  const sale = Number(salePrice);
+  const value = Number(unformat(promoValue));
+  const discountValid =
+    enabled &&
+    value > 0 &&
+    (promoType === "percent" ? value < 100 : sale > 0 && value < sale);
+  const newPrice = !discountValid
+    ? null
+    : promoType === "percent"
+      ? Math.max(0, Math.round(sale - (sale * value) / 100))
+      : Math.max(0, sale - value);
+
+  return (
+    <div className="rounded-xl border border-dashed border-orange-200 bg-orange-50/50 p-3 space-y-3">
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          className="mt-1 h-4 w-4 rounded border-neutral-300 accent-orange-500"
+          checked={enabled}
+          onChange={(e) => {
+            if (e.target.checked) {
+              onChange({ promo_type: "percent" });
+            } else {
+              onChange({ promo_type: "", promo_value: "" });
+            }
+          }}
+        />
+        <div className="flex-1">
+          <div className="flex items-center gap-1.5 text-sm font-medium text-neutral-800">
+            <Sparkles className="h-4 w-4 text-orange-500" />
+            เปิดใช้งานโปรโมชั่นส่วนลด
+          </div>
+          <p className="text-xs text-neutral-500 mt-0.5">
+            ประกาศจะแสดงในหมวด &ldquo;โปรโมชั่นล่าสุด&rdquo; โดยคุณต้องปิดเอง
+          </p>
+        </div>
+      </label>
+
+      {enabled && (
+        <div className="space-y-2 pl-7">
+          <div className="flex flex-wrap items-stretch gap-2">
+            <Select
+              value={promoType}
+              onValueChange={(v: "percent" | "amount") => onChange({ promo_type: v })}
+            >
+              <SelectTrigger className={`w-32 ${errorType ? "border-red-500" : ""}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percent">ส่วนลด %</SelectItem>
+                <SelectItem value="amount">ลดเป็นบาท</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="relative flex-1 min-w-[8rem]">
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={promoValue}
+                onChange={(e) => onChange({ promo_value: e.target.value })}
+                onBlur={(e) => onChange({ promo_value: formatNumberOnBlur(e.target.value) })}
+                onFocus={(e) => onChange({ promo_value: unformat(e.target.value) })}
+                placeholder={promoType === "percent" ? "เช่น 10" : "เช่น 5,000"}
+                className={`pr-8 ${errorValue ? "border-red-500" : ""}`}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">
+                {promoType === "percent" ? "%" : "฿"}
+              </span>
+            </div>
+          </div>
+          {(errorType || errorValue) && (
+            <p className="text-sm text-red-500">{errorType || errorValue}</p>
+          )}
+          {newPrice != null && (
+            <p className="text-xs text-neutral-600">
+              ราคาหลังหักส่วนลด:{" "}
+              <span className="line-through text-neutral-400">
+                ฿{sale.toLocaleString("th-TH")}
+              </span>{" "}
+              <span className="font-semibold text-orange-600">
+                ฿{newPrice.toLocaleString("th-TH")}
+              </span>
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Main wizard ────────────────────────────────────────────────
@@ -378,6 +510,8 @@ export function ListingWizard({
         description: stripHtmlTags(data.description),
         sale_price: unformat(data.sale_price),
         rent_price: unformat(data.rent_price),
+        promo_type: data.promo_type,
+        promo_value: unformat(data.promo_value),
       });
       if (!result.success) {
         const errs: Record<string, string> = {};
@@ -409,8 +543,9 @@ export function ListingWizard({
     if (!validate(step)) return;
     // Clear inapplicable price fields when type changed
     if (step === 1) {
-      if (data.listing_type === "rent") setData({ sale_price: "" });
+      if (data.listing_type === "rent") setData({ sale_price: "", promo_type: "", promo_value: "" });
       if (data.listing_type === "sale") setData({ rent_price: "", deposit_months: "" });
+      if (data.listing_type === "both") setData({ promo_type: "", promo_value: "" });
     }
     setStep(step + 1);
   }
@@ -438,6 +573,10 @@ export function ListingWizard({
     fd.set("listing_type", data.listing_type);
     fd.set("sale_price", unformat(data.sale_price));
     fd.set("rent_price", unformat(data.rent_price));
+    if (data.listing_type === "sale" && data.promo_type) {
+      fd.set("promo_type", data.promo_type);
+      fd.set("promo_value", unformat(data.promo_value));
+    }
     fd.set("deposit_months", data.deposit_months);
     fd.set("revenue_amount", unformat(data.revenue_amount));
     fd.set("revenue_period", data.revenue_period);
@@ -593,6 +732,17 @@ export function ListingWizard({
                   </div>
                   {errors.sale_price && <p className="text-sm text-red-500">{errors.sale_price}</p>}
                 </div>
+              )}
+
+              {data.listing_type === "sale" && (
+                <PromoSection
+                  salePrice={unformat(data.sale_price)}
+                  promoType={data.promo_type}
+                  promoValue={data.promo_value}
+                  errorType={errors.promo_type}
+                  errorValue={errors.promo_value}
+                  onChange={(patch) => setData(patch)}
+                />
               )}
 
               {(data.listing_type === "rent" || data.listing_type === "both") && (

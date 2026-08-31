@@ -241,6 +241,11 @@ export async function createListingAction(
     contact_mobile: profile.mobile,
     contact_line: profile.line_id || null,
     video_url: d.video_url || null,
+    promo_type: d.listing_type === "sale" && d.promo_type ? d.promo_type : null,
+    promo_value:
+      d.listing_type === "sale" && d.promo_type && d.promo_value ? Number(d.promo_value) : null,
+    promo_activated_at:
+      d.listing_type === "sale" && d.promo_type ? new Date().toISOString() : null,
     slug,
     status: (raw.status as "published" | "draft") ?? "published",
     published_at: raw.status !== "draft" ? new Date().toISOString() : null,
@@ -335,10 +340,10 @@ export async function updateListingAction(
 
   const d = parsed.data;
 
-  // Look up current status/published_at to compute status transition
+  // Look up current status/published_at + promo state to compute transitions
   const { data: current } = await updateClient
     .from("listings")
-    .select("status, published_at")
+    .select("status, published_at, promo_type, promo_activated_at")
     .eq("id", listingId)
     .single();
 
@@ -355,6 +360,21 @@ export async function updateListingAction(
       statusFields.published_at = null;
       statusFields.expires_at = null;
     }
+  }
+
+  // Promo fields: only 'sale' listings can have a promo. Preserve activation
+  // time across value edits; stamp a new time when turning promo on.
+  const promoFields: Record<string, string | number | null> = {};
+  const wantsPromo = d.listing_type === "sale" && !!d.promo_type;
+  if (wantsPromo) {
+    promoFields.promo_type = d.promo_type as string;
+    promoFields.promo_value = Number(d.promo_value);
+    promoFields.promo_activated_at =
+      current?.promo_type ? (current.promo_activated_at as string | null) : new Date().toISOString();
+  } else {
+    promoFields.promo_type = null;
+    promoFields.promo_value = null;
+    promoFields.promo_activated_at = null;
   }
 
   let query = updateClient
@@ -377,6 +397,7 @@ export async function updateListingAction(
       latitude: d.latitude ? Number(d.latitude) : null,
       longitude: d.longitude ? Number(d.longitude) : null,
       video_url: d.video_url || null,
+      ...promoFields,
       ...contactFields,
       ...statusFields,
     })
@@ -471,6 +492,64 @@ export async function updateListingStatusAction(
     .eq("user_id", user.id);
 
   if (error) return { error: error.message };
+  revalidatePath("/my-listings");
+  revalidatePath("/listings");
+  revalidatePath("/");
+  return {};
+}
+
+export async function togglePromoAction(
+  listingId: string,
+  promo: { type: "percent" | "amount"; value: number } | null
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "ไม่ได้เข้าสู่ระบบ" };
+
+  const { data: listing } = await supabase
+    .from("listings")
+    .select("id, user_id, listing_type, sale_price, promo_type, promo_activated_at")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (!listing) return { error: "ไม่พบประกาศ" };
+
+  const privileged = isPrivileged(user.email ?? undefined);
+  if (!privileged && listing.user_id !== user.id) return { error: "ไม่มีสิทธิ์" };
+
+  if (promo) {
+    if (listing.listing_type !== "sale") {
+      return { error: "โปรโมชั่นใช้ได้เฉพาะประเภทเซ้ง" };
+    }
+    if (!Number.isFinite(promo.value) || promo.value <= 0) {
+      return { error: "กรุณากรอกส่วนลดที่มากกว่า 0" };
+    }
+    if (promo.type === "percent" && promo.value >= 100) {
+      return { error: "เปอร์เซ็นต์ต้องน้อยกว่า 100" };
+    }
+    if (promo.type === "amount" && listing.sale_price && promo.value >= Number(listing.sale_price)) {
+      return { error: "ส่วนลดต้องน้อยกว่าราคาเซ้ง" };
+    }
+  }
+
+  const updateClient = privileged ? createAdminClient() : supabase;
+
+  const patch = promo
+    ? {
+        promo_type: promo.type,
+        promo_value: promo.value,
+        promo_activated_at:
+          listing.promo_type ? (listing.promo_activated_at as string | null) : new Date().toISOString(),
+      }
+    : { promo_type: null, promo_value: null, promo_activated_at: null };
+
+  let query = updateClient.from("listings").update(patch).eq("id", listingId);
+  if (!privileged) query = (query as typeof query).eq("user_id", user.id);
+
+  const { error } = await query;
+  if (error) return { error: error.message };
+
   revalidatePath("/my-listings");
   revalidatePath("/listings");
   revalidatePath("/");

@@ -198,6 +198,9 @@ export type SearchListing = {
   province_id: number | null;
   view_count: number;
   published_at: string | null;
+  promo_type: "percent" | "amount" | null;
+  promo_value: number | null;
+  promo_activated_at: string | null;
   listing_images: Array<{ id: string; storage_path: string; display_order: number }>;
   categories: { name_th: string; slug: string } | null;
   provinces: { name_th: string; slug: string } | null;
@@ -223,6 +226,7 @@ export interface SearchParams {
 const LISTING_CARD_SELECT = `
   id, title, slug, listing_type, sale_price, rent_price, revenue_amount, revenue_period,
   is_featured, featured_until, district, province_id, view_count, published_at,
+  promo_type, promo_value, promo_activated_at,
   listing_images(id, storage_path, display_order),
   categories(name_th, slug),
   provinces(name_th, slug)
@@ -477,7 +481,20 @@ export async function getLatestListings(limit = 8): Promise<SearchListing[]> {
     .select(LISTING_CARD_SELECT)
     .eq("status", "published")
     .neq("listing_type", "equipment")
+    .is("promo_type", null)
     .order("published_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as unknown as SearchListing[];
+}
+
+export async function getPromoListings(limit = 8): Promise<SearchListing[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("listings")
+    .select(LISTING_CARD_SELECT)
+    .eq("status", "published")
+    .not("promo_type", "is", null)
+    .order("promo_activated_at", { ascending: false })
     .limit(limit);
   return (data ?? []) as unknown as SearchListing[];
 }

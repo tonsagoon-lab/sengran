@@ -26,9 +26,42 @@ function getAgeSuffix(publishedAt: string | null): string | null {
   return null;
 }
 
+function computeDiscountedPrice(listing: SearchListing): number | null {
+  if (
+    listing.listing_type !== "sale" ||
+    !listing.promo_type ||
+    !listing.promo_value ||
+    !listing.sale_price
+  ) {
+    return null;
+  }
+  const sale = Number(listing.sale_price);
+  const v = Number(listing.promo_value);
+  if (listing.promo_type === "percent") {
+    if (v <= 0 || v >= 100) return null;
+    return Math.max(0, Math.round(sale - (sale * v) / 100));
+  }
+  if (v <= 0 || v >= sale) return null;
+  return Math.max(0, sale - v);
+}
+
 function PriceDisplay({ listing }: { listing: SearchListing }) {
   const { listing_type, sale_price, rent_price } = listing;
+  const discounted = computeDiscountedPrice(listing);
+
   if (listing_type === "sale" && sale_price) {
+    if (discounted != null) {
+      return (
+        <div className="flex items-baseline gap-1.5 flex-wrap">
+          <span className="text-base font-bold text-orange-600">
+            ฿{fmt.format(discounted)}
+          </span>
+          <span className="text-xs line-through text-neutral-400">
+            ฿{fmt.format(sale_price)}
+          </span>
+        </div>
+      );
+    }
     return <span className="text-base font-bold text-neutral-900">฿{fmt.format(sale_price)}</span>;
   }
   if (listing_type === "rent" && rent_price) {
@@ -109,7 +142,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
           </div>
         )}
         {/* Type badge top-left */}
-        <div className="absolute top-2 left-2">
+        <div className="absolute top-2 left-2 flex items-center gap-1">
           <span
             className={cn(
               "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
@@ -120,6 +153,13 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
             {typeBadge.label}
             {ageSuffix && <span className="ml-1 opacity-80">· {ageSuffix}</span>}
           </span>
+          {listing.promo_type && listing.promo_value != null && (
+            <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-500 px-2 py-0.5 text-xs font-semibold text-white">
+              {listing.promo_type === "percent"
+                ? `-${Number(listing.promo_value)}%`
+                : `-฿${fmt.format(Number(listing.promo_value))}`}
+            </span>
+          )}
         </div>
         {/* Favorite button */}
         <div className="absolute top-2 right-2">

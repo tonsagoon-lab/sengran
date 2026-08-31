@@ -8,6 +8,7 @@ import { NearMeSection } from "@/components/home/near-me-section";
 import { BannerSection } from "@/components/home/banner-section";
 import { CategoryGrid } from "@/components/home/category-grid";
 import { LatestListings } from "@/components/home/latest-listings";
+import { PromoListings } from "@/components/home/promo-listings";
 import { EditorialPicks } from "@/components/home/editorial-picks";
 import { PremiumListings } from "@/components/home/premium-listings";
 import { TrustSection } from "@/components/home/trust-section";
@@ -129,6 +130,11 @@ export default async function HomePage() {
         {/* Trust / social proof */}
         <Suspense fallback={null}>
           <TrustSection />
+        </Suspense>
+
+        {/* Promotions */}
+        <Suspense fallback={null}>
+          <PromoListings supabaseUrl={supabaseUrl} />
         </Suspense>
 
         {/* Latest listings */}
