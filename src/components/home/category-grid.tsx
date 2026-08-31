@@ -27,7 +27,7 @@ const FEATURED_KEYWORDS = [
   "คลินิก",
   "เหล้า",
   "หอพัก",
-  "ซักอบรีด",
+  "ล้างรถ",
 ];
 
 export async function CategoryGrid() {
