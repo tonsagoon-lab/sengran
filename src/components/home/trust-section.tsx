@@ -1,15 +1,18 @@
-import { Calendar, Store, MapPin, BadgeCheck, Quote } from "lucide-react";
-import { getActiveTestimonials } from "@/lib/db/listings";
-
-const STATS = [
-  { icon: Calendar, value: "10+", label: "ปี ให้บริการ" },
-  { icon: Store, value: "751+", label: "ร้านเซ้งสำเร็จ" },
-  { icon: MapPin, value: "77", label: "จังหวัดทั่วไทย" },
-  { icon: BadgeCheck, value: "100%", label: "ลงประกาศฟรี" },
-];
+import { Calendar, Store, TrendingUp, BadgeCheck, Quote } from "lucide-react";
+import { getActiveTestimonials, getListingsLastYearCount } from "@/lib/db/listings";
 
 export async function TrustSection() {
-  const testimonials = await getActiveTestimonials();
+  const [testimonials, lastYearCount] = await Promise.all([
+    getActiveTestimonials(),
+    getListingsLastYearCount(),
+  ]);
+
+  const STATS = [
+    { icon: Calendar, value: "10+", label: "ปี ให้บริการ" },
+    { icon: Store, value: "751+", label: "ร้านเซ้งสำเร็จ" },
+    { icon: TrendingUp, value: lastYearCount.toLocaleString("th-TH"), label: "ประกาศในปีที่ผ่านมา" },
+    { icon: BadgeCheck, value: "100%", label: "ลงประกาศฟรี" },
+  ];
 
   return (
     <section className="space-y-6">
