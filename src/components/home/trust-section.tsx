@@ -1,4 +1,4 @@
-import { Calendar, Store, TrendingUp, BadgeCheck, Quote } from "lucide-react";
+import { Calendar, Store, TrendingUp, Quote } from "lucide-react";
 import { getActiveTestimonials, getListingsLastYearCount } from "@/lib/db/listings";
 
 export async function TrustSection() {
@@ -11,8 +11,9 @@ export async function TrustSection() {
     { icon: Calendar, value: "10+", label: "ปี ให้บริการ" },
     { icon: Store, value: "751+", label: "ร้านเซ้งสำเร็จ" },
     { icon: TrendingUp, value: lastYearCount.toLocaleString("th-TH"), label: "ประกาศในปีที่ผ่านมา" },
-    { icon: BadgeCheck, value: "100%", label: "ลงประกาศฟรี" },
   ];
+
+  const quotes = testimonials.slice(0, 5);
 
   return (
     <section className="space-y-6">
@@ -21,7 +22,6 @@ export async function TrustSection() {
         <p className="text-sm text-neutral-500">ประสบการณ์กว่า 10 ปี ที่ผู้เซ้งและผู้ซื้อไว้วางใจ</p>
       </div>
 
-      {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {STATS.map((s) => {
           const Icon = s.icon;
@@ -36,27 +36,24 @@ export async function TrustSection() {
             </div>
           );
         })}
-      </div>
 
-      {/* Testimonial chips */}
-      {testimonials.length > 0 && (
-        <div className="rounded-xl border bg-white p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <Quote className="h-4 w-4 text-orange-500" />
-            <h3 className="text-sm font-semibold text-neutral-700">เสียงจากลูกค้าที่ใช้จริง</h3>
+        {/* Testimonials card — replaces the 4th stat */}
+        {quotes.length > 0 && (
+          <div className="rounded-xl border bg-gradient-to-br from-orange-50 to-white p-3 flex flex-col col-span-2 md:col-span-1">
+            <div className="flex items-center justify-center gap-1.5 mb-1.5">
+              <Quote className="h-4 w-4 text-orange-500" />
+              <p className="text-xs font-semibold text-neutral-700">เสียงจากลูกค้า</p>
+            </div>
+            <ul className="space-y-0.5 text-center">
+              {quotes.map((t) => (
+                <li key={t.id} className="text-[11px] leading-snug text-neutral-600 truncate">
+                  &ldquo;{t.message}&rdquo;
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {testimonials.map((t) => (
-              <span
-                key={t.id}
-                className="inline-flex items-center rounded-full bg-orange-50 border border-orange-200 px-3 py-1.5 text-sm text-neutral-700"
-              >
-                &ldquo;{t.message}&rdquo;
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }
