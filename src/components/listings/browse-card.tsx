@@ -21,9 +21,8 @@ const fmt = new Intl.NumberFormat("th-TH");
 function getAgeSuffix(publishedAt: string | null): string | null {
   if (!publishedAt) return null;
   const days = Math.floor((Date.now() - new Date(publishedAt).getTime()) / 86_400_000);
-  if (days <= 10) return `ลงได้ ${days === 0 ? 1 : days} วัน`;
-  if (days <= 30) return "ประกาศใหม่";
-  return null;
+  if (days > 30) return null;
+  return `ลงได้ ${days === 0 ? 1 : days} วัน`;
 }
 
 function computeDiscountedPrice(listing: SearchListing): number | null {
