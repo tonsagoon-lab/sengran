@@ -22,31 +22,31 @@ export async function TrustSection() {
         <p className="text-sm text-neutral-500">ประสบการณ์กว่า 10 ปี ที่ผู้เซ้งและผู้ซื้อไว้วางใจ</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2 md:gap-3">
         {STATS.map((s) => {
           const Icon = s.icon;
           return (
             <div
               key={s.label}
-              className="rounded-xl border bg-gradient-to-br from-orange-50 to-white p-4 text-center space-y-1.5"
+              className="rounded-xl border bg-gradient-to-br from-orange-50 to-white p-2 md:p-4 text-center space-y-1 md:space-y-1.5"
             >
-              <Icon className="h-6 w-6 mx-auto text-orange-500" />
-              <p className="text-2xl md:text-3xl font-bold text-neutral-800">{s.value}</p>
-              <p className="text-xs md:text-sm text-neutral-600">{s.label}</p>
+              <Icon className="h-4 w-4 md:h-6 md:w-6 mx-auto text-orange-500" />
+              <p className="text-base md:text-3xl font-bold text-neutral-800 leading-tight">{s.value}</p>
+              <p className="text-[10px] md:text-sm text-neutral-600 leading-tight">{s.label}</p>
             </div>
           );
         })}
 
-        {/* Testimonials card — replaces the 4th stat */}
+        {/* Testimonials card — 4th column */}
         {quotes.length > 0 && (
-          <div className="rounded-xl border bg-gradient-to-br from-orange-50 to-white p-3 flex flex-col col-span-2 md:col-span-1">
-            <div className="flex items-center justify-center gap-1.5 mb-1.5">
-              <Quote className="h-4 w-4 text-orange-500" />
-              <p className="text-xs font-semibold text-neutral-700">เสียงจากลูกค้า</p>
+          <div className="rounded-xl border bg-gradient-to-br from-orange-50 to-white p-2 md:p-3 flex flex-col">
+            <div className="flex items-center justify-center gap-1 mb-1 md:mb-1.5">
+              <Quote className="h-3 w-3 md:h-4 md:w-4 text-orange-500 shrink-0" />
+              <p className="text-[10px] md:text-xs font-semibold text-neutral-700">เสียงลูกค้า</p>
             </div>
             <ul className="space-y-0.5 text-center">
               {quotes.map((t) => (
-                <li key={t.id} className="text-[11px] leading-snug text-neutral-600 truncate">
+                <li key={t.id} className="text-[9px] md:text-[11px] leading-snug text-neutral-600 truncate">
                   &ldquo;{t.message}&rdquo;
                 </li>
               ))}
