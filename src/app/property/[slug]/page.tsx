@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import Link from "next/link";
 import Image from "next/image";
-import { Phone, MessageCircle, MapPin, Tag, Eye, Calendar, ExternalLink, UserCircle } from "lucide-react";
+import { Phone, MessageCircle, MapPin, Tag, Eye, Calendar, ExternalLink, UserCircle, Flame } from "lucide-react";
 import { getListingBySlug, getRelatedListings } from "@/lib/db/listings";
 import { getSiteSetting } from "@/lib/db/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -60,6 +60,21 @@ const TYPE_LABELS: Record<string, string> = {
 
 function formatPrice(price: number) {
   return price.toLocaleString("th-TH");
+}
+
+function computePromoDiscountedPrice(
+  salePrice: number | null,
+  promoType: "percent" | "amount" | null,
+  promoValue: number | null
+): number | null {
+  if (!salePrice || !promoType || !promoValue) return null;
+  const v = Number(promoValue);
+  if (promoType === "percent") {
+    if (v <= 0 || v >= 100) return null;
+    return Math.max(0, Math.round(salePrice - (salePrice * v) / 100));
+  }
+  if (v <= 0 || v >= salePrice) return null;
+  return Math.max(0, salePrice - v);
 }
 
 export default async function ListingDetailPage({ params }: Props) {
@@ -202,14 +217,50 @@ export default async function ListingDetailPage({ params }: Props) {
         </div>
 
         {/* Price block */}
-        <div className="rounded-xl border bg-orange-50 border-orange-100 p-5 space-y-2">
-          {listing.sale_price != null && (
-            <div className="flex items-center gap-2">
-              <Tag className="h-4 w-4 text-orange-500" />
-              <span className="text-lg font-bold text-orange-600">
-                ราคาเซ้ง: {formatPrice(listing.sale_price)} บาท
-              </span>
+        {(() => {
+          const discounted = computePromoDiscountedPrice(
+            listing.sale_price,
+            listing.promo_type,
+            listing.promo_value
+          );
+          const hasPromo = discounted != null;
+          const promoBadge = listing.promo_type === "percent"
+            ? `-${Number(listing.promo_value)}%`
+            : listing.promo_type === "amount"
+            ? `-฿${formatPrice(Number(listing.promo_value))}`
+            : null;
+          return (
+        <div className={`rounded-xl border p-5 space-y-2 ${hasPromo ? "bg-gradient-to-br from-orange-100 to-orange-50 border-orange-300" : "bg-orange-50 border-orange-100"}`}>
+          {hasPromo && (
+            <div className="flex items-center gap-2 -mt-1 -mx-1 mb-2 pb-2 border-b border-orange-200">
+              <Flame className="h-5 w-5 text-orange-600" fill="currentColor" />
+              <span className="font-bold text-orange-700">กำลังลดราคาพิเศษ!</span>
+              {promoBadge && (
+                <span className="ml-auto inline-flex items-center rounded-full bg-orange-600 px-2.5 py-0.5 text-sm font-bold text-white">
+                  {promoBadge}
+                </span>
+              )}
             </div>
+          )}
+          {listing.sale_price != null && (
+            hasPromo ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <Flame className="h-4 w-4 text-orange-600 shrink-0" fill="currentColor" />
+                <span className="text-lg font-bold text-orange-700">
+                  ราคาพิเศษ: {formatPrice(discounted)} บาท
+                </span>
+                <span className="text-sm line-through text-neutral-400">
+                  ปกติ {formatPrice(listing.sale_price)} บ.
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-orange-500" />
+                <span className="text-lg font-bold text-orange-600">
+                  ราคาเซ้ง: {formatPrice(listing.sale_price)} บาท
+                </span>
+              </div>
+            )
           )}
           {listing.rent_price != null && (
             <div className="flex items-center gap-2">
@@ -265,6 +316,8 @@ export default async function ListingDetailPage({ params }: Props) {
             </div>
           )}
         </div>
+          );
+        })()}
 
         <Separator />
 

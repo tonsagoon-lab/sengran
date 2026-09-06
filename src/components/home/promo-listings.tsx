@@ -15,7 +15,7 @@ export async function PromoListings({ supabaseUrl }: PromoListingsProps) {
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-neutral-800 text-lg">🔥 โปรโมชั่นล่าสุด</h2>
         <Link
-          href="/listings?promo=1"
+          href="/promotions"
           className="text-sm text-orange-600 hover:underline"
         >
           ดูทั้งหมด →
