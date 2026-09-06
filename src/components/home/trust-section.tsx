@@ -8,7 +8,7 @@ export async function TrustSection() {
   ]);
 
   const STATS = [
-    { icon: Calendar, value: "10+", label: "ปี ให้บริการ" },
+    { icon: Calendar, value: "12", label: "ปี ให้บริการ" },
     { icon: Store, value: "751+", label: "ร้านเซ้งสำเร็จ" },
     { icon: Sparkles, value: totalListings.toLocaleString("th-TH"), label: "ประกาศมาใหม่ปีนี้" },
   ];
