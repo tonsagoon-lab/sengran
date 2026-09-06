@@ -487,6 +487,34 @@ export async function getLatestListings(limit = 8): Promise<SearchListing[]> {
   return (data ?? []) as unknown as SearchListing[];
 }
 
+export async function getListingsByUser(
+  userId: string,
+  opts: { excludeSlug?: string; limit?: number } = {}
+): Promise<SearchListing[]> {
+  const { excludeSlug, limit = 24 } = opts;
+  const supabase = await createClient();
+  let query = supabase
+    .from("listings")
+    .select(LISTING_CARD_SELECT)
+    .eq("user_id", userId)
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (excludeSlug) query = query.neq("slug", excludeSlug);
+  const { data } = await query;
+  return (data ?? []) as unknown as SearchListing[];
+}
+
+export async function getUserProfile(userId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_url, created_at")
+    .eq("id", userId)
+    .maybeSingle();
+  return data;
+}
+
 export async function getPromoListings(limit = 8): Promise<SearchListing[]> {
   const supabase = await createClient();
   const { data } = await supabase

@@ -334,6 +334,37 @@ export default async function ListingDetailPage({ params }: Props) {
           )}
         </div>
 
+        {/* Seller info (mobile only — desktop uses the sidebar) */}
+        <Separator className="lg:hidden" />
+        <div className="lg:hidden rounded-2xl border bg-white p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-neutral-700">ข้อมูลผู้ประกาศ</h2>
+          <div className="flex items-center gap-3">
+            {listing.profiles?.avatar_url ? (
+              <Image
+                src={listing.profiles.avatar_url}
+                alt={displayName}
+                width={44}
+                height={44}
+                className="rounded-full object-cover"
+              />
+            ) : (
+              <UserCircle className="h-11 w-11 text-neutral-300" />
+            )}
+            <div className="min-w-0">
+              <p className="font-medium text-sm text-neutral-900 truncate">{displayName}</p>
+              {lineId && (
+                <p className="text-xs text-neutral-400 mt-0.5 truncate">LINE: {lineId}</p>
+              )}
+            </div>
+          </div>
+          <Link
+            href={`/user/${sellerId}`}
+            className="flex items-center justify-center gap-2 rounded-xl border border-orange-300 bg-orange-50 hover:bg-orange-100 py-2.5 text-sm font-semibold text-orange-700 transition-colors"
+          >
+            ประกาศอื่นๆ ของผู้ประกาศรายนี้ →
+          </Link>
+        </div>
+
         {/* Related listings */}
         {related.length > 0 && (
           <>
@@ -419,6 +450,12 @@ export default async function ListingDetailPage({ params }: Props) {
                     </button>
                   </form>
                 )}
+                <Link
+                  href={`/user/${sellerId}`}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-orange-300 bg-orange-50 hover:bg-orange-100 py-2.5 font-semibold text-sm text-orange-700 transition-colors"
+                >
+                  ประกาศอื่นๆ ของผู้ประกาศรายนี้ →
+                </Link>
               </div>
             </div>
           </aside>
