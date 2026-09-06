@@ -19,7 +19,7 @@ type LocationState =
   | { type: "gps"; lat: number; lng: number; radiusKm: number }
   | { type: "province"; provinceId: number; provinceName: string; slug: string };
 
-type Status = "init" | "prompt" | "gps-loading" | "province-select" | "fetching" | "loaded" | "empty";
+type Status = "init" | "prompt" | "gps-loading" | "gps-denied" | "province-select" | "fetching" | "loaded" | "empty";
 
 const STORAGE_KEY = "user_location";
 const DENIED_KEY = "user_location_denied";
@@ -94,11 +94,11 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
               fetchListings(loc);
             },
             () => {
-              // GPS denied/failed — fall back to cached coords
+              // GPS denied/failed — fall back to cached coords (still better than nothing)
               setLocation(parsed);
               fetchListings(parsed);
             },
-            { timeout: 10000 }
+            { timeout: 15000, enableHighAccuracy: true, maximumAge: 300000 }
           );
           return;
         }
@@ -131,12 +131,13 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
         fetchListings(loc);
       },
       (err) => {
-        // Only show province picker if user explicitly denied permission
-        if (err.code === GeolocationPositionError.PERMISSION_DENIED) {
-          setStatus("province-select");
+        // err.code: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+        // Use numeric constant — the global GeolocationPositionError is unreliable on iOS Safari
+        if (err.code === 1) {
+          setStatus("gps-denied");
           return;
         }
-        // Timeout or position unavailable — retry once with longer timeout and low accuracy
+        // Timeout or position unavailable — retry once with high accuracy off + cached position allowed
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const loc: LocationState = {
@@ -149,11 +150,14 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
             setLocation(loc);
             fetchListings(loc);
           },
-          () => setStatus("province-select"),
-          { timeout: 20000, enableHighAccuracy: false, maximumAge: 60000 }
+          (retryErr) => {
+            if (retryErr.code === 1) setStatus("gps-denied");
+            else setStatus("province-select");
+          },
+          { timeout: 20000, enableHighAccuracy: false, maximumAge: 300000 }
         );
       },
-      { timeout: 10000, enableHighAccuracy: false }
+      { timeout: 15000, enableHighAccuracy: true, maximumAge: 60000 }
     );
   };
 
@@ -200,6 +204,28 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
               เลือกจังหวัดเอง
             </Button>
           </div>
+        </div>
+      </section>
+    );
+  }
+
+  // ── GPS denied (user or browser blocked location) ─────────
+  if (status === "gps-denied") {
+    return (
+      <section className="py-6">
+        <div className="mx-auto max-w-sm rounded-2xl border bg-orange-50 p-6 text-center shadow-sm space-y-3">
+          <div className="text-4xl">📍</div>
+          <h2 className="font-semibold text-neutral-800">ไม่สามารถเข้าถึงตำแหน่งได้</h2>
+          <p className="text-sm text-neutral-600">
+            เบราว์เซอร์ปิดกั้นการเข้าถึงตำแหน่ง — เปิดใหม่ได้ที่
+          </p>
+          <div className="text-xs text-neutral-500 bg-white rounded-lg p-3 text-left space-y-1">
+            <p><strong>iPhone:</strong> Settings → Safari → Location → Allow</p>
+            <p><strong>Android:</strong> ไอคอน 🔒 ในแถบ URL → Permissions → Location</p>
+          </div>
+          <Button variant="outline" onClick={() => setStatus("province-select")}>
+            เลือกจังหวัดแทน
+          </Button>
         </div>
       </section>
     );

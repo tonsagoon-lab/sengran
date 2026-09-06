@@ -25,6 +25,13 @@ function getAgeSuffix(publishedAt: string | null): string | null {
   return `ลงได้ ${days === 0 ? 1 : days} วัน`;
 }
 
+function getPromoAgeSuffix(promoActivatedAt: string | null): string | null {
+  if (!promoActivatedAt) return null;
+  const days = Math.floor((Date.now() - new Date(promoActivatedAt).getTime()) / 86_400_000);
+  if (days > 30) return null;
+  return `ลดมา ${days === 0 ? 1 : days} วัน`;
+}
+
 function computeDiscountedPrice(listing: SearchListing): number | null {
   if (
     listing.listing_type !== "sale" ||
@@ -115,7 +122,10 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
   const coverUrl = cover ? resolveImageUrl(cover.storage_path, 400, 65, "cover", 225) : null;
 
   const typeBadge = TYPE_BADGE[listing.listing_type] ?? TYPE_BADGE.sale;
-  const ageSuffix = getAgeSuffix(listing.published_at ?? null);
+  const hasActivePromo = !!(listing.promo_type && listing.promo_value != null);
+  const ageSuffix = hasActivePromo
+    ? getPromoAgeSuffix(listing.promo_activated_at ?? null) ?? getAgeSuffix(listing.published_at ?? null)
+    : getAgeSuffix(listing.published_at ?? null);
   const location = [listing.district, listing.provinces?.name_th].filter(Boolean).join(", ");
 
   return (
