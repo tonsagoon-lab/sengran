@@ -19,6 +19,7 @@ export async function getEditorialPicks() {
     .from("editorial_picks")
     .select(LISTING_PICK_SELECT)
     .eq("listings.status", "published")
+    .is("listings.promo_type", null)
     .order("display_order", { ascending: true })
     .limit(20);
   return (data ?? []).filter((r: unknown) => (r as EditorialPickRow).listings !== null) as unknown as EditorialPickRow[];
