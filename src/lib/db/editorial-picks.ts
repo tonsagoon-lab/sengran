@@ -21,7 +21,7 @@ export async function getEditorialPicks() {
     .eq("listings.status", "published")
     .is("listings.promo_type", null)
     .order("display_order", { ascending: true })
-    .limit(20);
+    .limit(40);
   return (data ?? []).filter((r: unknown) => (r as EditorialPickRow).listings !== null) as unknown as EditorialPickRow[];
 }
 
@@ -36,10 +36,18 @@ export async function getEditorialPickIds(): Promise<string[]> {
 
 export async function addEditorialPick(listingId: string, addedBy: string) {
   const supabase = createAdminClient();
+
+  const { data: existing } = await supabase
+    .from("editorial_picks")
+    .select("id")
+    .eq("listing_id", listingId)
+    .maybeSingle();
+  if (existing) throw new Error("ประกาศนี้อยู่ในโพสแนะนำแล้ว");
+
   const { count } = await supabase
     .from("editorial_picks")
     .select("id", { count: "exact", head: true });
-  if ((count ?? 0) >= 20) throw new Error("สูงสุด 20 โพสแนะนำ");
+  if ((count ?? 0) >= 40) throw new Error("สูงสุด 40 โพสแนะนำ — กรุณาลบบางประกาศก่อนเพิ่มใหม่");
 
   const maxOrder = await supabase
     .from("editorial_picks")
@@ -53,7 +61,10 @@ export async function addEditorialPick(listingId: string, addedBy: string) {
     display_order: nextOrder,
     added_by: addedBy,
   });
-  if (error) throw error;
+  if (error) {
+    if (error.code === "23505") throw new Error("ประกาศนี้อยู่ในโพสแนะนำแล้ว");
+    throw error;
+  }
 }
 
 export async function removeEditorialPick(listingId: string) {
