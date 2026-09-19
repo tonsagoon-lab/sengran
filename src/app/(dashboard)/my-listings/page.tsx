@@ -40,10 +40,15 @@ export default async function MyListingsPage() {
           <h1 className="text-2xl font-bold text-neutral-900">ประกาศของฉัน</h1>
           <p className="text-xs text-neutral-400 mt-0.5">สิทธิ์ประกาศ: {published.length} / {listingQuota} ประกาศ/ปี</p>
         </div>
-        <Link href="/listings/new">
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-            + ลงประกาศใหม่
-          </Button>
+        <Link
+          href="/listings/new"
+          className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 via-orange-500 to-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+        >
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/25 text-base leading-none">+</span>
+          <span>ลงประกาศ</span>
+          <span className="rounded-md bg-yellow-300 px-1.5 py-0.5 text-[11px] font-extrabold text-rose-700 shadow-sm animate-pulse">
+            ฟรี
+          </span>
         </Link>
       </div>
 
