@@ -154,38 +154,14 @@ export default async function ServicesPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
-              {/* LINE OA */}
+              {/* LINE Personal — recommended */}
               <div className="rounded-2xl border-2 border-green-500 bg-white p-6 md:p-8 shadow-sm space-y-5 text-center">
                 <div className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                  ⭐ แนะนำ — LINE Official Account
-                </div>
-                <div>
-                  <p className="text-xs text-neutral-500">LINE Official Account</p>
-                  <p className="text-2xl font-bold text-green-600">@salebiz</p>
-                </div>
-                <div
-                  className="mx-auto w-40 h-40 md:w-48 md:h-48 [&_svg]:w-full [&_svg]:h-full"
-                  dangerouslySetInnerHTML={{ __html: qrOA }}
-                />
-                <a
-                  href={LINE_OA_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 w-full rounded-full bg-green-500 py-3 text-base font-bold text-white hover:bg-green-600 transition-colors"
-                >
-                  <LineIcon className="h-5 w-5" />
-                  เพิ่มเพื่อน @salebiz
-                </a>
-              </div>
-
-              {/* LINE Personal */}
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 md:p-8 shadow-sm space-y-5 text-center">
-                <div className="inline-flex items-center gap-2 rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
-                  💬 คุยกับทีมงานตัวจริง
+                  ⭐ แนะนำ — ช่องทางหลัก
                 </div>
                 <div>
                   <p className="text-xs text-neutral-500">LINE ID</p>
-                  <p className="text-2xl font-bold text-neutral-800">salebiz</p>
+                  <p className="text-2xl font-bold text-green-600">salebiz</p>
                 </div>
                 <div
                   className="mx-auto w-40 h-40 md:w-48 md:h-48 [&_svg]:w-full [&_svg]:h-full"
@@ -195,10 +171,34 @@ export default async function ServicesPage() {
                   href={LINE_PERSONAL_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 w-full rounded-full bg-neutral-800 py-3 text-base font-bold text-white hover:bg-neutral-900 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 w-full rounded-full bg-green-500 py-3 text-base font-bold text-white hover:bg-green-600 transition-colors"
                 >
                   <LineIcon className="h-5 w-5" />
                   เพิ่มเพื่อน salebiz
+                </a>
+              </div>
+
+              {/* LINE OA — backup */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-6 md:p-8 shadow-sm space-y-5 text-center">
+                <div className="inline-flex items-center gap-2 rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
+                  💬 ช่องทางสำรอง
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-500">LINE Official Account</p>
+                  <p className="text-2xl font-bold text-neutral-800">@salebiz</p>
+                </div>
+                <div
+                  className="mx-auto w-40 h-40 md:w-48 md:h-48 [&_svg]:w-full [&_svg]:h-full"
+                  dangerouslySetInnerHTML={{ __html: qrOA }}
+                />
+                <a
+                  href={LINE_OA_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 w-full rounded-full bg-neutral-800 py-3 text-base font-bold text-white hover:bg-neutral-900 transition-colors"
+                >
+                  <LineIcon className="h-5 w-5" />
+                  เพิ่มเพื่อน @salebiz
                 </a>
               </div>
             </div>
