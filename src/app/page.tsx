@@ -112,6 +112,11 @@ export default async function HomePage() {
       </Suspense>
 
       <div className="mx-auto w-full max-w-7xl px-4 py-8 space-y-12">
+        {/* Small banner slot — 300x50 */}
+        <Suspense fallback={null}>
+          <BannerSection />
+        </Suspense>
+
         {/* Near me */}
         <div id="near-me">
           <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
@@ -143,13 +148,6 @@ export default async function HomePage() {
         </Suspense>
 
       </div>
-
-      {/* Banner — before footer */}
-      <Suspense fallback={null}>
-        <div className="mx-auto w-full max-w-2xl px-4 py-8">
-          <BannerSection />
-        </div>
-      </Suspense>
     </div>
   );
 }
