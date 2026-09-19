@@ -176,7 +176,6 @@ export default async function ServicesPage() {
                   <LineIcon className="h-5 w-5" />
                   เพิ่มเพื่อน @salebiz
                 </a>
-                <p className="text-xs text-neutral-400">รองรับข้อความอัตโนมัติ · เหมาะสำหรับสอบถามทั่วไป</p>
               </div>
 
               {/* LINE Personal */}
@@ -201,7 +200,6 @@ export default async function ServicesPage() {
                   <LineIcon className="h-5 w-5" />
                   เพิ่มเพื่อน salebiz
                 </a>
-                <p className="text-xs text-neutral-400">ทีมงานตอบด้วยตนเอง · เหมาะสำหรับปิดดีล/ทำสัญญา</p>
               </div>
             </div>
           </section>
@@ -209,7 +207,7 @@ export default async function ServicesPage() {
           {/* Footer note */}
           <section className="text-center pb-4">
             <p className="text-xs text-neutral-400">
-              เปิดบริการทุกวัน 9:00 – 21:00 น. · ทีมงานจะติดต่อกลับภายใน 1 วันทำการ
+              เปิดบริการทุกวัน 24 ชั่วโมง · พร้อมติดต่อกลับทันที
             </p>
           </section>
         </div>
