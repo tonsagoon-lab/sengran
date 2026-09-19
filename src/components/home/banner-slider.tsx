@@ -29,18 +29,18 @@ export function BannerSliderClient({ banners }: BannerSliderClientProps) {
   if (banners.length === 0) return null;
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-2">
-      <div ref={emblaRef} className="overflow-hidden rounded-xl">
+    <div className="mx-auto w-full max-w-5xl space-y-2">
+      <div ref={emblaRef} className="overflow-hidden rounded-lg">
         <div className="flex">
           {banners.map((banner) => {
             const inner = (
-              <div className="relative aspect-[3/1] w-full shrink-0 flex-none bg-neutral-100">
+              <div className="relative aspect-[1000/149] w-full shrink-0 flex-none bg-neutral-100">
                 <Image
                   src={banner.image_url}
                   alt={banner.title ?? "โฆษณา"}
                   fill
                   className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 896px"
+                  sizes="(max-width: 768px) 100vw, 1024px"
                   quality={90}
                   priority
                 />
