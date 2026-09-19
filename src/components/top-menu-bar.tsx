@@ -24,7 +24,6 @@ export async function TopMenuBar() {
       unreadCount={unreadCount}
       unreadNotifCount={unreadNotifCount}
       isAdmin={isPrivileged(user?.email ?? undefined)}
-      isLoggedIn={!!user}
     />
   );
 }

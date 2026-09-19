@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Map, MessageCircle, ShieldCheck, Bell, PlusCircle, Package } from "lucide-react";
+import { Home, Map, MessageCircle, ShieldCheck, Bell, Package } from "lucide-react";
 
 interface TopMenuBarClientProps {
   unreadCount: number;
   unreadNotifCount: number;
   isAdmin: boolean;
-  isLoggedIn: boolean;
 }
 
 
-export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLoggedIn }: TopMenuBarClientProps) {
+export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin }: TopMenuBarClientProps) {
   const pathname = usePathname();
 
   function handleNearMe(e: React.MouseEvent<HTMLAnchorElement>) {
@@ -42,17 +41,7 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, isLog
           <span className="hidden sm:inline">หน้าแรก</span>
         </Link>
 
-        {/* 2. ลงประกาศฟรี — highlighted green */}
-        <Link
-          href={isLoggedIn ? "/listings/new" : "/login"}
-          className="flex shrink-0 items-center gap-1.5 rounded-full bg-green-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-600 transition-colors whitespace-nowrap"
-        >
-          <PlusCircle className="h-4 w-4 shrink-0" />
-          <span className="sm:hidden">ลงฟรี!</span>
-          <span className="hidden sm:inline">ลงประกาศฟรี</span>
-        </Link>
-
-        {/* 3. แจ้งร้านใหม่ — highlighted orange */}
+        {/* 2. แจ้งร้านใหม่ — highlighted orange */}
         <Link
           href="/alerts"
           aria-label="แจ้งร้านใหม่"
