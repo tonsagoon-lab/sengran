@@ -28,9 +28,10 @@ type TabKey = (typeof TABS)[number]["key"];
 interface SiteSettingsProps {
   showViewCount: boolean;
   showQuotaUpgradeButton: boolean;
+  showPromoteButtons: boolean;
 }
 
-export function SiteSettings({ showViewCount, showQuotaUpgradeButton }: SiteSettingsProps) {
+export function SiteSettings({ showViewCount, showQuotaUpgradeButton, showPromoteButtons }: SiteSettingsProps) {
   const [tab, setTab] = useState<TabKey>("general");
 
   return (
@@ -57,7 +58,7 @@ export function SiteSettings({ showViewCount, showQuotaUpgradeButton }: SiteSett
 
       {/* Panels */}
       <div className="pt-1">
-        {tab === "general" && <GeneralSettingsManager showViewCount={showViewCount} showQuotaUpgradeButton={showQuotaUpgradeButton} />}
+        {tab === "general" && <GeneralSettingsManager showViewCount={showViewCount} showQuotaUpgradeButton={showQuotaUpgradeButton} showPromoteButtons={showPromoteButtons} />}
         {tab === "categories" && <CategoriesManager />}
         {tab === "banners" && <BannersManager />}
         {tab === "provinces" && <ProvincesManager />}

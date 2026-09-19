@@ -50,9 +50,10 @@ function SettingToggle({ label, description, settingKey, initialValue }: Setting
 interface GeneralSettingsManagerProps {
   showViewCount: boolean;
   showQuotaUpgradeButton: boolean;
+  showPromoteButtons: boolean;
 }
 
-export function GeneralSettingsManager({ showViewCount, showQuotaUpgradeButton }: GeneralSettingsManagerProps) {
+export function GeneralSettingsManager({ showViewCount, showQuotaUpgradeButton, showPromoteButtons }: GeneralSettingsManagerProps) {
   return (
     <div className="space-y-1">
       <SettingToggle
@@ -66,6 +67,12 @@ export function GeneralSettingsManager({ showViewCount, showQuotaUpgradeButton }
         description="เปิด = ผู้ใช้เห็นปุ่มซื้อโควต้าเพิ่มในหน้าประกาศของฉัน"
         settingKey="show_quota_upgrade_button"
         initialValue={showQuotaUpgradeButton}
+      />
+      <SettingToggle
+        label="แสดงปุ่มโปรโมทประกาศ (Premium หน้าแรก + ยิงโฆษณา Facebook)"
+        description="เปิด = ผู้ใช้เห็นปุ่มโปรโมท 300+ บาท และยิงโฆษณา 1,500+ บาท ในหน้าประกาศของฉัน"
+        settingKey="show_promote_buttons"
+        initialValue={showPromoteButtons}
       />
     </div>
   );

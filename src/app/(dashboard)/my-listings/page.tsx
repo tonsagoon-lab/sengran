@@ -16,14 +16,16 @@ export default async function MyListingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [listings, profile, quotaButtonSetting] = await Promise.all([
+  const [listings, profile, quotaButtonSetting, promoteButtonsSetting] = await Promise.all([
     getMyListings(user.id),
     supabase.from("profiles").select("listing_quota").eq("id", user.id).single().then((r) => r.data),
     getSiteSetting("show_quota_upgrade_button"),
+    getSiteSetting("show_promote_buttons"),
   ]);
 
   const listingQuota = Number(profile?.listing_quota ?? 0);
   const showQuotaButton = quotaButtonSetting === "true";
+  const showPromoteButtons = promoteButtonsSetting === "true";
 
   const published = listings.filter((l) => l.status === "published");
   const hidden = listings.filter((l) => l.status === "hidden");
@@ -88,7 +90,7 @@ export default async function MyListingsPage() {
               </h2>
               <div className="space-y-3">
                 {published.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
+                  <ListingCard key={listing.id} listing={listing} showPromoteButtons={showPromoteButtons} />
                 ))}
               </div>
             </section>
@@ -100,7 +102,7 @@ export default async function MyListingsPage() {
               </h2>
               <div className="space-y-3">
                 {hidden.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
+                  <ListingCard key={listing.id} listing={listing} showPromoteButtons={showPromoteButtons} />
                 ))}
               </div>
             </section>
@@ -112,7 +114,7 @@ export default async function MyListingsPage() {
               </h2>
               <div className="space-y-3">
                 {sold.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
+                  <ListingCard key={listing.id} listing={listing} showPromoteButtons={showPromoteButtons} />
                 ))}
               </div>
             </section>
@@ -124,7 +126,7 @@ export default async function MyListingsPage() {
               </h2>
               <div className="space-y-3">
                 {drafts.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
+                  <ListingCard key={listing.id} listing={listing} showPromoteButtons={showPromoteButtons} />
                 ))}
               </div>
             </section>

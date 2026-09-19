@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DeleteListingButton } from "./delete-listing-button";
 import { ListingStatusButtons } from "./listing-status-buttons";
 import { PromoQuickButton } from "./promo-quick-button";
+import { PromoteButtons } from "./promote-button";
 import { resolveImageUrl } from "@/lib/utils/image-url";
 import type { ListingWithImages } from "@/lib/db/listings";
 
@@ -30,9 +31,10 @@ function formatPrice(price: number | null) {
 
 interface ListingCardProps {
   listing: ListingWithImages;
+  showPromoteButtons?: boolean;
 }
 
-export function ListingCard({ listing }: ListingCardProps) {
+export function ListingCard({ listing, showPromoteButtons = false }: ListingCardProps) {
   const coverImage = listing.listing_images.sort((a, b) => a.display_order - b.display_order)[0];
   const coverUrl = coverImage
     ? resolveImageUrl(coverImage.storage_path, 160, 65, "cover", 160)
@@ -112,6 +114,12 @@ export function ListingCard({ listing }: ListingCardProps) {
         </div>
       </div>
 
+      {showPromoteButtons && listing.status === "published" && (
+        <div className="px-4 pb-3 border-t pt-2.5 bg-neutral-50">
+          <p className="text-[10px] text-neutral-400 mb-1.5 font-medium uppercase tracking-wide">โปรโมทประกาศ</p>
+          <PromoteButtons listingId={listing.id} listingTitle={listing.title} />
+        </div>
+      )}
     </div>
   );
 }
