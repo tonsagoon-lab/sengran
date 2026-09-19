@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DeleteListingButton } from "./delete-listing-button";
 import { ListingStatusButtons } from "./listing-status-buttons";
-import { PromoteButtons } from "./promote-button";
 import { PromoQuickButton } from "./promo-quick-button";
 import { resolveImageUrl } from "@/lib/utils/image-url";
 import type { ListingWithImages } from "@/lib/db/listings";
@@ -113,16 +112,6 @@ export function ListingCard({ listing }: ListingCardProps) {
         </div>
       </div>
 
-      {/* Promote buttons — แสดงเฉพาะประกาศที่ publish แล้ว */}
-      {listing.status === "published" && (
-        <div className="px-4 pb-3 border-t pt-2.5 bg-neutral-50">
-          <p className="text-[10px] text-neutral-400 mb-1.5 font-medium uppercase tracking-wide">โปรโมทประกาศ</p>
-          <PromoteButtons
-            listingId={listing.id}
-            listingTitle={listing.title}
-          />
-        </div>
-      )}
     </div>
   );
 }
