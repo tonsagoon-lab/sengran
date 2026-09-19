@@ -268,3 +268,28 @@ export async function setSiteSetting(key: string, value: string) {
   if (error) throw error;
 }
 
+export async function getSignupMethodBreakdown() {
+  const supabase = createAdminClient();
+  const counts: Record<string, number> = {};
+  const perPage = 1000;
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    const users = data?.users ?? [];
+    for (const u of users) {
+      let provider: string;
+      if (u.email?.endsWith("@sengran-line.user")) provider = "LINE";
+      else if (u.app_metadata?.provider === "google") provider = "Google";
+      else if (u.app_metadata?.provider === "email") provider = "Email/Password";
+      else provider = u.app_metadata?.provider ?? "อื่นๆ";
+      counts[provider] = (counts[provider] ?? 0) + 1;
+    }
+    if (users.length < perPage) break;
+  }
+  const rows = Object.entries(counts).map(([provider, count]) => ({ provider, count }));
+  const total = rows.reduce((s, r) => s + r.count, 0);
+  return rows
+    .map((r) => ({ ...r, pct: total > 0 ? Math.round((r.count / total) * 1000) / 10 : 0 }))
+    .sort((a, b) => b.count - a.count);
+}
+

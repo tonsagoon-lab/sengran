@@ -14,6 +14,7 @@ import {
   getPendingReports,
   getPendingReportCount,
   getSiteSetting,
+  getSignupMethodBreakdown,
 } from "@/lib/db/admin";
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { ChartSection } from "@/components/admin/chart-section";
@@ -26,9 +27,12 @@ import { ArticlesManager } from "@/components/admin/articles-manager";
 import { ReportsManager } from "@/components/admin/reports-manager";
 import { OrdersManager } from "@/components/admin/orders-manager";
 import { EquipmentManager } from "@/components/admin/equipment-manager";
+import { SeedManager } from "@/components/admin/seed-manager";
+import { getAllCategories, getAllProvinces } from "@/lib/db/listings";
+import { getEquipmentCategories } from "@/lib/db/equipment";
 import {
   LayoutGrid, Users, Eye,
-  FileText, CheckCircle, EyeOff, FileEdit, TrendingUp, Globe,
+  FileText, CheckCircle, EyeOff, FileEdit, TrendingUp, Globe, UserPlus,
 } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -86,7 +90,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const isAdmin = user.email === ADMIN_EMAIL;
   const isStaffOnly = !isAdmin && STAFF_EMAILS.includes(user.email ?? "");
   const { tab } = await searchParams;
-  const activeTab = tab === "settings" ? "settings" : tab === "articles" ? "articles" : tab === "reports" ? "reports" : tab === "orders" ? "orders" : tab === "equipment" ? "equipment" : "dashboard";
+  const activeTab = tab === "settings" ? "settings" : tab === "articles" ? "articles" : tab === "reports" ? "reports" : tab === "orders" ? "orders" : tab === "equipment" ? "equipment" : tab === "seed" ? "seed" : "dashboard";
 
   const [
     stats,
@@ -102,6 +106,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     pendingReportCount,
     showViewCountSetting,
     showQuotaUpgradeButtonSetting,
+    shopCategories,
+    equipmentCategories,
+    provinces,
+    signupMethods,
   ] = await Promise.all([
     getAdminStats(),
     getTopListings(10),
@@ -116,6 +124,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     getPendingReportCount(),
     getSiteSetting("show_view_count"),
     getSiteSetting("show_quota_upgrade_button"),
+    getAllCategories(),
+    getEquipmentCategories(),
+    getAllProvinces(),
+    getSignupMethodBreakdown(),
   ]);
   const showViewCount = showViewCountSetting !== "false";
   const showQuotaUpgradeButton = showQuotaUpgradeButtonSetting === "true";
@@ -198,8 +210,21 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </a>
         )}
 
-        {/* ── Staff view — listings only ───────────────────── */}
-        {isStaffOnly && <ContentManager isAdmin={false} />}
+        {/* ── Staff view ────────────────────────────────────── */}
+        {isStaffOnly && (
+          <>
+            <AdminTabs pendingReports={pendingReportCount} pendingOrders={pendingOrderCount} />
+            {activeTab === "seed" ? (
+              <SeedManager
+                shopCategories={shopCategories}
+                equipmentCategories={equipmentCategories}
+                provinces={provinces}
+              />
+            ) : (
+              <ContentManager isAdmin={false} />
+            )}
+          </>
+        )}
 
         {/* ── Admin-only below ─────────────────────────────── */}
         {!isStaffOnly && <>
@@ -208,6 +233,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
         {/* ── Equipment tab ────────────────────────────────── */}
         {activeTab === "equipment" && <EquipmentManager />}
+
+        {/* ── Seed tab ─────────────────────────────────────── */}
+        {activeTab === "seed" && (
+          <SeedManager
+            shopCategories={shopCategories}
+            equipmentCategories={equipmentCategories}
+            provinces={provinces}
+          />
+        )}
 
         {/* ── Orders tab ───────────────────────────────────── */}
         {activeTab === "orders" && (
@@ -272,7 +306,23 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <ChartSection />
 
         {/* Middle row */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {/* Signup method breakdown */}
+          <div className="rounded-xl border bg-white p-5 space-y-4">
+            <h2 className="font-semibold text-sm text-neutral-800 flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-purple-500" />
+              คนสมัครผ่านช่องทางไหน
+            </h2>
+            {signupMethods.length === 0 ? (
+              <p className="text-xs text-neutral-400">ยังไม่มีข้อมูล</p>
+            ) : (
+              <MiniBar
+                items={signupMethods.map((s) => ({ label: `${s.provider} · ${s.pct}%`, count: s.count }))}
+                max={Math.max(...signupMethods.map((s) => s.count), 1)}
+              />
+            )}
+          </div>
+
           {/* By category */}
           <div className="rounded-xl border bg-white p-5 space-y-4">
             <h2 className="font-semibold text-sm text-neutral-800">ประกาศตามประเภท</h2>
