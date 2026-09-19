@@ -34,7 +34,7 @@ export function BannerSliderClient({ banners }: BannerSliderClientProps) {
         <div className="flex">
           {banners.map((banner) => {
             const inner = (
-              <div className="relative aspect-[1000/149] w-full shrink-0 flex-none bg-neutral-100">
+              <div className="relative aspect-[1376/366] w-full shrink-0 flex-none bg-neutral-100">
                 <Image
                   src={banner.image_url}
                   alt={banner.title ?? "โฆษณา"}
