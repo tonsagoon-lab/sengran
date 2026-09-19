@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Megaphone, Handshake, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyListings } from "@/lib/db/listings";
 import { getSiteSetting } from "@/lib/db/admin";
@@ -53,23 +54,40 @@ export default async function MyListingsPage() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-6">
-        <a
-          href="https://line.me/R/ti/p/~salebiz"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 py-2.5 text-sm font-semibold text-white transition-colors text-center"
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+        <Link
+          href="/services"
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-500 p-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all"
         >
-          ซื้อโฆษณาเซ้งร้าน
-        </a>
-        <a
-          href="https://line.me/R/ti/p/~salebiz"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-[#06C755] hover:bg-[#05b34c] py-2.5 text-sm font-semibold text-white transition-colors text-center"
+          <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-white/15 blur-lg" />
+          <div className="relative flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-white">
+              <Megaphone className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left text-white">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-white/80">ซื้อโฆษณา</p>
+              <p className="text-base font-bold leading-tight">เริ่มเพียง 990.-</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-white/90 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
+
+        <Link
+          href="/services"
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-500 p-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all"
         >
-          ฝากเซ้งร้าน
-        </a>
+          <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-white/15 blur-lg" />
+          <div className="relative flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-white">
+              <Handshake className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left text-white">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-white/80">ฝากเซ้งร้าน</p>
+              <p className="text-base font-bold leading-tight">ค่านายหน้าเพียง 5%</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-white/90 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
       </div>
 
       {listings.length === 0 ? (
