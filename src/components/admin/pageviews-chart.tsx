@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { TrendingUp, Calendar } from "lucide-react";
 
 type DataPoint = { date: string; count: number };
@@ -18,49 +18,263 @@ function daysAgo(n: number) {
   return toLocalDateStr(d);
 }
 
+function formatShortDate(iso: string) {
+  return new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short" });
+}
+
 function shouldShowLabel(i: number, total: number): boolean {
-  if (total <= 15) return true;
+  if (total <= 8) return true;
+  if (total <= 15) return i % 2 === 0 || i === total - 1;
   if (total <= 31) return i === 0 || i % 7 === 0 || i === total - 1;
   return i === 0 || i % 10 === 0 || i === total - 1;
 }
 
-function BarChart({ data }: { data: DataPoint[] }) {
-  const max = Math.max(...data.map((d) => d.count), 1);
+// Build a smooth Catmull-Rom-ish path (using simple monotonic interpolation)
+function buildSmoothPath(points: { x: number; y: number }[]): string {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] ?? points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] ?? p2;
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+}
+
+function AreaChart({ data }: { data: DataPoint[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [width, setWidth] = useState(600);
+
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const el = svgRef.current;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) setWidth(Math.max(200, e.contentRect.width));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const height = 180;
+  const padTop = 16;
+  const padBottom = 24;
+  const padX = 8;
+  const innerH = height - padTop - padBottom;
+  const innerW = width - padX * 2;
+
+  const { points, max, avg } = useMemo(() => {
+    const max = Math.max(...data.map((d) => d.count), 1);
+    const avg = data.length > 0 ? data.reduce((s, d) => s + d.count, 0) / data.length : 0;
+    const n = data.length;
+    const points = data.map((d, i) => {
+      const x = padX + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW);
+      const y = padTop + innerH - (d.count / max) * innerH;
+      return { x, y };
+    });
+    return { points, max, avg };
+  }, [data, innerW, innerH, padX, padTop]);
+
+  if (data.length === 0) {
+    return <div className="h-[180px] flex items-center justify-center text-xs text-neutral-400">ยังไม่มีข้อมูล</div>;
+  }
+
+  const linePath = buildSmoothPath(points);
+  const areaPath = points.length > 0
+    ? `${linePath} L ${points[points.length - 1].x} ${padTop + innerH} L ${points[0].x} ${padTop + innerH} Z`
+    : "";
+
+  const avgY = padTop + innerH - (avg / max) * innerH;
+
+  const handleMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * width;
+    let closest = 0;
+    let minDist = Infinity;
+    points.forEach((p, i) => {
+      const d = Math.abs(p.x - x);
+      if (d < minDist) { minDist = d; closest = i; }
+    });
+    setHover(closest);
+  };
+
+  const hoverPoint = hover !== null ? points[hover] : null;
+  const hoverData = hover !== null ? data[hover] : null;
+
+  // Y-axis grid lines
+  const gridCount = 3;
+  const gridLines = Array.from({ length: gridCount }, (_, i) => {
+    const ratio = (i + 1) / (gridCount + 1);
+    return {
+      y: padTop + innerH - ratio * innerH,
+      value: Math.round(max * ratio),
+    };
+  });
+
   return (
-    <>
-      <div className="flex items-end gap-px h-36">
-        {data.map((d, i) => {
-          const pct = d.count === 0 ? 0 : Math.max((d.count / max) * 100, 6);
-          return (
-            <div
-              key={d.date}
-              className="flex-1 flex flex-col justify-end h-full"
-              title={`${new Date(d.date).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}: ${d.count} คน`}
+    <div className="relative">
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        height={height}
+        className="overflow-visible"
+        onMouseMove={handleMove}
+        onMouseLeave={() => setHover(null)}
+      >
+        <defs>
+          <linearGradient id="pvGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid lines */}
+        {gridLines.map((g, i) => (
+          <g key={i}>
+            <line
+              x1={padX}
+              x2={width - padX}
+              y1={g.y}
+              y2={g.y}
+              stroke="#e5e7eb"
+              strokeDasharray="2 3"
+              strokeWidth={1}
+            />
+            <text
+              x={padX}
+              y={g.y - 2}
+              className="fill-neutral-400"
+              style={{ fontSize: 9 }}
             >
-              {d.count > 0 ? (
-                <>
-                  <div className="text-center text-[8px] font-semibold text-teal-700 mb-0.5 leading-none">{d.count}</div>
-                  <div className="w-full rounded-t-sm bg-teal-400 hover:bg-teal-500 transition-colors" style={{ height: `${pct}%` }} />
-                </>
-              ) : (
-                <div className="w-full bg-neutral-100" style={{ height: "2px" }} />
+              {g.value.toLocaleString("th-TH")}
+            </text>
+          </g>
+        ))}
+
+        {/* Average line */}
+        {avg > 0 && (
+          <g>
+            <line
+              x1={padX}
+              x2={width - padX}
+              y1={avgY}
+              y2={avgY}
+              stroke="#f97316"
+              strokeDasharray="4 3"
+              strokeWidth={1.2}
+              opacity={0.7}
+            />
+            <text
+              x={width - padX}
+              y={avgY - 3}
+              textAnchor="end"
+              className="fill-orange-500"
+              style={{ fontSize: 9, fontWeight: 600 }}
+            >
+              เฉลี่ย {Math.round(avg).toLocaleString("th-TH")}
+            </text>
+          </g>
+        )}
+
+        {/* Area fill */}
+        <path d={areaPath} fill="url(#pvGradient)" />
+
+        {/* Line */}
+        <path
+          d={linePath}
+          fill="none"
+          stroke="#14b8a6"
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Peak / hover markers */}
+        {points.map((p, i) => {
+          const isPeak = data[i].count === max && max > 0;
+          const isHover = hover === i;
+          if (!isPeak && !isHover) return null;
+          return (
+            <g key={i}>
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={isHover ? 5 : 4}
+                fill="white"
+                stroke="#14b8a6"
+                strokeWidth={2}
+              />
+              {isPeak && !isHover && (
+                <text
+                  x={p.x}
+                  y={p.y - 8}
+                  textAnchor="middle"
+                  className="fill-teal-700"
+                  style={{ fontSize: 10, fontWeight: 700 }}
+                >
+                  {data[i].count.toLocaleString("th-TH")}
+                </text>
               )}
-            </div>
+            </g>
           );
         })}
-      </div>
-      <div className="flex gap-px">
+
+        {/* Hover crosshair */}
+        {hoverPoint && (
+          <line
+            x1={hoverPoint.x}
+            x2={hoverPoint.x}
+            y1={padTop}
+            y2={padTop + innerH}
+            stroke="#14b8a6"
+            strokeDasharray="2 2"
+            strokeWidth={1}
+            opacity={0.5}
+          />
+        )}
+      </svg>
+
+      {/* Hover tooltip */}
+      {hoverPoint && hoverData && (
+        <div
+          className="pointer-events-none absolute z-10 rounded-lg bg-neutral-900 px-2.5 py-1.5 text-white shadow-lg"
+          style={{
+            left: `${(hoverPoint.x / width) * 100}%`,
+            top: 0,
+            transform: `translate(-50%, -8px) translateY(-100%)`,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <div className="text-[10px] text-neutral-300 leading-none">
+            {formatShortDate(hoverData.date)}
+          </div>
+          <div className="text-xs font-semibold leading-tight mt-0.5">
+            {hoverData.count.toLocaleString("th-TH")} คน
+          </div>
+        </div>
+      )}
+
+      {/* X-axis labels */}
+      <div className="flex gap-px mt-1 px-2">
         {data.map((d, i) => (
           <div key={d.date} className="flex-1 text-center">
             {shouldShowLabel(i, data.length) && (
-              <span className="text-[9px] text-neutral-400 leading-none">
-                {new Date(d.date).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}
+              <span className="text-[9px] text-neutral-400 leading-none whitespace-nowrap">
+                {formatShortDate(d.date)}
               </span>
             )}
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -94,7 +308,6 @@ export function PageViewsChart({ initialData, initialDays = 30 }: { initialData:
     if (days !== initialDays) fetchPreset(days);
   }, [days, initialDays, fetchPreset]);
 
-  // close custom panel on outside click
   useEffect(() => {
     function handle(e: MouseEvent) {
       if (customRef.current && !customRef.current.contains(e.target as Node)) {
@@ -119,12 +332,14 @@ export function PageViewsChart({ initialData, initialDays = 30 }: { initialData:
   };
 
   const total = data.reduce((s, d) => s + d.count, 0);
+  const peak = Math.max(...data.map((d) => d.count), 0);
+  const avg = data.length > 0 ? Math.round(total / data.length) : 0;
   const rangeLabel = mode === "custom"
-    ? `${new Date(fromDate).toLocaleDateString("th-TH", { day: "numeric", month: "short" })} – ${new Date(toDate).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}`
-    : `${days} วัน`;
+    ? `${formatShortDate(fromDate)} – ${formatShortDate(toDate)}`
+    : `${days} วันล่าสุด`;
 
   return (
-    <div className="rounded-xl border bg-white p-5 space-y-3">
+    <div className="rounded-xl border bg-white p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-sm font-semibold text-neutral-800 flex items-center gap-2">
@@ -148,7 +363,6 @@ export function PageViewsChart({ initialData, initialDays = 30 }: { initialData:
             </button>
           ))}
 
-          {/* Custom range button */}
           <div className="relative" ref={customRef}>
             <button
               onClick={() => setShowCustom((v) => !v)}
@@ -202,18 +416,38 @@ export function PageViewsChart({ initialData, initialDays = 30 }: { initialData:
         </div>
       </div>
 
+      {/* Summary strip */}
+      <div className="grid grid-cols-3 gap-2 rounded-lg bg-neutral-50 p-2.5">
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-neutral-400">รวม</p>
+          <p className="text-base font-bold text-neutral-900 leading-tight">
+            {total.toLocaleString("th-TH")}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-neutral-400">สูงสุด/วัน</p>
+          <p className="text-base font-bold text-teal-600 leading-tight">
+            {peak.toLocaleString("th-TH")}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-neutral-400">เฉลี่ย/วัน</p>
+          <p className="text-base font-bold text-orange-500 leading-tight">
+            {avg.toLocaleString("th-TH")}
+          </p>
+        </div>
+      </div>
+
       {/* Chart */}
       {loading ? (
-        <div className="h-36 flex items-center justify-center">
+        <div className="h-[180px] flex items-center justify-center">
           <div className="h-5 w-5 rounded-full border-2 border-teal-300 border-t-teal-500 animate-spin" />
         </div>
       ) : (
-        <BarChart data={data} />
+        <AreaChart data={data} />
       )}
 
-      <p className="text-xs text-neutral-400 text-right">
-        รวม {total.toLocaleString("th-TH")} ครั้ง ({rangeLabel})
-      </p>
+      <p className="text-[11px] text-neutral-400 text-right">{rangeLabel}</p>
     </div>
   );
 }
