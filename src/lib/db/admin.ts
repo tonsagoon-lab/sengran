@@ -268,6 +268,35 @@ export async function setSiteSetting(key: string, value: string) {
   if (error) throw error;
 }
 
+export async function getDeviceBreakdown(days = 30) {
+  const supabase = createAdminClient();
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const isoSince = since.toISOString();
+  const types = ["mobile", "tablet", "desktop"] as const;
+  const results = await Promise.all(
+    types.map((t) =>
+      supabase
+        .from("page_views")
+        .select("id", { count: "exact", head: true })
+        .eq("device_type", t)
+        .gte("created_at", isoSince)
+    )
+  );
+  const labelMap: Record<(typeof types)[number], string> = {
+    mobile: "มือถือ",
+    tablet: "แท็บเล็ต",
+    desktop: "คอมพิวเตอร์",
+  };
+  const rows = types
+    .map((t, i) => ({ device: labelMap[t], count: results[i].count ?? 0 }))
+    .filter((r) => r.count > 0);
+  const total = rows.reduce((s, r) => s + r.count, 0);
+  return rows
+    .map((r) => ({ ...r, pct: total > 0 ? Math.round((r.count / total) * 1000) / 10 : 0 }))
+    .sort((a, b) => b.count - a.count);
+}
+
 export async function getSignupMethodBreakdown() {
   const supabase = createAdminClient();
   const counts: Record<string, number> = {};

@@ -15,6 +15,7 @@ import {
   getPendingReportCount,
   getSiteSetting,
   getSignupMethodBreakdown,
+  getDeviceBreakdown,
 } from "@/lib/db/admin";
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { ChartSection } from "@/components/admin/chart-section";
@@ -29,7 +30,7 @@ import { OrdersManager } from "@/components/admin/orders-manager";
 import { EquipmentManager } from "@/components/admin/equipment-manager";
 import {
   LayoutGrid, Users, Eye,
-  FileText, CheckCircle, EyeOff, FileEdit, TrendingUp, Globe, UserPlus,
+  FileText, CheckCircle, EyeOff, FileEdit, TrendingUp, Globe, UserPlus, Smartphone,
 } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -104,6 +105,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     showViewCountSetting,
     showQuotaUpgradeButtonSetting,
     signupMethods,
+    deviceBreakdown,
   ] = await Promise.all([
     getAdminStats(),
     getTopListings(10),
@@ -119,6 +121,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     getSiteSetting("show_view_count"),
     getSiteSetting("show_quota_upgrade_button"),
     getSignupMethodBreakdown(),
+    getDeviceBreakdown(30),
   ]);
   const showViewCount = showViewCountSetting !== "false";
   const showQuotaUpgradeButton = showQuotaUpgradeButtonSetting === "true";
@@ -274,8 +277,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {/* Interactive charts */}
         <ChartSection />
 
-        {/* Middle row */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* Audience row — signup + device */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Signup method breakdown */}
           <div className="rounded-xl border bg-white p-5 space-y-4">
             <h2 className="font-semibold text-sm text-neutral-800 flex items-center gap-2">
@@ -291,6 +294,28 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               />
             )}
           </div>
+
+          {/* Device breakdown */}
+          <div className="rounded-xl border bg-white p-5 space-y-4">
+            <h2 className="font-semibold text-sm text-neutral-800 flex items-center gap-2">
+              <Smartphone className="h-4 w-4 text-emerald-500" />
+              คนใช้อะไรดูเว็บ (30 วัน)
+            </h2>
+            {deviceBreakdown.length === 0 ? (
+              <p className="text-xs text-neutral-400">
+                ยังไม่มีข้อมูล — รัน migration <code>0036_page_views_device_type.sql</code> แล้วรอ traffic
+              </p>
+            ) : (
+              <MiniBar
+                items={deviceBreakdown.map((d) => ({ label: `${d.device} · ${d.pct}%`, count: d.count }))}
+                max={Math.max(...deviceBreakdown.map((d) => d.count), 1)}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Middle row */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
 
           {/* By category */}
           <div className="rounded-xl border bg-white p-5 space-y-4">

@@ -13,6 +13,12 @@ function extractDomain(url: string | null): string | null {
 
 const BOTS = /bot|crawler|spider|crawling|facebookexternalhit|Twitterbot|Google|Bing|Baidu|DuckDuck/i;
 
+function detectDeviceType(ua: string): "mobile" | "tablet" | "desktop" {
+  if (/iPad|Tablet|PlayBook|Silk/i.test(ua)) return "tablet";
+  if (/Mobi|Android|iPhone|iPod|Opera Mini|IEMobile/i.test(ua)) return "mobile";
+  return "desktop";
+}
+
 export async function POST(req: NextRequest) {
   const ua = req.headers.get("user-agent") ?? "";
   if (BOTS.test(ua)) return NextResponse.json({ ok: true });
@@ -22,9 +28,10 @@ export async function POST(req: NextRequest) {
     if (!path || typeof path !== "string") return NextResponse.json({ ok: true });
 
     const referrer_domain = extractDomain(referrer ?? null);
+    const device_type = detectDeviceType(ua);
 
     const supabase = createAdminClient();
-    const { error } = await supabase.from("page_views").insert({ path, referrer: referrer || null, referrer_domain });
+    const { error } = await supabase.from("page_views").insert({ path, referrer: referrer || null, referrer_domain, device_type });
     if (error) console.error("[track] insert error:", error.message, error.code);
   } catch (err) {
     console.error("[track] error:", err);
