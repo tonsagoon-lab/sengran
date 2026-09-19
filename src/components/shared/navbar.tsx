@@ -30,13 +30,13 @@ export async function Navbar() {
 
         {/* Desktop nav */}
         <div className="flex items-center gap-2">
-          {/* ลงโฆษณา — always visible, near logo */}
+          {/* ซื้อโฆษณา — always visible, near logo */}
           <Link
             href="/services"
-            className="hidden sm:flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
+            className="cta-shimmer hidden sm:flex items-center gap-1.5 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-3.5 py-1.5 text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-600 transition-colors whitespace-nowrap"
           >
             <Megaphone className="h-4 w-4 shrink-0" />
-            ลงโฆษณา
+            <span className="relative z-[1]">ซื้อโฆษณา</span>
           </Link>
           {user && <NotificationBell />}
           <NavbarClient user={user} profile={profile} />
