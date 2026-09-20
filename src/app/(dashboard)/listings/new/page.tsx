@@ -24,13 +24,15 @@ export default async function NewListingPage() {
 
   const profileComplete = !!(profile?.display_name && profile?.mobile);
 
-  const [categories, provinces, amenities, config, equipmentSetting] = await Promise.all([
+  const [categories, provinces, amenities, config, equipmentSetting, modalPackageVersion, modalFaakVersion] = await Promise.all([
     getAllCategories(),
     getAllProvinces(),
     getAllAmenities(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any).from("system_announcement").select("line_package_url, line_faak_url, modal_title, modal_subtitle, button_text_package, button_text_faak, button_text_view").eq("id", 1).single() as Promise<{ data: { line_package_url?: string; line_faak_url?: string; modal_title?: string; modal_subtitle?: string; button_text_package?: string; button_text_faak?: string; button_text_view?: string } | null }>,
     getSiteSetting("show_equipment"),
+    getSiteSetting("modal_package_image_version"),
+    getSiteSetting("modal_faak_image_version"),
   ]);
   const showEquipment = equipmentSetting === "true";
 
@@ -57,6 +59,8 @@ export default async function NewListingPage() {
           buttonTextPackage={config.data?.button_text_package ?? undefined}
           buttonTextFaak={config.data?.button_text_faak ?? undefined}
           buttonTextView={config.data?.button_text_view ?? undefined}
+          modalPackageVersion={modalPackageVersion ?? undefined}
+          modalFaakVersion={modalFaakVersion ?? undefined}
         />
       </ListingTypeChooser>
     </main>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, ChevronUp, ChevronDown, Pencil, Check, X, Upload, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { updateSiteSettingAction } from "@/lib/actions/site-settings";
 
 interface Banner {
   id: string;
@@ -298,9 +299,21 @@ const MODAL_IMAGES = [
   { label: "รูป Option 2 — ฝากเซ้งร้าน", path: "modal-faak.jpg" },
 ];
 
+const MODAL_VERSION_KEY: Record<string, string> = {
+  "modal-package.jpg": "modal_package_image_version",
+  "modal-faak.jpg": "modal_faak_image_version",
+};
+
 function ModalImageSlot({ label, path }: { label: string; path: string }) {
   const [url, setUrl] = useState(`https://fexxmtjmrlpitzsjrgbd.supabase.co/storage/v1/object/public/banners/${path}?t=${Date.now()}`);
-  const { uploading, inputRef, handleFile } = useImageUpload((newUrl) => setUrl(newUrl + `?t=${Date.now()}`), path);
+  const { uploading, inputRef, handleFile } = useImageUpload(async (newUrl) => {
+    const version = Date.now().toString();
+    setUrl(newUrl + `?v=${version}`);
+    const key = MODAL_VERSION_KEY[path];
+    if (key) {
+      try { await updateSiteSettingAction(key, version); } catch { /* non-fatal */ }
+    }
+  }, path);
 
   return (
     <div className="rounded-lg border bg-white p-4 space-y-2">

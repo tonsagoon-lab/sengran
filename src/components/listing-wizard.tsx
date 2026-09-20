@@ -68,6 +68,8 @@ interface WizardProps {
   buttonTextPackage?: string;
   buttonTextFaak?: string;
   buttonTextView?: string;
+  modalPackageVersion?: string;
+  modalFaakVersion?: string;
   listing?: ListingWithImages & {
     categories?: { name_th: string; slug: string } | null;
     provinces?: { name_th: string; slug: string } | null;
@@ -421,9 +423,16 @@ export function ListingWizard({
   userId, categories, provinces, amenities, listing,
   linePackageUrl, lineFaakUrl,
   modalTitle, modalSubtitle, buttonTextPackage, buttonTextFaak, buttonTextView,
+  modalPackageVersion, modalFaakVersion,
 }: WizardProps) {
   const pkgUrl = linePackageUrl || DEFAULT_LINE_URL;
   const faakUrl = lineFaakUrl || DEFAULT_LINE_URL;
+  const pkgImageUrl = modalPackageVersion
+    ? `${MODAL_PACKAGE_IMAGE_URL}?v=${modalPackageVersion}`
+    : MODAL_PACKAGE_IMAGE_URL;
+  const faakImageUrl = modalFaakVersion
+    ? `${MODAL_FAAK_IMAGE_URL}?v=${modalFaakVersion}`
+    : MODAL_FAAK_IMAGE_URL;
   const successTitle = modalTitle || "ประกาศเผยแพร่แล้ว!";
   const successSubtitle = modalSubtitle || "เลือกขั้นตอนถัดไป";
   const btnPackage = buttonTextPackage || "ซื้อ package เซ้งร้าน";
@@ -1099,9 +1108,9 @@ export function ListingWizard({
                 rel="noopener noreferrer"
                 className="block rounded-xl overflow-hidden border border-neutral-200 hover:border-orange-400 hover:shadow-md transition-all"
               >
-                {MODAL_PACKAGE_IMAGE_URL && (
+                {pkgImageUrl && (
                   <img
-                    src={MODAL_PACKAGE_IMAGE_URL}
+                    src={pkgImageUrl}
                     alt={btnPackage}
                     className="w-full object-cover"
                   />
@@ -1118,9 +1127,9 @@ export function ListingWizard({
                 rel="noopener noreferrer"
                 className="block rounded-xl overflow-hidden border border-neutral-200 hover:border-green-400 hover:shadow-md transition-all"
               >
-                {MODAL_FAAK_IMAGE_URL && (
+                {faakImageUrl && (
                   <img
-                    src={MODAL_FAAK_IMAGE_URL}
+                    src={faakImageUrl}
                     alt={btnFaak}
                     className="w-full object-cover"
                   />

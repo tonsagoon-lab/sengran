@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAllCategories, getAllProvinces, getAllAmenities, getListingForEdit, getListingForEditAdmin } from "@/lib/db/listings";
+import { getSiteSetting } from "@/lib/db/admin";
 import { ListingWizard } from "@/components/listing-wizard";
 
 export const metadata = { title: "แก้ไขประกาศ — เซ้งร้าน.com" , robots: { index: false, follow: false } };
@@ -26,13 +27,15 @@ export default async function EditListingPage({ params }: Props) {
 
   const privileged = isPrivileged(user.email ?? undefined);
 
-  const [listing, categories, provinces, amenities, config] = await Promise.all([
+  const [listing, categories, provinces, amenities, config, modalPackageVersion, modalFaakVersion] = await Promise.all([
     privileged ? getListingForEditAdmin(id) : getListingForEdit(id, user.id),
     getAllCategories(),
     getAllProvinces(),
     getAllAmenities(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any).from("system_announcement").select("line_package_url, line_faak_url, modal_title, modal_subtitle, button_text_package, button_text_faak, button_text_view").eq("id", 1).single() as Promise<{ data: { line_package_url?: string; line_faak_url?: string; modal_title?: string; modal_subtitle?: string; button_text_package?: string; button_text_faak?: string; button_text_view?: string } | null }>,
+    getSiteSetting("modal_package_image_version"),
+    getSiteSetting("modal_faak_image_version"),
   ]);
 
   if (!listing) notFound();
@@ -53,6 +56,8 @@ export default async function EditListingPage({ params }: Props) {
         buttonTextPackage={config.data?.button_text_package ?? undefined}
         buttonTextFaak={config.data?.button_text_faak ?? undefined}
         buttonTextView={config.data?.button_text_view ?? undefined}
+        modalPackageVersion={modalPackageVersion ?? undefined}
+        modalFaakVersion={modalFaakVersion ?? undefined}
       />
     </main>
   );
