@@ -894,6 +894,16 @@ export function ListingWizard({
         <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-200">
           <Card>
             <CardContent className="pt-5 space-y-4">
+              <GoogleMapsInput
+                initialCoords={initialCoords}
+                onChange={(coords) => {
+                  setData({
+                    latitude: coords ? String(coords.lat) : "",
+                    longitude: coords ? String(coords.lng) : "",
+                  });
+                }}
+              />
+
               <div className="space-y-2">
                 <Label>จังหวัด <span className="text-red-500">*</span></Label>
                 <ProvinceCombobox
@@ -924,16 +934,6 @@ export function ListingWizard({
                   rows={3}
                 />
               </div>
-
-              <GoogleMapsInput
-                initialCoords={initialCoords}
-                onChange={(coords) => {
-                  setData({
-                    latitude: coords ? String(coords.lat) : "",
-                    longitude: coords ? String(coords.lng) : "",
-                  });
-                }}
-              />
             </CardContent>
           </Card>
         </div>
