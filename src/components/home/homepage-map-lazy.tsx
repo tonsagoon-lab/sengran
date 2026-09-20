@@ -76,7 +76,7 @@ export function HomepageMapLazy({ listings }: HomepageMapLazyProps) {
             listings={listings}
             autoLocate={false}
             initialCenter={[13.75, 100.55]}
-            initialZoom={10}
+            initialZoom={9}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200">
