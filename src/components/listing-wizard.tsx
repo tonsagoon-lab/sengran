@@ -606,20 +606,26 @@ export function ListingWizard({
     if (!validate(TOTAL_STEPS)) return;
     setSubmitError(null);
     startTransition(async () => {
-      const fd = buildFormData(status);
-      const action = isEdit ? updateListingAction : createListingAction;
-      const result = await action(undefined, fd);
-      if (result?.quotaExceeded) {
-        setQuotaInfo({ quota: result.quota ?? 5, current: result.current ?? 0 });
-        setShowQuotaModal(true);
-        return;
-      }
-      if (result?.error) { setSubmitError(result.error); return; }
-      try { sessionStorage.removeItem(storageKey); } catch {}
-      if (status === "published" && !isEdit) {
-        setShowSuccessModal(true);
-      } else {
-        router.push("/my-listings");
+      try {
+        const fd = buildFormData(status);
+        const action = isEdit ? updateListingAction : createListingAction;
+        const result = await action(undefined, fd);
+        if (result?.quotaExceeded) {
+          setQuotaInfo({ quota: result.quota ?? 5, current: result.current ?? 0 });
+          setShowQuotaModal(true);
+          return;
+        }
+        if (result?.error) { setSubmitError(result.error); return; }
+        try { sessionStorage.removeItem(storageKey); } catch {}
+        if (status === "published" && !isEdit) {
+          setShowSuccessModal(true);
+        } else {
+          router.push("/my-listings");
+        }
+      } catch (err) {
+        console.error("[listing-wizard] submit failed", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        setSubmitError(`เกิดข้อผิดพลาด: ${msg}`);
       }
     });
   }
