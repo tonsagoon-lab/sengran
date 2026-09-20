@@ -89,17 +89,14 @@ export function HomepageMapLazy({ listings }: HomepageMapLazyProps) {
           </div>
         )}
 
-        {/* Full-cover tap target — locks the map preview and routes to /map */}
+        {/* Only the button navigates — tapping the map itself does nothing */}
         <Link
           href="/map"
           aria-label="ดูแผนที่ทั้งหมด"
-          className="absolute inset-0 z-[500] flex items-end justify-center pb-4"
-          style={{ touchAction: "pan-y" }}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[500] inline-flex items-center gap-1.5 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-neutral-800 shadow-md ring-1 ring-black/5 hover:bg-white"
         >
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-neutral-800 shadow-md ring-1 ring-black/5">
-            <Maximize2 className="h-4 w-4" />
-            ดูแผนที่ทั้งหมด
-          </span>
+          <Maximize2 className="h-4 w-4" />
+          ดูแผนที่ทั้งหมด
         </Link>
       </div>
     </section>
