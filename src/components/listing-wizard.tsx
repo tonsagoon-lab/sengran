@@ -1112,7 +1112,7 @@ export function ListingWizard({
                   <img
                     src={pkgImageUrl}
                     alt={btnPackage}
-                    className="w-full object-cover"
+                    className="w-full aspect-[16/9] object-cover"
                   />
                 )}
                 <div className="bg-orange-500 hover:bg-orange-600 py-2.5 text-center font-semibold text-sm text-white">
@@ -1131,7 +1131,7 @@ export function ListingWizard({
                   <img
                     src={faakImageUrl}
                     alt={btnFaak}
-                    className="w-full object-cover"
+                    className="w-full aspect-[16/9] object-cover"
                   />
                 )}
                 <div className="bg-[#06C755] py-2.5 text-center font-semibold text-sm text-white">

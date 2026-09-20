@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { setSiteSetting } from "@/lib/db/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,5 +18,6 @@ async function requireAdmin() {
 export async function updateSiteSettingAction(key: string, value: string) {
   await requireAdmin();
   await setSiteSetting(key, value);
+  updateTag("site_settings");
   revalidatePath("/", "layout");
 }
