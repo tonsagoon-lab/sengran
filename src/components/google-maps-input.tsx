@@ -1,12 +1,25 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Loader2, MapPin, X, CheckCircle2, XCircle, Link2, Search } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Loader2, MapPin, X, CheckCircle2, XCircle, Link2, Search, Hand } from "lucide-react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resolveGoogleMapsUrl } from "@/lib/actions/maps";
 import type { Coords } from "@/lib/utils/google-maps";
+
+const LocationPickerMap = dynamic(
+  () => import("./location-picker-map").then((m) => m.LocationPickerMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-56 w-full rounded-lg border bg-neutral-100 flex items-center justify-center text-xs text-neutral-400">
+        กำลังโหลดแผนที่…
+      </div>
+    ),
+  }
+);
 
 interface GoogleMapsInputProps {
   initialCoords?: Coords | null;
@@ -211,16 +224,26 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
     onChange(null);
   }
 
-  const embedUrl = coords
-    ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&output=embed`
-    : null;
+  function handleMapDrag(c: Coords) {
+    setCoords(c);
+    setLocationName(null);
+    setLinkStatus("idle");
+    onChange(c);
+  }
 
   return (
-    <div className="space-y-2">
-      <Label>
-        ตำแหน่งที่ตั้ง{" "}
-        <span className="text-neutral-400 font-normal">(ไม่บังคับ)</span>
-      </Label>
+    <div className="rounded-2xl border-2 border-orange-200 bg-gradient-to-br from-orange-50/60 to-white p-4 space-y-3 shadow-sm">
+      <div className="flex items-start gap-2">
+        <MapPin className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <Label className="text-base font-bold text-neutral-900">
+            ตำแหน่งที่ตั้งบนแผนที่
+          </Label>
+          <p className="text-xs text-neutral-500 mt-0.5">
+            <span className="font-medium text-orange-600">แนะนำให้ปักหมุด</span> เพื่อให้ผู้ซื้อเห็นทำเลชัดเจน — ค้นหาชื่อสถานที่ หรือลากหมุดบนแผนที่ก็ได้
+          </p>
+        </div>
+      </div>
 
       {/* Mode tabs */}
       <div className="flex rounded-lg border overflow-hidden text-sm">
@@ -344,24 +367,27 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
           <span className="flex items-center gap-2 min-w-0">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span className="truncate">
-              {locationName ?? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`}
+              {locationName ?? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`}
             </span>
           </span>
           <button type="button" onClick={handleClear} className="ml-2 shrink-0 text-green-600 hover:text-green-800 text-xs">
-            เปลี่ยน
+            ล้าง
           </button>
         </div>
       )}
 
-      {/* Map preview */}
-      {embedUrl && (
-        <iframe
-          src={embedUrl}
-          className="w-full h-48 rounded-lg border"
-          loading="lazy"
-          title="แผนที่"
+      {/* Interactive draggable-pin map */}
+      <div className="relative">
+        <LocationPickerMap
+          coords={coords}
+          onCoordsChange={handleMapDrag}
+          className="h-56 md:h-64 w-full rounded-lg border overflow-hidden"
         />
-      )}
+        <div className="pointer-events-none absolute left-2 bottom-2 z-[400] flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-medium text-neutral-700 shadow ring-1 ring-black/5">
+          <Hand className="h-3 w-3" />
+          ลากหมุดเพื่อปรับตำแหน่ง
+        </div>
+      </div>
     </div>
   );
 }
