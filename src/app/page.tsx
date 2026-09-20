@@ -12,6 +12,7 @@ import { PromoListings } from "@/components/home/promo-listings";
 import { EditorialPicks } from "@/components/home/editorial-picks";
 import { PremiumListings } from "@/components/home/premium-listings";
 import { TrustSection } from "@/components/home/trust-section";
+import { MapPreviewSection } from "@/components/home/map-preview-section";
 import { getAllProvinces } from "@/lib/db/listings";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -121,6 +122,11 @@ export default async function HomePage() {
         <div id="near-me">
           <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
         </div>
+
+        {/* Map preview */}
+        <Suspense fallback={null}>
+          <MapPreviewSection />
+        </Suspense>
 
         {/* Editorial picks */}
         <Suspense fallback={null}>
