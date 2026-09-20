@@ -96,13 +96,13 @@ export function HomeScreenV2({ categories, featured, latest }: Props) {
       <section className="px-4 pb-6 pt-5">
         <Link
           href="/listings/new"
-          className="flex items-center gap-3.5 rounded-xl border border-orange-200 bg-orange-50 p-4 transition-all hover:border-orange-300 hover:bg-orange-100/60"
+          className="flex items-center gap-3.5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 transition-all hover:border-emerald-300 hover:bg-emerald-100/60"
         >
-          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-orange-500 text-white shadow-sm">
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-sm">
             <Plus className="size-[22px]" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14px] font-bold text-orange-700">ลงประกาศฟรี!</span>
+            <span className="block text-[14px] font-bold text-emerald-700">ลงประกาศฟรี!</span>
             <span className="mt-0.5 block text-xs text-neutral-500">เซ้ง / ให้เช่าร้านของคุณ ไม่มีค่าใช้จ่าย</span>
           </span>
           <ChevronRight className="size-[18px] shrink-0 text-neutral-400" />

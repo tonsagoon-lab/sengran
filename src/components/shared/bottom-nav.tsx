@@ -29,10 +29,10 @@ export function BottomNav({ active }: { active: TabId }) {
         if (t.primary) {
           return (
             <Link key={t.id} href={t.href} className="flex flex-col items-center gap-0.5 text-neutral-500">
-              <span className="-mt-3 grid size-11 place-items-center rounded-full bg-orange-500 text-white shadow-[0_4px_12px_rgb(249_115_22_/_0.4)] transition-transform hover:scale-105 active:scale-95">
+              <span className="-mt-3 grid size-11 place-items-center rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-[0_4px_12px_rgb(16_185_129_/_0.45)] transition-transform hover:scale-105 active:scale-95">
                 <Icon className="size-[22px]" />
               </span>
-              <span className="text-[10px] font-semibold text-neutral-500">{t.label}</span>
+              <span className="text-[10px] font-semibold text-emerald-600">{t.label}</span>
             </Link>
           );
         }
