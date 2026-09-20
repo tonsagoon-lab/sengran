@@ -41,15 +41,14 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin }: Top
           <span className="hidden sm:inline">หน้าแรก</span>
         </Link>
 
-        {/* 2. แจ้งร้านใหม่ — highlighted orange */}
+        {/* 2. เตือนร้านใหม่ — highlighted orange */}
         <Link
           href="/alerts"
-          aria-label="แจ้งร้านใหม่"
+          aria-label="เตือนร้านใหม่"
           className="relative flex shrink-0 items-center gap-1.5 rounded-full bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors whitespace-nowrap"
         >
           <Bell className="h-4 w-4 shrink-0" />
-          <span className="sm:hidden">เตือนเซ้งร้าน</span>
-          <span className="hidden sm:inline">แจ้งร้านใหม่</span>
+          <span>เตือนร้านใหม่</span>
           {unreadNotifCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
               {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
@@ -57,7 +56,7 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin }: Top
           )}
         </Link>
 
-        {/* 4. ขายอุปกรณ์ — highlighted purple, ติดกับเตือนเซ้งร้าน */}
+        {/* 4. ขายอุปกรณ์ — highlighted purple, ติดกับเตือนร้านใหม่ */}
         <Link
           href="/equipment"
           className="flex shrink-0 items-center gap-1.5 rounded-full bg-purple-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-purple-700 transition-colors whitespace-nowrap"
