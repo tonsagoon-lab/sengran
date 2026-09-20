@@ -117,10 +117,21 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
         )}
       </nav>
 
-      {/* Mobile hamburger */}
-      <button className="md:hidden p-2 rounded-md text-neutral-600" onClick={() => setMobileOpen((v) => !v)} aria-label="เปิด/ปิดเมนู">
-        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </button>
+      {/* Mobile: compact ลงประกาศ ฟรี CTA + hamburger */}
+      <div className="flex items-center gap-1.5 md:hidden">
+        <Link
+          href={user ? "/listings/new" : "/register"}
+          className="cta-free relative inline-flex items-center gap-1 overflow-hidden rounded-full bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 px-2.5 py-1.5 text-xs font-bold text-white shadow-md ring-2 ring-yellow-300/60 whitespace-nowrap"
+        >
+          <span className="relative z-[1]">+ ลงประกาศ</span>
+          <span className="relative z-[1] rounded bg-gradient-to-r from-yellow-300 to-amber-300 px-1 py-0.5 text-[10px] font-black text-rose-700 shadow-sm ring-1 ring-yellow-200 animate-pulse leading-none">
+            ฟรี!
+          </span>
+        </Link>
+        <button className="p-2 rounded-md text-neutral-600" onClick={() => setMobileOpen((v) => !v)} aria-label="เปิด/ปิดเมนู">
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </div>
 
       {/* Mobile drawer */}
       {mobileOpen && (
