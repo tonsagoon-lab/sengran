@@ -51,7 +51,7 @@ export function ProvinceCombobox({ provinces, value, onChange, error }: Province
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
+        <PopoverContent className="w-full p-0 z-[1000]" align="start">
           <Command>
             <CommandInput placeholder="ค้นหาจังหวัด..." />
             <CommandList className="max-h-60">
