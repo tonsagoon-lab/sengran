@@ -70,11 +70,13 @@ export function HomepageMapLazy({ listings }: HomepageMapLazyProps) {
       <div
         ref={containerRef}
         className="relative h-[320px] md:h-[420px] w-full overflow-hidden rounded-2xl border bg-neutral-100 shadow-sm"
+        style={{ touchAction: "pan-y" }}
       >
         {inView ? (
           <MapView
             listings={listings}
             autoLocate={false}
+            interactive={false}
             initialCenter={[13.75, 100.55]}
             initialZoom={9}
           />
@@ -87,13 +89,17 @@ export function HomepageMapLazy({ listings }: HomepageMapLazyProps) {
           </div>
         )}
 
+        {/* Full-cover tap target — locks the map preview and routes to /map */}
         <Link
           href="/map"
-          aria-label="เปิดแผนที่เต็มจอ"
-          className="absolute right-3 top-3 z-[500] inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-neutral-800 shadow ring-1 ring-black/5 hover:bg-white"
+          aria-label="ดูแผนที่ทั้งหมด"
+          className="absolute inset-0 z-[500] flex items-end justify-center pb-4"
+          style={{ touchAction: "pan-y" }}
         >
-          <Maximize2 className="h-3.5 w-3.5" />
-          <span>เต็มจอ</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-neutral-800 shadow-md ring-1 ring-black/5">
+            <Maximize2 className="h-4 w-4" />
+            ดูแผนที่ทั้งหมด
+          </span>
         </Link>
       </div>
     </section>

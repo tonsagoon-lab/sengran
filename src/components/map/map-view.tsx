@@ -47,6 +47,8 @@ interface MapViewProps {
   autoLocate?: boolean;
   initialCenter?: [number, number];
   initialZoom?: number;
+  /** When false, disables all map interactions (drag/zoom/click) so it acts as a static preview. */
+  interactive?: boolean;
 }
 
 export function MapView({
@@ -56,6 +58,7 @@ export function MapView({
   autoLocate = true,
   initialCenter,
   initialZoom,
+  interactive = true,
 }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
@@ -83,6 +86,12 @@ export function MapView({
         zoomControl: false,
         maxBounds: THAILAND_BOUNDS,
         maxBoundsViscosity: 0.8,
+        dragging: interactive,
+        touchZoom: interactive,
+        doubleClickZoom: interactive,
+        scrollWheelZoom: interactive,
+        boxZoom: interactive,
+        keyboard: interactive,
       }).setView(initialCenter ?? BANGKOK, initialZoom ?? 6);
       mapInstanceRef.current = map;
 
@@ -92,7 +101,9 @@ export function MapView({
         minZoom: 6,
       }).addTo(map);
 
-      L.control.zoom({ position: "bottomright" }).addTo(map);
+      if (interactive) {
+        L.control.zoom({ position: "bottomright" }).addTo(map);
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const cluster = (L as any).markerClusterGroup({
@@ -228,8 +239,12 @@ export function MapView({
         iconAnchor: [0, 0],
         iconSize: [0, 0],
       });
-      const marker = L.marker([listing.latitude, listing.longitude], { icon });
-      marker.on("click", () => setSelected(listing));
+      const marker = L.marker([listing.latitude, listing.longitude], {
+        icon,
+        interactive,
+        keyboard: interactive,
+      });
+      if (interactive) marker.on("click", () => setSelected(listing));
       cluster.addLayer(marker);
     });
   }, [listings, ready]);
