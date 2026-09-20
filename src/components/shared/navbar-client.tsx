@@ -36,10 +36,14 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
       <nav className="hidden md:flex items-center gap-3">
         {user ? (
           <>
-            <Link href="/listings/new">
-              <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-                + ลงประกาศ
-              </Button>
+            <Link
+              href="/listings/new"
+              className="cta-free group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 px-4 py-2 text-sm font-bold text-white shadow-md ring-2 ring-yellow-300/60 hover:shadow-lg hover:-translate-y-0.5 transition-all whitespace-nowrap"
+            >
+              <span className="relative z-[1]">+ ลงประกาศ</span>
+              <span className="relative z-[1] rounded-md bg-gradient-to-r from-yellow-300 to-amber-300 px-1.5 py-0.5 text-xs font-black text-rose-700 shadow-sm ring-1 ring-yellow-200 animate-pulse">
+                ฟรี!
+              </span>
             </Link>
 
             <DropdownMenu>
@@ -134,8 +138,15 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                     <p className="text-xs text-neutral-500">{user.email}</p>
                   </div>
                 </div>
-                <Link href="/listings/new" onClick={() => setMobileOpen(false)}>
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">+ ลงประกาศ</Button>
+                <Link
+                  href="/listings/new"
+                  onClick={() => setMobileOpen(false)}
+                  className="cta-free relative flex w-full items-center justify-center gap-1.5 overflow-hidden rounded-md bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 px-4 py-2 text-sm font-bold text-white shadow-md ring-2 ring-yellow-300/60 transition-all"
+                >
+                  <span className="relative z-[1]">+ ลงประกาศ</span>
+                  <span className="relative z-[1] rounded-md bg-gradient-to-r from-yellow-300 to-amber-300 px-1.5 py-0.5 text-xs font-black text-rose-700 shadow-sm ring-1 ring-yellow-200 animate-pulse">
+                    ฟรี!
+                  </span>
                 </Link>
                 <Link href="/profile" className="flex items-center gap-2 py-2 text-sm" onClick={() => setMobileOpen(false)}>
                   <UserIcon className="h-4 w-4" /> โปรไฟล์
