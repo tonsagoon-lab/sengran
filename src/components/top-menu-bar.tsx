@@ -1,5 +1,6 @@
 import { getUnreadMessageCount } from "@/lib/db/messages";
 import { getUnreadCount } from "@/lib/db/alerts";
+import { getSiteSetting } from "@/lib/db/admin";
 import { createClient } from "@/lib/supabase/server";
 import { TopMenuBarClient } from "./top-menu-bar-client";
 
@@ -14,9 +15,10 @@ export async function TopMenuBar() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [unreadCount, unreadNotifCount] = await Promise.all([
+  const [unreadCount, unreadNotifCount, equipmentSetting] = await Promise.all([
     getUnreadMessageCount(),
     user ? getUnreadCount() : Promise.resolve(0),
+    getSiteSetting("show_equipment"),
   ]);
 
   return (
@@ -24,6 +26,7 @@ export async function TopMenuBar() {
       unreadCount={unreadCount}
       unreadNotifCount={unreadNotifCount}
       isAdmin={isPrivileged(user?.email ?? undefined)}
+      showEquipment={equipmentSetting === "true"}
     />
   );
 }

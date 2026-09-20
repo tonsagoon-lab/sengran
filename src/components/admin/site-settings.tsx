@@ -29,9 +29,10 @@ interface SiteSettingsProps {
   showViewCount: boolean;
   showQuotaUpgradeButton: boolean;
   showPromoteButtons: boolean;
+  showEquipment: boolean;
 }
 
-export function SiteSettings({ showViewCount, showQuotaUpgradeButton, showPromoteButtons }: SiteSettingsProps) {
+export function SiteSettings({ showViewCount, showQuotaUpgradeButton, showPromoteButtons, showEquipment }: SiteSettingsProps) {
   const [tab, setTab] = useState<TabKey>("general");
 
   return (
@@ -58,7 +59,7 @@ export function SiteSettings({ showViewCount, showQuotaUpgradeButton, showPromot
 
       {/* Panels */}
       <div className="pt-1">
-        {tab === "general" && <GeneralSettingsManager showViewCount={showViewCount} showQuotaUpgradeButton={showQuotaUpgradeButton} showPromoteButtons={showPromoteButtons} />}
+        {tab === "general" && <GeneralSettingsManager showViewCount={showViewCount} showQuotaUpgradeButton={showQuotaUpgradeButton} showPromoteButtons={showPromoteButtons} showEquipment={showEquipment} />}
         {tab === "categories" && <CategoriesManager />}
         {tab === "banners" && <BannersManager />}
         {tab === "provinces" && <ProvincesManager />}

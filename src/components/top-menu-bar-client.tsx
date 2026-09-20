@@ -8,10 +8,11 @@ interface TopMenuBarClientProps {
   unreadCount: number;
   unreadNotifCount: number;
   isAdmin: boolean;
+  showEquipment: boolean;
 }
 
 
-export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin }: TopMenuBarClientProps) {
+export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, showEquipment }: TopMenuBarClientProps) {
   const pathname = usePathname();
 
   function handleNearMe(e: React.MouseEvent<HTMLAnchorElement>) {
@@ -57,14 +58,16 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin }: Top
         </Link>
 
         {/* 4. ขายอุปกรณ์ — highlighted purple, ติดกับเตือนร้านใหม่ */}
-        <Link
-          href="/equipment"
-          className="flex shrink-0 items-center gap-1.5 rounded-full bg-purple-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-purple-700 transition-colors whitespace-nowrap"
-          aria-label="ขายอุปกรณ์"
-        >
-          <Package className="h-4 w-4 shrink-0" />
-          <span>ขายอุปกรณ์</span>
-        </Link>
+        {showEquipment && (
+          <Link
+            href="/equipment"
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-purple-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-purple-700 transition-colors whitespace-nowrap"
+            aria-label="ขายอุปกรณ์"
+          >
+            <Package className="h-4 w-4 shrink-0" />
+            <span>ขายอุปกรณ์</span>
+          </Link>
+        )}
 
         {/* 6. แผนที่เซ้ง */}
         <Link

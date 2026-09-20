@@ -105,6 +105,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     showViewCountSetting,
     showQuotaUpgradeButtonSetting,
     showPromoteButtonsSetting,
+    showEquipmentSetting,
     signupMethods,
     deviceBreakdown,
   ] = await Promise.all([
@@ -122,12 +123,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     getSiteSetting("show_view_count"),
     getSiteSetting("show_quota_upgrade_button"),
     getSiteSetting("show_promote_buttons"),
+    getSiteSetting("show_equipment"),
     getSignupMethodBreakdown(),
     getDeviceBreakdown(30),
   ]);
   const showViewCount = showViewCountSetting !== "false";
   const showQuotaUpgradeButton = showQuotaUpgradeButtonSetting === "true";
   const showPromoteButtons = showPromoteButtonsSetting === "true";
+  const showEquipment = showEquipmentSetting === "true";
 
   type AdminOrder = {
     id: string; reference: string; order_type: string; package_key: string;
@@ -230,7 +233,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {activeTab === "articles" && <ArticlesManager />}
 
         {/* ── Settings tab ─────────────────────────────────── */}
-        {activeTab === "settings" && isAdmin && <SiteSettings showViewCount={showViewCount} showQuotaUpgradeButton={showQuotaUpgradeButton} showPromoteButtons={showPromoteButtons} />}
+        {activeTab === "settings" && isAdmin && <SiteSettings showViewCount={showViewCount} showQuotaUpgradeButton={showQuotaUpgradeButton} showPromoteButtons={showPromoteButtons} showEquipment={showEquipment} />}
         {activeTab === "settings" && !isAdmin && (
           <p className="text-sm text-neutral-500">คุณไม่มีสิทธิ์เข้าถึงส่วนนี้</p>
         )}

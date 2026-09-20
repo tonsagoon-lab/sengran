@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function ListingTypeChooser({ children }: { children: React.ReactNode }) {
+export function ListingTypeChooser({ children, showEquipment }: { children: React.ReactNode; showEquipment: boolean }) {
   const router = useRouter();
   const [chosen, setChosen] = useState(false);
 
-  if (chosen) return <>{children}</>;
+  useEffect(() => {
+    if (!showEquipment) setChosen(true);
+  }, [showEquipment]);
+
+  if (chosen || !showEquipment) return <>{children}</>;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">

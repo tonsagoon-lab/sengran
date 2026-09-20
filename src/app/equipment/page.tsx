@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { TopMenuBar } from "@/components/top-menu-bar";
 import { EquipmentBrowsePage } from "@/components/equipment/equipment-browse-page";
+import { getSiteSetting } from "@/lib/db/admin";
 import type { EquipmentSearchParams } from "@/lib/db/equipment";
 
 export const revalidate = 60;
@@ -30,6 +32,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function EquipmentPage({ searchParams }: Props) {
+  const equipmentSetting = await getSiteSetting("show_equipment");
+  if (equipmentSetting !== "true") notFound();
+
   const params = await searchParams;
   const flat: Record<string, string> = {};
   for (const [k, v] of Object.entries(params)) {

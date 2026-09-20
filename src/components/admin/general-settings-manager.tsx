@@ -51,9 +51,10 @@ interface GeneralSettingsManagerProps {
   showViewCount: boolean;
   showQuotaUpgradeButton: boolean;
   showPromoteButtons: boolean;
+  showEquipment: boolean;
 }
 
-export function GeneralSettingsManager({ showViewCount, showQuotaUpgradeButton, showPromoteButtons }: GeneralSettingsManagerProps) {
+export function GeneralSettingsManager({ showViewCount, showQuotaUpgradeButton, showPromoteButtons, showEquipment }: GeneralSettingsManagerProps) {
   return (
     <div className="space-y-1">
       <SettingToggle
@@ -73,6 +74,12 @@ export function GeneralSettingsManager({ showViewCount, showQuotaUpgradeButton, 
         description="เปิด = ผู้ใช้เห็นปุ่มโปรโมท 300+ บาท และยิงโฆษณา 1,500+ บาท ในหน้าประกาศของฉัน"
         settingKey="show_promote_buttons"
         initialValue={showPromoteButtons}
+      />
+      <SettingToggle
+        label="แสดงระบบขายอุปกรณ์"
+        description="เปิด = ผู้ใช้เห็นเมนู 'ขายอุปกรณ์' บนเว็บ และเข้าถึงหน้า /equipment ได้"
+        settingKey="show_equipment"
+        initialValue={showEquipment}
       />
     </div>
   );

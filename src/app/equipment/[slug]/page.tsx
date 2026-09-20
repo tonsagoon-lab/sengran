@@ -14,6 +14,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { getEquipmentBySlug, getRelatedEquipment, getEquipmentCategories } from "@/lib/db/equipment";
+import { getSiteSetting } from "@/lib/db/admin";
 import { createClient } from "@/lib/supabase/server";
 import { startConversationAction } from "@/lib/actions/messages";
 import { ImageGallery } from "@/components/listings/image-gallery";
@@ -70,6 +71,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function EquipmentDetailPage({ params }: Props) {
+  const equipmentSetting = await getSiteSetting("show_equipment");
+  if (equipmentSetting !== "true") notFound();
+
   const { slug } = await params;
   const listing = await getEquipmentBySlug(decodeURIComponent(slug));
   if (!listing) notFound();

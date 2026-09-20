@@ -1,8 +1,9 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getEquipmentCategories } from "@/lib/db/equipment";
 import { getAllProvinces } from "@/lib/db/listings";
+import { getSiteSetting } from "@/lib/db/admin";
 import { EquipmentWizard } from "@/components/equipment/equipment-wizard";
 import { TopMenuBar } from "@/components/top-menu-bar";
 
@@ -12,6 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default async function NewEquipmentPage() {
+  const equipmentSetting = await getSiteSetting("show_equipment");
+  if (equipmentSetting !== "true") notFound();
+
   const supabase = await createClient();
   const {
     data: { user },
