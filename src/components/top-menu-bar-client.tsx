@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Map, MessageCircle, ShieldCheck, Bell, Package } from "lucide-react";
+import { Home, Map, MessageCircle, ShieldCheck, Bell, Package, Megaphone } from "lucide-react";
 
 interface TopMenuBarClientProps {
   unreadCount: number;
@@ -42,7 +42,17 @@ export function TopMenuBarClient({ unreadCount, unreadNotifCount, isAdmin, showE
           <span className="hidden sm:inline">หน้าแรก</span>
         </Link>
 
-        {/* 2. เตือนร้านใหม่ — highlighted orange */}
+        {/* 2. ซื้อโฆษณา Facebook — highlighted blue with shimmer */}
+        <Link
+          href="/services"
+          aria-label="ซื้อโฆษณา Facebook"
+          className="cta-shimmer relative flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-3 py-1.5 text-sm font-semibold text-white hover:from-blue-700 hover:to-blue-600 transition-colors whitespace-nowrap"
+        >
+          <Megaphone className="h-4 w-4 shrink-0" />
+          <span className="relative z-[1]">ซื้อโฆษณา Facebook</span>
+        </Link>
+
+        {/* 3. เตือนร้านใหม่ — highlighted orange */}
         <Link
           href="/alerts"
           aria-label="เตือนร้านใหม่"
