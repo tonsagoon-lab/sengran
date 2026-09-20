@@ -38,7 +38,7 @@ export default async function MyListingsPage() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">ประกาศของฉัน</h1>
-          <p className="text-xs text-neutral-400 mt-0.5">สิทธิ์ประกาศ: {published.length} / {listingQuota} ประกาศ/ปี</p>
+          <p className="text-xs text-neutral-400 mt-0.5">ลงได้ {listingQuota} ประกาศ</p>
         </div>
         <Link
           href="/listings/new"
@@ -70,7 +70,7 @@ export default async function MyListingsPage() {
               <Megaphone className="h-5 w-5" />
             </div>
             <div className="flex-1 text-left text-white">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-white/80">ซื้อโฆษณา</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-white/80">ซื้อโฆษณา Facebook</p>
               <p className="text-base font-bold leading-tight">เริ่มเพียง 990.-</p>
             </div>
             <ArrowRight className="h-4 w-4 text-white/90 group-hover:translate-x-1 transition-transform" />
