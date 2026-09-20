@@ -38,10 +38,10 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
           <>
             <Link
               href="/listings/new"
-              className="cta-free group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 px-4 py-2 text-sm font-bold text-white shadow-md ring-2 ring-yellow-300/60 hover:shadow-lg hover:-translate-y-0.5 transition-all whitespace-nowrap"
+              className="cta-free group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 px-4 py-2 text-sm font-bold text-white shadow-md ring-2 ring-yellow-300/60 hover:shadow-lg hover:-translate-y-0.5 transition-all whitespace-nowrap"
             >
               <span className="relative z-[1]">+ ลงประกาศ</span>
-              <span className="relative z-[1] rounded-md bg-gradient-to-r from-yellow-300 to-amber-300 px-1.5 py-0.5 text-xs font-black text-rose-700 shadow-sm ring-1 ring-yellow-200 animate-pulse">
+              <span className="relative z-[1] rounded-md bg-gradient-to-r from-yellow-300 to-amber-300 px-1.5 py-0.5 text-xs font-black text-emerald-800 shadow-sm ring-1 ring-yellow-200 animate-pulse">
                 ฟรี!
               </span>
             </Link>
@@ -121,10 +121,10 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
       <div className="flex items-center gap-1.5 md:hidden">
         <Link
           href={user ? "/listings/new" : "/register"}
-          className="cta-free relative inline-flex items-center gap-1 overflow-hidden rounded-full bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 px-2.5 py-1.5 text-xs font-bold text-white shadow-md ring-2 ring-yellow-300/60 whitespace-nowrap"
+          className="cta-free relative inline-flex items-center gap-1 overflow-hidden rounded-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 px-2.5 py-1.5 text-xs font-bold text-white shadow-md ring-2 ring-yellow-300/60 whitespace-nowrap"
         >
           <span className="relative z-[1]">+ ลงประกาศ</span>
-          <span className="relative z-[1] rounded bg-gradient-to-r from-yellow-300 to-amber-300 px-1 py-0.5 text-[10px] font-black text-rose-700 shadow-sm ring-1 ring-yellow-200 animate-pulse leading-none">
+          <span className="relative z-[1] rounded bg-gradient-to-r from-yellow-300 to-amber-300 px-1 py-0.5 text-[10px] font-black text-emerald-800 shadow-sm ring-1 ring-yellow-200 animate-pulse leading-none">
             ฟรี!
           </span>
         </Link>
@@ -152,10 +152,10 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                 <Link
                   href="/listings/new"
                   onClick={() => setMobileOpen(false)}
-                  className="cta-free relative flex w-full items-center justify-center gap-1.5 overflow-hidden rounded-md bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 px-4 py-2 text-sm font-bold text-white shadow-md ring-2 ring-yellow-300/60 transition-all"
+                  className="cta-free relative flex w-full items-center justify-center gap-1.5 overflow-hidden rounded-md bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 px-4 py-2 text-sm font-bold text-white shadow-md ring-2 ring-yellow-300/60 transition-all"
                 >
                   <span className="relative z-[1]">+ ลงประกาศ</span>
-                  <span className="relative z-[1] rounded-md bg-gradient-to-r from-yellow-300 to-amber-300 px-1.5 py-0.5 text-xs font-black text-rose-700 shadow-sm ring-1 ring-yellow-200 animate-pulse">
+                  <span className="relative z-[1] rounded-md bg-gradient-to-r from-yellow-300 to-amber-300 px-1.5 py-0.5 text-xs font-black text-emerald-800 shadow-sm ring-1 ring-yellow-200 animate-pulse">
                     ฟรี!
                   </span>
                 </Link>

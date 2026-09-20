@@ -42,11 +42,11 @@ export default async function MyListingsPage() {
         </div>
         <Link
           href="/listings/new"
-          className="cta-free group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 px-5 py-2.5 text-base font-bold text-white shadow-lg ring-2 ring-yellow-300/60 hover:shadow-xl hover:-translate-y-0.5 transition-all"
+          className="cta-free group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 px-5 py-2.5 text-base font-bold text-white shadow-lg ring-2 ring-yellow-300/60 hover:shadow-xl hover:-translate-y-0.5 transition-all"
         >
           <span className="relative z-[1] flex h-6 w-6 items-center justify-center rounded-full bg-white/25 text-lg leading-none">+</span>
           <span className="relative z-[1]">ลงประกาศ</span>
-          <span className="relative z-[1] rounded-md bg-gradient-to-r from-yellow-300 to-amber-300 px-2 py-0.5 text-sm font-black text-rose-700 shadow-sm ring-1 ring-yellow-200 animate-pulse">
+          <span className="relative z-[1] rounded-md bg-gradient-to-r from-yellow-300 to-amber-300 px-2 py-0.5 text-sm font-black text-emerald-800 shadow-sm ring-1 ring-yellow-200 animate-pulse">
             ฟรี!
           </span>
         </Link>
