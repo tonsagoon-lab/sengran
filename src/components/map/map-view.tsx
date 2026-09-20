@@ -45,6 +45,8 @@ interface MapViewProps {
   targetCenter?: [number, number] | null;
   userLocation?: [number, number] | null;
   autoLocate?: boolean;
+  initialCenter?: [number, number];
+  initialZoom?: number;
 }
 
 export function MapView({
@@ -52,6 +54,8 @@ export function MapView({
   targetCenter,
   userLocation,
   autoLocate = true,
+  initialCenter,
+  initialZoom,
 }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
@@ -79,7 +83,7 @@ export function MapView({
         zoomControl: false,
         maxBounds: THAILAND_BOUNDS,
         maxBoundsViscosity: 0.8,
-      }).setView(BANGKOK, 6);
+      }).setView(initialCenter ?? BANGKOK, initialZoom ?? 6);
       mapInstanceRef.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {

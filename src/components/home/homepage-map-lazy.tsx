@@ -72,7 +72,12 @@ export function HomepageMapLazy({ listings }: HomepageMapLazyProps) {
         className="relative h-[320px] md:h-[420px] w-full overflow-hidden rounded-2xl border bg-neutral-100 shadow-sm"
       >
         {inView ? (
-          <MapView listings={listings} autoLocate={false} />
+          <MapView
+            listings={listings}
+            autoLocate={false}
+            initialCenter={[13.75, 100.55]}
+            initialZoom={10}
+          />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200">
             <div className="flex flex-col items-center gap-2 text-neutral-500">
