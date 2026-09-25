@@ -10,7 +10,7 @@ export async function TrustSection() {
   const STATS = [
     { icon: Calendar, value: "12", label: "ปี ให้บริการ" },
     { icon: Store, value: "751+", label: "ร้านเซ้งสำเร็จ" },
-    { icon: Users, value: recentPageViews.toLocaleString("th-TH"), label: "คนเข้าเว็บ 30 วันล่าสุด" },
+    { icon: Users, value: recentPageViews.toLocaleString("th-TH"), label: "ผู้ชมเว็บ 30 วัน ล่าสุด" },
   ];
 
   const quotes = testimonials.slice(0, 5);
