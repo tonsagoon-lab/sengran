@@ -1,16 +1,16 @@
 import { Calendar, Store, Users, Quote } from "lucide-react";
-import { getActiveTestimonials, getTotalPageViews } from "@/lib/db/listings";
+import { getActiveTestimonials, getRecentPageViews } from "@/lib/db/listings";
 
 export async function TrustSection() {
-  const [testimonials, totalPageViews] = await Promise.all([
+  const [testimonials, recentPageViews] = await Promise.all([
     getActiveTestimonials(),
-    getTotalPageViews(),
+    getRecentPageViews(),
   ]);
 
   const STATS = [
     { icon: Calendar, value: "12", label: "ปี ให้บริการ" },
     { icon: Store, value: "751+", label: "ร้านเซ้งสำเร็จ" },
-    { icon: Users, value: totalPageViews.toLocaleString("th-TH"), label: "คนเข้าเว็บ" },
+    { icon: Users, value: recentPageViews.toLocaleString("th-TH"), label: "คนเข้าเว็บ 30 วันล่าสุด" },
   ];
 
   const quotes = testimonials.slice(0, 5);
@@ -19,7 +19,7 @@ export async function TrustSection() {
     <section className="space-y-6">
       <div className="text-center space-y-1">
         <h2 className="font-semibold text-neutral-800 text-lg">✅ ทำไมต้องเลือกเซ้งร้าน.com</h2>
-        <p className="text-sm text-neutral-500">ประสบการณ์กว่า 10 ปี ที่ผู้เซ้งและผู้ซื้อไว้วางใจ</p>
+        <p className="text-sm text-neutral-500">ประสบการณ์กว่า 12 ปี ที่ผู้เซ้งและผู้ซื้อไว้วางใจ</p>
       </div>
 
       <div className="grid grid-cols-4 gap-2 md:gap-3">
