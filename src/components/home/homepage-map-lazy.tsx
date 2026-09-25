@@ -72,22 +72,31 @@ export function HomepageMapLazy({ listings }: HomepageMapLazyProps) {
         className="relative h-[320px] md:h-[420px] w-full overflow-hidden rounded-2xl border bg-neutral-100 shadow-sm"
         style={{ touchAction: "pan-y" }}
       >
-        {inView ? (
-          <MapView
-            listings={listings}
-            autoLocate={false}
-            interactive={false}
-            initialCenter={[13.75, 100.55]}
-            initialZoom={9}
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200">
-            <div className="flex flex-col items-center gap-2 text-neutral-500">
-              <MapPin className="h-8 w-8" />
-              <span className="text-sm">กำลังโหลดแผนที่…</span>
+        {/* Map is a visual preview only — pointer-events disabled so touches
+            pass through to the page scroll; the button below is the only
+            interactive element. */}
+        <div
+          className="absolute inset-0 pointer-events-none select-none"
+          style={{ touchAction: "pan-y" }}
+          aria-hidden="true"
+        >
+          {inView ? (
+            <MapView
+              listings={listings}
+              autoLocate={false}
+              interactive={false}
+              initialCenter={[13.75, 100.55]}
+              initialZoom={9}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200">
+              <div className="flex flex-col items-center gap-2 text-neutral-500">
+                <MapPin className="h-8 w-8" />
+                <span className="text-sm">กำลังโหลดแผนที่…</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Only the button navigates — tapping the map itself does nothing */}
         <Link
