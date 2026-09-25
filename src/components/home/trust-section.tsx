@@ -1,16 +1,16 @@
-import { Calendar, Store, Sparkles, Quote } from "lucide-react";
-import { getActiveTestimonials, getTotalListingCount } from "@/lib/db/listings";
+import { Calendar, Store, Users, Quote } from "lucide-react";
+import { getActiveTestimonials, getTotalPageViews } from "@/lib/db/listings";
 
 export async function TrustSection() {
-  const [testimonials, totalListings] = await Promise.all([
+  const [testimonials, totalPageViews] = await Promise.all([
     getActiveTestimonials(),
-    getTotalListingCount(),
+    getTotalPageViews(),
   ]);
 
   const STATS = [
     { icon: Calendar, value: "12", label: "ปี ให้บริการ" },
     { icon: Store, value: "751+", label: "ร้านเซ้งสำเร็จ" },
-    { icon: Sparkles, value: totalListings.toLocaleString("th-TH"), label: "ประกาศมาใหม่ปีนี้" },
+    { icon: Users, value: totalPageViews.toLocaleString("th-TH"), label: "คนเข้าเว็บ" },
   ];
 
   const quotes = testimonials.slice(0, 5);

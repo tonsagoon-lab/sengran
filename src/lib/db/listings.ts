@@ -666,3 +666,16 @@ export const getTotalListingCount = unstable_cache(
   { revalidate: 43200 }
 );
 
+export const getTotalPageViews = unstable_cache(
+  async () => {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const supabase = createAdminClient();
+    const { count } = await supabase
+      .from("page_views")
+      .select("id", { count: "exact", head: true });
+    return count ?? 0;
+  },
+  ["total-page-views"],
+  { revalidate: 900 }
+);
+
