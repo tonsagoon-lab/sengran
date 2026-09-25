@@ -7,8 +7,18 @@ export async function TrustSection() {
     getRecentPageViews(),
   ]);
 
-  const STATS = [
-    { icon: Store, value: "751+", label: "ร้านเซ้งสำเร็จ" },
+  const STATS: {
+    icon: typeof Store;
+    value: string;
+    label: string;
+    href?: string;
+  }[] = [
+    {
+      icon: Store,
+      value: "751+",
+      label: "ร้านที่เซ้งได้ (โฆษณา)",
+      href: "https://www.xn--72ch7bybxexd0cc.com/services",
+    },
     { icon: Users, value: recentPageViews.toLocaleString("th-TH"), label: "ผู้ชมเว็บ 30 วัน ล่าสุด" },
   ];
 
@@ -24,14 +34,28 @@ export async function TrustSection() {
       <div className="grid grid-cols-3 gap-3 md:gap-4">
         {STATS.map((s) => {
           const Icon = s.icon;
-          return (
-            <div
-              key={s.label}
-              className="rounded-xl border bg-gradient-to-br from-orange-50 to-white p-3 md:p-5 text-center space-y-1.5 md:space-y-2"
-            >
+          const cardClass =
+            "rounded-xl border bg-gradient-to-br from-orange-50 to-white p-3 md:p-5 text-center space-y-1.5 md:space-y-2";
+          const inner = (
+            <>
               <Icon className="h-5 w-5 md:h-7 md:w-7 mx-auto text-orange-500" />
               <p className="text-lg md:text-3xl font-bold text-neutral-800 leading-tight">{s.value}</p>
               <p className="text-[11px] md:text-sm text-neutral-600 leading-tight">{s.label}</p>
+            </>
+          );
+          return s.href ? (
+            <a
+              key={s.label}
+              href={s.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${cardClass} block transition-shadow hover:shadow-md hover:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-400`}
+            >
+              {inner}
+            </a>
+          ) : (
+            <div key={s.label} className={cardClass}>
+              {inner}
             </div>
           );
         })}
