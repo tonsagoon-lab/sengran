@@ -674,9 +674,9 @@ export const getLiveActivityStats = unstable_cache(
     const now = new Date();
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [viewersToday, newThisWeek, promoListings] = await Promise.all([
+    const [viewersToday, newLast30Days, appraisedCount, promoListings] = await Promise.all([
       supabase
         .from("page_views")
         .select("id", { count: "exact", head: true })
@@ -685,7 +685,10 @@ export const getLiveActivityStats = unstable_cache(
         .from("listings")
         .select("id", { count: "exact", head: true })
         .eq("status", "published")
-        .gte("published_at", sevenDaysAgo.toISOString()),
+        .gte("published_at", thirtyDaysAgo.toISOString()),
+      supabase
+        .from("editorial_picks")
+        .select("id", { count: "exact", head: true }),
       supabase
         .from("listings")
         .select("id", { count: "exact", head: true })
@@ -696,7 +699,8 @@ export const getLiveActivityStats = unstable_cache(
 
     return {
       viewersToday: viewersToday.count ?? 0,
-      newThisWeek: newThisWeek.count ?? 0,
+      newLast30Days: newLast30Days.count ?? 0,
+      appraisedCount: appraisedCount.count ?? 0,
       promoListings: promoListings.count ?? 0,
     };
   },
