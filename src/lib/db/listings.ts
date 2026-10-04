@@ -688,7 +688,9 @@ export const getLiveActivityStats = unstable_cache(
         .gte("published_at", thirtyDaysAgo.toISOString()),
       supabase
         .from("editorial_picks")
-        .select("id", { count: "exact", head: true }),
+        .select("id, listings!inner(id)", { count: "exact", head: true })
+        .eq("listings.status", "published")
+        .is("listings.promo_type", null),
       supabase
         .from("listings")
         .select("id", { count: "exact", head: true })
