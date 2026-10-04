@@ -666,6 +666,44 @@ export const getTotalListingCount = unstable_cache(
   { revalidate: 43200 }
 );
 
+export const getLiveActivityStats = unstable_cache(
+  async () => {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const supabase = createAdminClient();
+
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const tenMinAgo = new Date(now.getTime() - 10 * 60 * 1000);
+
+    const [newToday, viewingNow, soldThisMonth] = await Promise.all([
+      supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "published")
+        .gte("published_at", todayStart.toISOString()),
+      supabase
+        .from("page_views")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", tenMinAgo.toISOString()),
+      supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "sold")
+        .gte("updated_at", monthStart.toISOString()),
+    ]);
+
+    return {
+      newToday: newToday.count ?? 0,
+      viewingNow: viewingNow.count ?? 0,
+      soldThisMonth: soldThisMonth.count ?? 0,
+    };
+  },
+  ["live-activity-stats"],
+  { revalidate: 60 }
+);
+
 export const getRecentPageViews = unstable_cache(
   async () => {
     const { createAdminClient } = await import("@/lib/supabase/admin");

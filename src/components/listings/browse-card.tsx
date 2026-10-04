@@ -151,7 +151,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
           </div>
         )}
         {/* Type badge top-left */}
-        <div className="absolute top-2 left-2 flex items-center gap-1">
+        <div className="absolute top-2 left-2 flex flex-wrap items-center gap-1">
           <span
             className={cn(
               "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
@@ -167,6 +167,11 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
               {listing.promo_type === "percent"
                 ? `-${Number(listing.promo_value)}%`
                 : `-฿${fmt.format(Number(listing.promo_value))}`}
+            </span>
+          )}
+          {listing.view_count >= 100 && (
+            <span className="inline-flex items-center rounded-full border border-red-200 bg-red-500 px-2 py-0.5 text-xs font-semibold text-white shadow-sm">
+              🔥 ฮิต
             </span>
           )}
         </div>

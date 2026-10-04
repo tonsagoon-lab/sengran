@@ -13,6 +13,7 @@ import { EditorialPicks } from "@/components/home/editorial-picks";
 import { PremiumListings } from "@/components/home/premium-listings";
 import { TrustSection } from "@/components/home/trust-section";
 import { MapPreviewSection } from "@/components/home/map-preview-section";
+import { LiveActivityStrip } from "@/components/home/live-activity-strip";
 import { getAllProvinces } from "@/lib/db/listings";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -105,6 +106,11 @@ export default async function HomePage() {
       {/* Hero + search */}
       <Suspense fallback={<HeroSkeleton />}>
         <HeroSearch />
+      </Suspense>
+
+      {/* Live activity strip */}
+      <Suspense fallback={null}>
+        <LiveActivityStrip />
       </Suspense>
 
       {/* Category grid */}
