@@ -33,16 +33,7 @@ export async function LiveActivityStrip() {
         <div className="flex items-center gap-1.5 font-medium text-neutral-700">
           <Sparkles className="h-3.5 w-3.5 text-orange-500" />
           <span>
-            ประกาศใหม่ 30 วัน <span className="font-bold text-orange-600">{fmt.format(newLast30Days)}</span> ร้าน
-          </span>
-        </div>
-
-        <span className="hidden h-3 w-px bg-neutral-300 md:inline-block" />
-
-        <div className="flex items-center gap-1.5 font-medium text-neutral-700">
-          <BadgeCheck className="h-3.5 w-3.5 text-amber-500" />
-          <span>
-            ร้านประเมินราคาแล้ว <span className="font-bold text-amber-600">{fmt.format(appraisedCount)}</span> ร้าน
+            ร้านใหม่ 30 วัน <span className="font-bold text-orange-600">{fmt.format(newLast30Days)}</span> ร้าน
           </span>
         </div>
 
@@ -51,7 +42,16 @@ export async function LiveActivityStrip() {
         <div className="flex items-center gap-1.5 font-medium text-neutral-700">
           <Tag className="h-3.5 w-3.5 text-pink-500" />
           <span>
-            ร้านโปรโมชั่น <span className="font-bold text-pink-600">{fmt.format(promoListings)}</span> ร้าน
+            โปรโมชั่น <span className="font-bold text-pink-600">{fmt.format(promoListings)}</span> ร้าน
+          </span>
+        </div>
+
+        <span className="hidden h-3 w-px bg-neutral-300 md:inline-block" />
+
+        <div className="flex items-center gap-1.5 font-medium text-neutral-700">
+          <BadgeCheck className="h-3.5 w-3.5 text-amber-500" />
+          <span>
+            ฝากเซ้ง <span className="font-bold text-amber-600">{fmt.format(appraisedCount)}</span> ร้าน
           </span>
         </div>
       </div>
