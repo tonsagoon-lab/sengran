@@ -1,10 +1,10 @@
-import { Sparkles, CheckCircle2 } from "lucide-react";
+import { Sparkles, Tag } from "lucide-react";
 import { getLiveActivityStats } from "@/lib/db/listings";
 
 export async function LiveActivityStrip() {
-  const { newToday, viewingNow, soldThisMonth } = await getLiveActivityStats();
+  const { viewersToday, newThisWeek, promoListings } = await getLiveActivityStats();
 
-  if (newToday === 0 && viewingNow === 0 && soldThisMonth === 0) return null;
+  if (viewersToday === 0 && newThisWeek === 0 && promoListings === 0) return null;
 
   const fmt = new Intl.NumberFormat("th-TH");
 
@@ -17,7 +17,7 @@ export async function LiveActivityStrip() {
             <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
           </span>
           <span>
-            กำลังดูอยู่ <span className="font-bold text-green-700">{fmt.format(viewingNow)}</span> คน
+            คนดูวันนี้ <span className="font-bold text-green-700">{fmt.format(viewersToday)}</span>
           </span>
         </div>
 
@@ -26,16 +26,16 @@ export async function LiveActivityStrip() {
         <div className="flex items-center gap-1.5 font-medium text-neutral-700">
           <Sparkles className="h-3.5 w-3.5 text-orange-500" />
           <span>
-            ประกาศใหม่วันนี้ <span className="font-bold text-orange-600">{fmt.format(newToday)}</span>
+            ประกาศใหม่ 7 วัน <span className="font-bold text-orange-600">{fmt.format(newThisWeek)}</span>
           </span>
         </div>
 
         <span className="hidden h-3 w-px bg-neutral-300 md:inline-block" />
 
         <div className="flex items-center gap-1.5 font-medium text-neutral-700">
-          <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
+          <Tag className="h-3.5 w-3.5 text-pink-500" />
           <span>
-            เซ้งสำเร็จเดือนนี้ <span className="font-bold text-blue-700">{fmt.format(soldThisMonth)}</span> ร้าน
+            ร้านโปรโมชั่น <span className="font-bold text-pink-600">{fmt.format(promoListings)}</span> ร้าน
           </span>
         </div>
       </div>

@@ -674,30 +674,30 @@ export const getLiveActivityStats = unstable_cache(
     const now = new Date();
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const tenMinAgo = new Date(now.getTime() - 10 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const [newToday, viewingNow, soldThisMonth] = await Promise.all([
+    const [viewersToday, newThisWeek, promoListings] = await Promise.all([
+      supabase
+        .from("page_views")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", todayStart.toISOString()),
       supabase
         .from("listings")
         .select("id", { count: "exact", head: true })
         .eq("status", "published")
-        .gte("published_at", todayStart.toISOString()),
-      supabase
-        .from("page_views")
-        .select("id", { count: "exact", head: true })
-        .gte("created_at", tenMinAgo.toISOString()),
+        .gte("published_at", sevenDaysAgo.toISOString()),
       supabase
         .from("listings")
         .select("id", { count: "exact", head: true })
-        .eq("status", "sold")
-        .gte("updated_at", monthStart.toISOString()),
+        .eq("status", "published")
+        .not("promo_type", "is", null)
+        .not("promo_value", "is", null),
     ]);
 
     return {
-      newToday: newToday.count ?? 0,
-      viewingNow: viewingNow.count ?? 0,
-      soldThisMonth: soldThisMonth.count ?? 0,
+      viewersToday: viewersToday.count ?? 0,
+      newThisWeek: newThisWeek.count ?? 0,
+      promoListings: promoListings.count ?? 0,
     };
   },
   ["live-activity-stats"],
