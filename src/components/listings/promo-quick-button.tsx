@@ -39,7 +39,7 @@ export function PromoQuickButton({
   const [open, setOpen] = useState(false);
   const [enabled, setEnabled] = useState(!!currentPromoType);
   const [promoType, setPromoType] = useState<"percent" | "amount">(
-    currentPromoType ?? "percent"
+    currentPromoType ?? "amount"
   );
   const [promoValue, setPromoValue] = useState<string>(
     currentPromoValue != null ? String(currentPromoValue) : ""
@@ -96,13 +96,15 @@ export function PromoQuickButton({
       <DialogTrigger asChild>
         <Button
           size="sm"
-          variant="outline"
-          className={`h-8 px-2 ${
-            hasPromo ? "text-orange-600 border-orange-300 bg-orange-50" : "text-orange-500"
+          className={`h-8 px-2.5 gap-1 font-semibold shadow-sm ${
+            hasPromo
+              ? "bg-orange-600 hover:bg-orange-700 text-white"
+              : "bg-orange-500 hover:bg-orange-600 text-white animate-pulse"
           }`}
-          title="ลดราคา"
+          title="ตั้งโปรโมชั่นลดราคา"
         >
           <Tag className="h-3.5 w-3.5" />
+          <span className="text-xs">{hasPromo ? "แก้โปรฯ" : "ลดราคา"}</span>
         </Button>
       </DialogTrigger>
       <DialogContent>
