@@ -672,15 +672,13 @@ export const getLiveActivityStats = unstable_cache(
     const supabase = createAdminClient();
 
     const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [viewersToday, newLast30Days, appraisedCount, promoListings] = await Promise.all([
+    const [viewers30d, newLast30Days, appraisedCount, promoListings] = await Promise.all([
       supabase
         .from("page_views")
         .select("id", { count: "exact", head: true })
-        .gte("created_at", todayStart.toISOString()),
+        .gte("created_at", thirtyDaysAgo.toISOString()),
       supabase
         .from("listings")
         .select("id", { count: "exact", head: true })
@@ -700,7 +698,7 @@ export const getLiveActivityStats = unstable_cache(
     ]);
 
     return {
-      viewersToday: viewersToday.count ?? 0,
+      viewers30d: viewers30d.count ?? 0,
       newLast30Days: newLast30Days.count ?? 0,
       appraisedCount: appraisedCount.count ?? 0,
       promoListings: promoListings.count ?? 0,

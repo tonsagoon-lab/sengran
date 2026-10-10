@@ -2,11 +2,11 @@ import { Sparkles, Tag, BadgeCheck } from "lucide-react";
 import { getLiveActivityStats } from "@/lib/db/listings";
 
 export async function LiveActivityStrip() {
-  const { viewersToday, newLast30Days, appraisedCount, promoListings } =
+  const { viewers30d, newLast30Days, appraisedCount, promoListings } =
     await getLiveActivityStats();
 
   if (
-    viewersToday === 0 &&
+    viewers30d === 0 &&
     newLast30Days === 0 &&
     appraisedCount === 0 &&
     promoListings === 0
@@ -24,7 +24,7 @@ export async function LiveActivityStrip() {
             <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
           </span>
           <span>
-            คนดูวันนี้ <span className="font-bold text-green-700">{fmt.format(viewersToday)}</span> คน
+            คนดู 30 วัน <span className="font-bold text-green-700">{fmt.format(viewers30d)}</span> คน
           </span>
         </div>
 
