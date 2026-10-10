@@ -85,7 +85,7 @@ export default async function WalletPage({
         <p className="text-sm opacity-70 mt-1">coins</p>
 
         <a
-          href="https://line.me/R/ti/p/~salebiz"
+          href="https://line.me/R/ti/p/@salebiz"
           target="_blank"
           rel="noopener noreferrer"
           className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#06C755] hover:bg-[#05a847] px-5 py-2.5 text-sm font-semibold transition-colors"

@@ -171,7 +171,7 @@ const STEPS = [
 ];
 const TOTAL_STEPS = STEPS.length; // 3
 
-const DEFAULT_LINE_URL = "https://line.me/R/ti/p/~salebiz";
+const DEFAULT_LINE_URL = "https://line.me/R/ti/p/@salebiz";
 const MODAL_PACKAGE_IMAGE_URL = "https://fexxmtjmrlpitzsjrgbd.supabase.co/storage/v1/object/public/banners/modal-package.jpg";
 const MODAL_FAAK_IMAGE_URL = "https://fexxmtjmrlpitzsjrgbd.supabase.co/storage/v1/object/public/banners/modal-faak.jpg";
 
