@@ -35,21 +35,9 @@ export default async function MyListingsPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">ประกาศของฉัน</h1>
-          <p className="text-xs text-neutral-400 mt-0.5">ลงได้ {listingQuota} ประกาศ</p>
-        </div>
-        <Link
-          href="/listings/new"
-          className="cta-free group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 px-5 py-2.5 text-base font-bold text-white shadow-lg ring-2 ring-yellow-300/60 hover:shadow-xl hover:-translate-y-0.5 transition-all"
-        >
-          <span className="relative z-[1] flex h-6 w-6 items-center justify-center rounded-full bg-white/25 text-lg leading-none">+</span>
-          <span className="relative z-[1]">ลงประกาศ</span>
-          <span className="relative z-[1] rounded-md bg-gradient-to-r from-yellow-300 to-amber-300 px-2 py-0.5 text-sm font-black text-emerald-800 shadow-sm ring-1 ring-yellow-200 animate-pulse">
-            ฟรี!
-          </span>
-        </Link>
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-neutral-900">ประกาศของฉัน</h1>
+        <p className="text-xs text-neutral-400 mt-0.5">ลงได้ {listingQuota} ประกาศ</p>
       </div>
 
       {/* CTA banner */}
@@ -60,8 +48,10 @@ export default async function MyListingsPage() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-        <Link
-          href="/services"
+        <a
+          href="https://lin.ee/TRdgWpk"
+          target="_blank"
+          rel="noopener noreferrer"
           className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-500 p-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all"
         >
           <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-white/15 blur-lg" />
@@ -75,10 +65,12 @@ export default async function MyListingsPage() {
             </div>
             <ArrowRight className="h-4 w-4 text-white/90 group-hover:translate-x-1 transition-transform" />
           </div>
-        </Link>
+        </a>
 
-        <Link
-          href="/services"
+        <a
+          href="https://lin.ee/TRdgWpk"
+          target="_blank"
+          rel="noopener noreferrer"
           className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-500 p-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all"
         >
           <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-white/15 blur-lg" />
@@ -92,7 +84,7 @@ export default async function MyListingsPage() {
             </div>
             <ArrowRight className="h-4 w-4 text-white/90 group-hover:translate-x-1 transition-transform" />
           </div>
-        </Link>
+        </a>
       </div>
 
       {listings.length === 0 ? (
