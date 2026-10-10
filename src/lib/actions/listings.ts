@@ -561,9 +561,17 @@ export async function deleteListingImageAction(
   storagePath: string
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
-  await supabase.storage.from("listings").remove([storagePath]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "กรุณาเข้าสู่ระบบ" };
+
+  // Delete DB row first (RLS enforces ownership). Only if that succeeds
+  // do we remove the storage file — otherwise we'd leave a broken image.
   const { error } = await supabase.from("listing_images").delete().eq("id", imageId);
   if (error) return { error: error.message };
+
+  await supabase.storage.from("listings").remove([storagePath]);
   return {};
 }
 

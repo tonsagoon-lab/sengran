@@ -91,8 +91,20 @@ export function PromoQuickButton({
 
   const hasPromo = !!currentPromoType;
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) {
+      // Resync with latest props when (re)opening — picks up any changes
+      // made since mount and discards unsaved edits from a previous open.
+      setEnabled(!!currentPromoType);
+      setPromoType(currentPromoType ?? "amount");
+      setPromoValue(currentPromoValue != null ? String(currentPromoValue) : "");
+      setError(null);
+    }
+    setOpen(nextOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           size="sm"

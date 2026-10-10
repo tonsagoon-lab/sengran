@@ -149,7 +149,11 @@ export function ImageUploader({
   }
 
   async function removeExisting(id: string, storagePath: string) {
-    await deleteListingImageAction(id, storagePath);
+    const result = await deleteListingImageAction(id, storagePath);
+    if (result.error) {
+      setUploadError(result.error);
+      return;
+    }
     setExisting((prev) => prev.filter((img) => img.id !== id));
   }
 
