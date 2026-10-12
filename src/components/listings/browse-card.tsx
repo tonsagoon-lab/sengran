@@ -51,45 +51,51 @@ function computeDiscountedPrice(listing: SearchListing): number | null {
   return Math.max(0, sale - v);
 }
 
-function PriceDisplay({ listing }: { listing: SearchListing }) {
+function PriceDisplay({ listing, variant = "default" }: { listing: SearchListing; variant?: "default" | "overlay" }) {
   const { listing_type, sale_price, rent_price } = listing;
   const discounted = computeDiscountedPrice(listing);
+  const isOverlay = variant === "overlay";
+  const mainClass = isOverlay ? "text-white" : "text-neutral-900";
+  const discountedMainClass = isOverlay ? "text-amber-300" : "text-orange-600";
+  const strikeClass = isOverlay ? "text-white/70" : "text-neutral-400";
+  const suffixClass = isOverlay ? "text-white/85" : "text-neutral-500";
+  const fallbackClass = isOverlay ? "text-white/80" : "text-neutral-400";
 
   if (listing_type === "sale" && sale_price) {
     if (discounted != null) {
       return (
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-base font-bold text-orange-600">
+          <span className={`text-base font-bold ${discountedMainClass}`}>
             ฿{fmt.format(discounted)}
           </span>
-          <span className="text-xs line-through text-neutral-400">
+          <span className={`text-xs line-through ${strikeClass}`}>
             ฿{fmt.format(sale_price)}
           </span>
         </div>
       );
     }
-    return <span className="text-base font-bold text-neutral-900">฿{fmt.format(sale_price)}</span>;
+    return <span className={`text-base font-bold ${mainClass}`}>฿{fmt.format(sale_price)}</span>;
   }
   if (listing_type === "rent" && rent_price) {
     return (
-      <span className="text-base font-bold text-neutral-900">
-        ฿{fmt.format(rent_price)}<span className="text-xs font-normal text-neutral-500">/เดือน</span>
+      <span className={`text-base font-bold ${mainClass}`}>
+        ฿{fmt.format(rent_price)}<span className={`text-xs font-normal ${suffixClass}`}>/เดือน</span>
       </span>
     );
   }
   if (listing_type === "both") {
     return (
-      <span className="text-sm font-bold text-neutral-900">
+      <span className={`text-sm font-bold ${mainClass}`}>
         {sale_price ? `฿${fmt.format(sale_price)}` : "—"}
         {rent_price && (
-          <span className="ml-1 text-xs font-normal text-neutral-500">
+          <span className={`ml-1 text-xs font-normal ${suffixClass}`}>
             · เช่า ฿{fmt.format(rent_price)}/ด.
           </span>
         )}
       </span>
     );
   }
-  return <span className="text-sm text-neutral-400">ติดต่อสอบถาม</span>;
+  return <span className={`text-sm ${fallbackClass}`}>ติดต่อสอบถาม</span>;
 }
 
 interface BrowseCardProps {
@@ -134,7 +140,7 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
       className="group flex flex-col rounded-xl border bg-white overflow-hidden hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
     >
       {/* Image */}
-      <div className="relative aspect-video bg-neutral-100 shrink-0">
+      <div className="relative aspect-[4/3] sm:aspect-video bg-neutral-100 shrink-0">
         {coverUrl && !imgError ? (
           <Image
             src={coverUrl}
@@ -188,11 +194,14 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
             />
           </button>
         </div>
+        {/* Price overlay (bottom gradient) */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-2.5 pt-8 pb-1.5">
+          <PriceDisplay listing={listing} variant="overlay" />
+        </div>
       </div>
 
       {/* Info */}
       <div className="flex flex-col gap-1 p-3 flex-1">
-        <PriceDisplay listing={listing} />
         {listing.revenue_amount && (
           <p className="text-[11px] text-green-600">
             รายได้ {fmt.format(listing.revenue_amount)} บ.{" "}
