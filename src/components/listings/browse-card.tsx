@@ -206,10 +206,17 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
           {listing.title}
         </p>
 
-        {location && (
+        {(location || listing.distance_km != null) && (
           <div className="flex items-center gap-1 text-xs text-neutral-500">
             <MapPin className="h-3 w-3 shrink-0" />
             <span className="truncate">{location}</span>
+            {listing.distance_km != null && (
+              <span className="shrink-0 rounded-full bg-orange-100 text-orange-700 px-1.5 py-px text-[10px] font-semibold">
+                {listing.distance_km < 1
+                  ? `${Math.round(listing.distance_km * 1000)} ม.`
+                  : `${listing.distance_km.toFixed(1)} กม.`}
+              </span>
+            )}
           </div>
         )}
 

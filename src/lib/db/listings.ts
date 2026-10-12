@@ -204,6 +204,7 @@ export type SearchListing = {
   listing_images: Array<{ id: string; storage_path: string; display_order: number }>;
   categories: { name_th: string; slug: string } | null;
   provinces: { name_th: string; slug: string } | null;
+  distance_km?: number;
 };
 
 export interface SearchParams {

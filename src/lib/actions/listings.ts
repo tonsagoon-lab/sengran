@@ -55,7 +55,9 @@ export async function getNearMeListings(
 
     if (gpsMatches.length > 0) {
       // Soft-cap to 200 to protect dense cities; radius already bounds it.
-      const ids = gpsMatches.slice(0, 200).map((r) => r.id);
+      const capped = gpsMatches.slice(0, 200);
+      const ids = capped.map((r) => r.id);
+      const distanceById = new Map(capped.map((r) => [r.id, r.distance_km]));
       const { data: rawData } = await supabase
         .from("listings")
         .select(NEAR_ME_SELECT)
@@ -66,7 +68,8 @@ export async function getNearMeListings(
 
       const ordered = ((rawData ?? []) as unknown as SearchListing[])
         .filter((l) => hasValidImage(l))
-        .slice(0, 4);
+        .slice(0, 4)
+        .map((l) => ({ ...l, distance_km: distanceById.get(l.id) }));
       if (ordered.length > 0) {
         return { listings: ordered, total: gpsMatches.length };
       }
