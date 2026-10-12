@@ -54,20 +54,18 @@ export async function getNearMeListings(
     const gpsMatches = (nearIds ?? []) as unknown as { id: string; distance_km: number }[];
 
     if (gpsMatches.length > 0) {
-      // Fetch more than needed to account for no-image filtering
-      const ids = gpsMatches.slice(0, 60).map((r) => r.id);
+      // Soft-cap to 200 to protect dense cities; radius already bounds it.
+      const ids = gpsMatches.slice(0, 200).map((r) => r.id);
       const { data: rawData } = await supabase
         .from("listings")
         .select(NEAR_ME_SELECT)
         .in("id", ids)
         .eq("status", "published")
-        .neq("listing_type", "equipment");
+        .neq("listing_type", "equipment")
+        .order("published_at", { ascending: false });
 
-      const data = (rawData ?? []) as unknown as SearchListing[];
-      const byId = new Map(data.map((l) => [l.id, l]));
-      const ordered = ids
-        .map((id) => byId.get(id))
-        .filter((x): x is SearchListing => !!x && hasValidImage(x))
+      const ordered = ((rawData ?? []) as unknown as SearchListing[])
+        .filter((l) => hasValidImage(l))
         .slice(0, 4);
       if (ordered.length > 0) {
         return { listings: ordered, total: gpsMatches.length };
