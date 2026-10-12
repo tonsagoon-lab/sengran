@@ -15,8 +15,8 @@ export async function TrustSection() {
   }[] = [
     {
       icon: Store,
-      value: "751+",
-      label: "ร้านที่เซ้งได้ (โฆษณา)",
+      value: "67%",
+      label: "เซ้งได้จากฝากเซ้ง",
       href: "https://www.xn--72ch7bybxexd0cc.com/services",
     },
     { icon: Users, value: recentPageViews.toLocaleString("th-TH"), label: "ผู้ชมเว็บ 30 วัน ล่าสุด" },
