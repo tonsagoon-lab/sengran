@@ -1,11 +1,8 @@
-import { Store, Users, Quote } from "lucide-react";
-import { getActiveTestimonials, getRecentPageViews } from "@/lib/db/listings";
+import { Store, Handshake, Quote } from "lucide-react";
+import { getActiveTestimonials } from "@/lib/db/listings";
 
 export async function TrustSection() {
-  const [testimonials, recentPageViews] = await Promise.all([
-    getActiveTestimonials(),
-    getRecentPageViews(),
-  ]);
+  const testimonials = await getActiveTestimonials();
 
   const STATS: {
     icon: typeof Store;
@@ -15,11 +12,16 @@ export async function TrustSection() {
   }[] = [
     {
       icon: Store,
+      value: "751+",
+      label: "ร้านที่เซ้งได้ (โฆษณา)",
+      href: "https://www.xn--72ch7bybxexd0cc.com/services",
+    },
+    {
+      icon: Handshake,
       value: "67%",
       label: "เซ้งได้จากฝากเซ้ง",
       href: "https://www.xn--72ch7bybxexd0cc.com/services",
     },
-    { icon: Users, value: recentPageViews.toLocaleString("th-TH"), label: "ผู้ชมเว็บ 30 วัน ล่าสุด" },
   ];
 
   const quotes = testimonials.slice(0, 5);
