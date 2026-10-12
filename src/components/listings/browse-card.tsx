@@ -28,7 +28,7 @@ function getAgeSuffix(publishedAt: string | null): string | null {
 function getPromoAgeSuffix(promoActivatedAt: string | null): string | null {
   if (!promoActivatedAt) return null;
   const days = Math.floor((Date.now() - new Date(promoActivatedAt).getTime()) / 86_400_000);
-  if (days > 30) return null;
+  if (days > 10) return null;
   return `ลดมา ${days === 0 ? 1 : days} วัน`;
 }
 
