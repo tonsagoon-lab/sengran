@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getCategoriesWithListings } from "@/lib/db/listings";
-import { BrowseCard } from "@/components/listings/browse-card";
+import { CompactBrowseCard } from "@/components/listings/compact-browse-card";
 
 interface CategoriesShowcaseProps {
   supabaseUrl: string;
@@ -26,9 +26,9 @@ export async function CategoriesShowcase({ supabaseUrl }: CategoriesShowcaseProp
               ดูทั้งหมด →
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
             {listings.map((listing) => (
-              <BrowseCard
+              <CompactBrowseCard
                 key={listing.id}
                 listing={listing}
                 supabaseUrl={supabaseUrl}

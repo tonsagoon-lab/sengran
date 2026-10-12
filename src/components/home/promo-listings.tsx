@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPromoListings } from "@/lib/db/listings";
-import { BrowseCard } from "@/components/listings/browse-card";
+import { CompactBrowseCard } from "@/components/listings/compact-browse-card";
 
 interface PromoListingsProps {
   supabaseUrl: string;
@@ -27,9 +27,9 @@ export async function PromoListings({ supabaseUrl }: PromoListingsProps) {
           </Link>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
         {visible.map((listing, i) => (
-          <BrowseCard
+          <CompactBrowseCard
             key={listing.id}
             listing={listing}
             supabaseUrl={supabaseUrl}

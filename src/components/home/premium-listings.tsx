@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { getFeaturedListings } from "@/lib/db/listings";
-import { BrowseCard } from "@/components/listings/browse-card";
+import { CompactBrowseCard } from "@/components/listings/compact-browse-card";
 
 export async function PremiumListings({ supabaseUrl }: { supabaseUrl: string }) {
   const listings = await getFeaturedListings();
@@ -23,15 +23,15 @@ export async function PremiumListings({ supabaseUrl }: { supabaseUrl: string }) 
       </div>
 
       {/* Horizontal scroll on mobile, grid on desktop */}
-      <div className="flex gap-3 overflow-x-auto pb-1 md:grid md:grid-cols-4 md:overflow-visible scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-1 md:grid md:grid-cols-4 md:gap-3 md:overflow-visible scrollbar-hide">
         {listings.map((listing, i) => (
-          <div key={listing.id} className="min-w-[160px] md:min-w-0 flex-shrink-0 md:flex-shrink relative">
+          <div key={listing.id} className="min-w-[140px] md:min-w-0 flex-shrink-0 md:flex-shrink relative">
             {/* Premium badge */}
-            <div className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+            <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
               <Star className="h-2.5 w-2.5 fill-white" />
               Premium
             </div>
-            <BrowseCard
+            <CompactBrowseCard
               listing={listing}
               supabaseUrl={supabaseUrl}
               priority={i < 4}

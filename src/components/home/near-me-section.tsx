@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { MapPin, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BrowseCard } from "@/components/listings/browse-card";
+import { CompactBrowseCard } from "@/components/listings/compact-browse-card";
 import { getNearMeListings } from "@/lib/actions/listings";
 import type { SearchListing } from "@/lib/db/listings";
 
@@ -355,16 +355,16 @@ export function NearMeSection({ provinces, supabaseUrl }: NearMeSectionProps) {
       {/* Listing grid */}
       {status === "loaded" && listings.length > 0 && (
         <>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
             {listings.map((listing) => {
               const isOld = listing.published_at
                 ? Date.now() - new Date(listing.published_at).getTime() > 365 * 24 * 60 * 60 * 1000
                 : false;
               return (
                 <div key={listing.id} className="relative">
-                  <BrowseCard listing={listing} supabaseUrl={supabaseUrl} />
+                  <CompactBrowseCard listing={listing} supabaseUrl={supabaseUrl} />
                   {isOld && (
-                    <div className="absolute top-2 left-2 rounded-full bg-neutral-700/80 px-2 py-0.5 text-[10px] font-medium text-white">
+                    <div className="absolute top-1.5 left-1.5 rounded-full bg-neutral-700/80 px-1.5 py-0.5 text-[10px] font-medium text-white z-10">
                       ประกาศเก่าเกิน 1 ปี
                     </div>
                   )}
