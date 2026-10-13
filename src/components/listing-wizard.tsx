@@ -606,7 +606,7 @@ export function ListingWizard({
         const action = isEdit ? updateListingAction : createListingAction;
         const result = await action(undefined, fd);
         if (result?.quotaExceeded) {
-          setQuotaInfo({ quota: result.quota ?? 5, current: result.current ?? 0 });
+          setQuotaInfo({ quota: result.quota ?? 10, current: result.current ?? 0 });
           setShowQuotaModal(true);
           return;
         }
@@ -1052,7 +1052,7 @@ export function ListingWizard({
                 <Store className="h-6 w-6 text-orange-500" />
               </div>
               <h2 className="text-lg font-bold text-neutral-900">ถึงขีดจำกัดประกาศแล้ว</h2>
-              <p className="text-sm text-neutral-500">คุณมีประกาศครบ {quotaInfo?.quota ?? 5} รายการแล้ว<br />ซื้อเพิ่มได้จาก admin ผ่าน LINE</p>
+              <p className="text-sm text-neutral-500">คุณมีประกาศครบ {quotaInfo?.quota ?? 10} รายการแล้ว<br />ซื้อเพิ่มได้จาก admin ผ่าน LINE</p>
             </div>
             <div className="space-y-2">
               <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">แพ็กเกจเพิ่มโควต้า (ราคาต่อปี)</p>

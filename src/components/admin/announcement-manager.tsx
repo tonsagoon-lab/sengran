@@ -23,7 +23,7 @@ const COLOR_OPTIONS = [
 
 export function AnnouncementManager() {
   const [data, setData] = useState<Announcement>({
-    message: "", is_active: false, bg_color: "orange", default_listing_quota: 5,
+    message: "", is_active: false, bg_color: "orange", default_listing_quota: 10,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,7 +36,7 @@ export function AnnouncementManager() {
         message: full.message ?? "",
         is_active: !!full.is_active,
         bg_color: full.bg_color ?? "orange",
-        default_listing_quota: full.default_listing_quota ?? 5,
+        default_listing_quota: full.default_listing_quota ?? 10,
       }))
       .finally(() => setLoading(false));
   }, []);

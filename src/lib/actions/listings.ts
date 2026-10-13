@@ -183,17 +183,20 @@ export async function createListingAction(
   const { allowed } = await rateLimit(`listing:${user.id}`, 5, 3600);
   if (!allowed) return { error: "ลงประกาศถี่เกินไป กรุณารอสักครู่" };
 
-  // Quota check
+  const raw = Object.fromEntries(formData.entries());
+  const requestedStatus = (raw.status as "published" | "draft") ?? "published";
+
+  // Quota check — only enforced when publishing; drafts can always be saved
   const adminClient = createAdminClient();
   const [{ data: profileQuota }, { data: sysConfig }, { count: listingCount }] = await Promise.all([
     adminClient.from("profiles").select("listing_quota").eq("id", user.id).single(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (adminClient as any).from("system_announcement").select("default_listing_quota").eq("id", 1).single(),
-    adminClient.from("listings").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    adminClient.from("listings").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "published"),
   ]);
-  const quota = ((profileQuota as { listing_quota: number | null } | null)?.listing_quota ?? (sysConfig as { default_listing_quota: number } | null)?.default_listing_quota ?? 5) as number;
+  const quota = ((profileQuota as { listing_quota: number | null } | null)?.listing_quota ?? (sysConfig as { default_listing_quota: number } | null)?.default_listing_quota ?? 10) as number;
   const current = listingCount ?? 0;
-  if (current >= quota) {
+  if (requestedStatus === "published" && current >= quota) {
     return { error: "QUOTA_EXCEEDED", quotaExceeded: true, quota, current };
   }
 
@@ -201,8 +204,6 @@ export async function createListingAction(
   if (!profile?.display_name || !profile?.mobile) {
     return { error: "กรุณากรอกชื่อและเบอร์โทรในโปรไฟล์ก่อนลงประกาศ" };
   }
-
-  const raw = Object.fromEntries(formData.entries());
 
   const { sanitizeRichHtml } = await import("@/lib/utils/sanitize-server");
   const descHtml = sanitizeRichHtml(raw.description as string);
@@ -353,7 +354,23 @@ export async function updateListingAction(
   if (requestedStatus && current) {
     statusFields.status = requestedStatus;
     if (requestedStatus === "published" && current.status !== "published") {
-      // Draft → Published: stamp published_at + expires_at (90 days)
+      // Draft → Published: enforce quota (count other published listings for this user)
+      if (!privileged) {
+        const { createAdminClient } = await import("@/lib/supabase/admin");
+        const adminClient = createAdminClient();
+        const [{ data: profileQuota }, { data: sysConfig }, { count: listingCount }] = await Promise.all([
+          adminClient.from("profiles").select("listing_quota").eq("id", user.id).single(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (adminClient as any).from("system_announcement").select("default_listing_quota").eq("id", 1).single(),
+          adminClient.from("listings").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "published").neq("id", listingId),
+        ]);
+        const quota = ((profileQuota as { listing_quota: number | null } | null)?.listing_quota ?? (sysConfig as { default_listing_quota: number } | null)?.default_listing_quota ?? 10) as number;
+        const currentCount = listingCount ?? 0;
+        if (currentCount >= quota) {
+          return { error: "QUOTA_EXCEEDED", quotaExceeded: true, quota, current: currentCount };
+        }
+      }
+      // Stamp published_at + expires_at (90 days)
       statusFields.published_at = new Date().toISOString();
       statusFields.expires_at = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
     } else if (requestedStatus === "draft" && current.status === "published") {
