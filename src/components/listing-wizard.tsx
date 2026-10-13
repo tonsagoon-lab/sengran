@@ -446,11 +446,6 @@ export function ListingWizard({
   const [data, setDataRaw] = useState<WizardState>(() => buildInitialState(listing));
 
   useEffect(() => {
-    // New listing: always start fresh
-    if (!isEdit) {
-      try { sessionStorage.removeItem(storageKey); } catch {}
-      return;
-    }
     try {
       const saved = sessionStorage.getItem(storageKey);
       if (saved) {

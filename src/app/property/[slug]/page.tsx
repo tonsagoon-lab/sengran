@@ -493,15 +493,25 @@ export default async function ListingDetailPage({ params }: Props) {
                   </a>
                 )}
                 {!isSeller && (
-                  <form action={startConversationAction.bind(null, listing.id, sellerId)}>
-                    <button
-                      type="submit"
+                  user ? (
+                    <form action={startConversationAction.bind(null, listing.id, sellerId)}>
+                      <button
+                        type="submit"
+                        className="w-full flex items-center justify-center gap-2 rounded-xl border border-neutral-300 hover:bg-neutral-50 py-2.5 font-semibold text-sm text-neutral-700 transition-colors"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        ส่งข้อความ
+                      </button>
+                    </form>
+                  ) : (
+                    <Link
+                      href={`/login?returnTo=${encodeURIComponent(`/property/${listing.slug}`)}`}
                       className="w-full flex items-center justify-center gap-2 rounded-xl border border-neutral-300 hover:bg-neutral-50 py-2.5 font-semibold text-sm text-neutral-700 transition-colors"
                     >
                       <MessageCircle className="h-4 w-4" />
-                      ส่งข้อความ
-                    </button>
-                  </form>
+                      เข้าสู่ระบบเพื่อส่งข้อความ
+                    </Link>
+                  )
                 )}
                 <Link
                   href={`/user/${sellerId}`}
@@ -517,6 +527,7 @@ export default async function ListingDetailPage({ params }: Props) {
       </div>{/* end outer container */}
 
       {/* Sticky contact bar (mobile only) */}
+      {!isSeller && (displayMobile || lineId || user) && (
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white px-4 py-3 shadow-lg lg:hidden">
         <div className="mx-auto flex max-w-3xl gap-2">
           {displayMobile && (
@@ -539,7 +550,7 @@ export default async function ListingDetailPage({ params }: Props) {
               LINE
             </a>
           )}
-          {!isSeller && (
+          {user && (
             <form action={startConversationAction.bind(null, listing.id, sellerId)} className="flex-1">
               <button
                 type="submit"
@@ -550,8 +561,18 @@ export default async function ListingDetailPage({ params }: Props) {
               </button>
             </form>
           )}
+          {!user && !displayMobile && !lineId && (
+            <Link
+              href={`/login?returnTo=${encodeURIComponent(`/property/${listing.slug}`)}`}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 py-3 font-semibold text-sm text-white transition-colors"
+            >
+              <MessageCircle className="h-4 w-4" />
+              เข้าสู่ระบบเพื่อติดต่อ
+            </Link>
+          )}
         </div>
       </div>
+      )}
     </>
   );
 }

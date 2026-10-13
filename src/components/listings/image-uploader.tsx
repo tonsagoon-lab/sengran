@@ -121,8 +121,8 @@ export function ImageUploader({
   );
 
   async function handleFiles(files: FileList) {
-    if (allImages.length + files.length > 7) {
-      setUploadError("สามารถอัปโหลดได้สูงสุด 7 รูป");
+    if (allImages.length + files.length > 10) {
+      setUploadError("สามารถอัปโหลดได้สูงสุด 10 รูป");
       return;
     }
     setUploading(true);
@@ -258,7 +258,7 @@ export function ImageUploader({
 
       {uploadError && <p className="text-sm text-red-500">{uploadError}</p>}
       <p className="text-xs text-neutral-400">
-        อัปโหลดได้สูงสุด 7 รูป ({allImages.length}/7) • ลากเพื่อเรียงลำดับ • รูปแรกเป็นภาพหลัก
+        อัปโหลดได้สูงสุด 10 รูป ({allImages.length}/10) • ลากเพื่อเรียงลำดับ • รูปแรกเป็นภาพหลัก
       </p>
     </div>
   );

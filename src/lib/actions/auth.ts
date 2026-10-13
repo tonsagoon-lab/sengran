@@ -23,12 +23,19 @@ function toThaiError(message: string): string {
 }
 
 // ── Login ─────────────────────────────────────────────────────
+function safeReturnTo(raw: FormDataEntryValue | null): string {
+  if (typeof raw !== "string") return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  return raw;
+}
+
 export async function loginAction(
   _prevState: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const returnTo = safeReturnTo(formData.get("returnTo"));
 
   if (!email || !password) {
     return { error: "กรุณากรอกอีเมลและรหัสผ่าน" };
@@ -39,7 +46,7 @@ export async function loginAction(
 
   if (error) return { error: toThaiError(error.message) };
 
-  redirect("/");
+  redirect(returnTo);
 }
 
 // ── Register ──────────────────────────────────────────────────

@@ -116,7 +116,8 @@ export function BrowseCard({ listing, supabaseUrl, priority = false, isFavorited
     setPending(true);
     const result = await toggleFavoriteAction(listing.id);
     if (result?.error === "กรุณาเข้าสู่ระบบ") {
-      router.push("/login");
+      const returnTo = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
+      router.push(`/login?returnTo=${encodeURIComponent(returnTo)}`);
     } else {
       setFavorited((prev) => !prev);
     }

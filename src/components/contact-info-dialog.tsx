@@ -30,8 +30,12 @@ export function ContactInfoDialog({ defaultName, defaultMobile, defaultLineId }:
     }
   }, [state?.success, router]);
 
+  function handleClose(open: boolean) {
+    if (!open) router.push("/");
+  }
+
   return (
-    <Dialog open>
+    <Dialog open onOpenChange={handleClose}>
       <DialogContent
         className="sm:max-w-md max-h-[85vh] overflow-y-auto top-[8%] translate-y-0 sm:top-[50%] sm:-translate-y-1/2"
         onInteractOutside={(e) => e.preventDefault()}

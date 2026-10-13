@@ -125,7 +125,7 @@ export default async function MyListingsPage() {
           {sold.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-3">
-                ขายแล้ว ({sold.length})
+                เซ้งแล้ว ({sold.length})
               </h2>
               <div className="space-y-3">
                 {sold.map((listing) => (

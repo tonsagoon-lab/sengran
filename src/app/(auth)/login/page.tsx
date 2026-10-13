@@ -9,14 +9,14 @@ import { loginAction } from "@/lib/actions/auth";
 
 export const metadata = { title: "เข้าสู่ระบบ — เซ้งร้าน.com", robots: { index: false, follow: false } };
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reset?: string; error?: string }>;
+  searchParams: Promise<{ reset?: string; error?: string; returnTo?: string }>;
 }) {
-  // searchParams is async in Next.js 15+; we pass it through but don't await here
-  // (we use URL params only for info banners — not critical path)
-  void searchParams;
+  const sp = await searchParams;
+  const rawReturn = sp?.returnTo ?? "";
+  const returnTo = rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : "";
 
   return (
     <main className="flex flex-1 items-center justify-center min-h-screen bg-neutral-50 px-4 py-12">
@@ -44,6 +44,7 @@ export default function LoginPage({
               </div>
             </div>
             <AuthForm action={loginAction} submitLabel="เข้าสู่ระบบ">
+              {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
               <div className="space-y-2">
                 <Label htmlFor="email">อีเมล</Label>
                 <Input

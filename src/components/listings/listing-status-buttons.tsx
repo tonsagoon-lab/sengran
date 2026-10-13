@@ -37,7 +37,7 @@ export function ListingStatusButtons({ listingId, currentStatus }: Props) {
           className="flex items-center gap-1.5 rounded-lg border border-green-200 px-2 py-1 text-xs text-green-700 hover:bg-green-50 transition-colors whitespace-nowrap"
         >
           <CheckCircle className="h-3.5 w-3.5" />
-          ขายแล้ว
+          เซ้งแล้ว
         </button>
       </div>
     );

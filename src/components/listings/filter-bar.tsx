@@ -238,7 +238,7 @@ export function FilterBar({ categories, provinces, lockedCategory, lockedProvinc
           <select
             value={currentSort}
             onChange={(e) => updateURL({ sort: e.target.value })}
-            className="h-9 rounded-lg border bg-white px-3 text-sm text-neutral-700 hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-orange-400 ml-auto"
+            className="h-9 rounded-lg border bg-white px-3 text-sm text-neutral-700 hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
