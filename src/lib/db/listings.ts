@@ -336,8 +336,16 @@ export async function searchListings(params: SearchParams): Promise<{
       if (min) query = query.gte("sale_price", min);
       if (max) query = query.lte("sale_price", max);
     } else {
-      if (min) query = query.or(`sale_price.gte.${min},rent_price.gte.${min}`);
-      if (max) query = query.or(`sale_price.lte.${max},rent_price.lte.${max}`);
+      // "both" or no type: match listings where sale OR rent price falls in range
+      if (min && max) {
+        query = query.or(
+          `and(sale_price.gte.${min},sale_price.lte.${max}),and(rent_price.gte.${min},rent_price.lte.${max})`
+        );
+      } else if (min) {
+        query = query.or(`sale_price.gte.${min},rent_price.gte.${min}`);
+      } else if (max) {
+        query = query.or(`sale_price.lte.${max},rent_price.lte.${max}`);
+      }
     }
   }
 

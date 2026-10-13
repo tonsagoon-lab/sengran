@@ -216,7 +216,7 @@ export function ImageUploader({
               />
             ))}
 
-            {allImages.length < 7 && (
+            {allImages.length < 10 && (
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
