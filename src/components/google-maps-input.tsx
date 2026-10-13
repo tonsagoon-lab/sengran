@@ -273,7 +273,7 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
 
       {/* Search mode */}
       {mode === "search" && (
-        <div ref={containerRef} className="relative">
+        <div ref={containerRef} className="relative z-[500]">
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none" />
             <Input
@@ -297,7 +297,7 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
           </div>
 
           {suggestions.length > 0 && (
-            <ul className="absolute z-50 mt-1 w-full rounded-lg border bg-white shadow-lg overflow-hidden">
+            <ul className="absolute z-[1000] mt-1 w-full rounded-lg border bg-white shadow-lg overflow-hidden">
               {suggestions.map((s) => (
                 <li key={s.id}>
                   <button
