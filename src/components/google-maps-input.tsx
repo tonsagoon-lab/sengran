@@ -136,12 +136,10 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
       });
   }
 
-  // ── Search: Nominatim (fallback) ───────────────────────────
+  // ── Search: Nominatim (fallback, via server proxy) ─────────
   async function searchNominatim(input: string): Promise<Suggestion[]> {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(input)}&format=json&limit=6&accept-language=th,en&countrycodes=th`,
-      { headers: { "Accept-Language": "th" } }
-    );
+    const res = await fetch(`/api/geocode?q=${encodeURIComponent(input)}`);
+    if (!res.ok) return [];
     const data: Array<{ place_id: number; display_name: string; lat: string; lon: string }> = await res.json();
     return data.map((r) => {
       const parts = r.display_name.split(",");
