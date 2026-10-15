@@ -44,7 +44,7 @@ export function NotificationInbox() {
 
   async function fetchData() {
     try {
-      const res = await fetch("/api/notifications?limit=50");
+      const res = await fetch("/api/notifications?limit=10");
       if (!res.ok) return;
       const { notifications: n } = await res.json();
       setNotifications(n);
