@@ -11,6 +11,8 @@ import { LatestListings } from "@/components/home/latest-listings";
 import { PromoListings } from "@/components/home/promo-listings";
 import { EditorialPicks } from "@/components/home/editorial-picks";
 import { PremiumListings } from "@/components/home/premium-listings";
+import { HomeFeaturedSection } from "@/components/home/home-featured-section";
+import { getHomeFeaturedPickIds } from "@/lib/db/home-featured";
 import { TrustSection } from "@/components/home/trust-section";
 import { MapPreviewSection } from "@/components/home/map-preview-section";
 import { LiveActivityStrip } from "@/components/home/live-activity-strip";
@@ -94,7 +96,10 @@ const orgJsonLd = {
 
 export default async function HomePage() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const provinces = await getAllProvinces();
+  const [provinces, homeFeaturedIds] = await Promise.all([
+    getAllProvinces(),
+    getHomeFeaturedPickIds(),
+  ]);
 
   return (
     <div className="flex flex-col">
@@ -124,6 +129,11 @@ export default async function HomePage() {
           <BannerSection />
         </Suspense>
 
+        {/* Home-featured picks (admin-curated — hides from all other home sections) */}
+        <Suspense fallback={null}>
+          <HomeFeaturedSection supabaseUrl={supabaseUrl} />
+        </Suspense>
+
         {/* Near me */}
         <div id="near-me">
           <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
@@ -136,12 +146,12 @@ export default async function HomePage() {
 
         {/* Editorial picks */}
         <Suspense fallback={null}>
-          <EditorialPicks supabaseUrl={supabaseUrl} />
+          <EditorialPicks supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
         </Suspense>
 
         {/* Premium listings */}
         <Suspense fallback={null}>
-          <PremiumListings supabaseUrl={supabaseUrl} />
+          <PremiumListings supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
         </Suspense>
 
         {/* Trust / social proof */}
@@ -151,12 +161,12 @@ export default async function HomePage() {
 
         {/* Promotions */}
         <Suspense fallback={null}>
-          <PromoListings supabaseUrl={supabaseUrl} />
+          <PromoListings supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
         </Suspense>
 
         {/* Latest listings */}
         <Suspense fallback={<SectionSkeleton />}>
-          <LatestListings supabaseUrl={supabaseUrl} />
+          <LatestListings supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
         </Suspense>
 
       </div>

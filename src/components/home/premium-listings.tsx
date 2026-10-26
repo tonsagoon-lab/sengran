@@ -3,8 +3,8 @@ import { Star } from "lucide-react";
 import { getFeaturedListings } from "@/lib/db/listings";
 import { CompactBrowseCard } from "@/components/listings/compact-browse-card";
 
-export async function PremiumListings({ supabaseUrl }: { supabaseUrl: string }) {
-  const listings = await getFeaturedListings();
+export async function PremiumListings({ supabaseUrl, excludeIds = [] }: { supabaseUrl: string; excludeIds?: string[] }) {
+  const listings = await getFeaturedListings(excludeIds);
   if (listings.length === 0) return null;
 
   return (
@@ -15,7 +15,7 @@ export async function PremiumListings({ supabaseUrl }: { supabaseUrl: string }) 
           <div className="flex items-center justify-center h-7 w-7 rounded-full bg-orange-500">
             <Star className="h-3.5 w-3.5 text-white fill-white" />
           </div>
-          <h2 className="font-semibold text-neutral-800 text-lg">ประกาศแนะนำ</h2>
+          <h2 className="font-semibold text-neutral-800 text-lg">ประกาศ Premium</h2>
         </div>
         <Link href="/listings?featured=1" className="text-sm text-orange-600 hover:underline">
           ดูทั้งหมด →

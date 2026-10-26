@@ -4,10 +4,11 @@ import { CompactBrowseCard } from "@/components/listings/compact-browse-card";
 
 interface PromoListingsProps {
   supabaseUrl: string;
+  excludeIds?: string[];
 }
 
-export async function PromoListings({ supabaseUrl }: PromoListingsProps) {
-  const listings = await getPromoListings(60);
+export async function PromoListings({ supabaseUrl, excludeIds = [] }: PromoListingsProps) {
+  const listings = await getPromoListings(60, excludeIds);
   if (listings.length === 0) return null;
 
   const shuffled = [...listings].sort(() => Math.random() - 0.5);

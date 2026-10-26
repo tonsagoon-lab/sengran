@@ -4,10 +4,11 @@ import { CompactBrowseCard } from "@/components/listings/compact-browse-card";
 
 interface LatestListingsProps {
   supabaseUrl: string;
+  excludeIds?: string[];
 }
 
-export async function LatestListings({ supabaseUrl }: LatestListingsProps) {
-  const listings = await getLatestListings(8);
+export async function LatestListings({ supabaseUrl, excludeIds = [] }: LatestListingsProps) {
+  const listings = await getLatestListings(8, excludeIds);
   if (listings.length === 0) return null;
 
   return (

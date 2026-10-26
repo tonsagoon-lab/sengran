@@ -22,10 +22,11 @@ function getAgeSuffix(publishedAt: string | null): string | null {
 
 interface EditorialPicksProps {
   supabaseUrl: string;
+  excludeIds?: string[];
 }
 
-export async function EditorialPicks({ supabaseUrl }: EditorialPicksProps) {
-  const picks = await getEditorialPicks();
+export async function EditorialPicks({ supabaseUrl, excludeIds = [] }: EditorialPicksProps) {
+  const picks = await getEditorialPicks(excludeIds);
   if (picks.length === 0) return null;
 
   const shuffled = [...picks].sort(() => Math.random() - 0.5);
@@ -37,7 +38,7 @@ export async function EditorialPicks({ supabaseUrl }: EditorialPicksProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-lg">⭐</span>
-          <h2 className="font-semibold text-neutral-800 text-lg">ฝากเซ้ง-ประเมินราคาแล้ว</h2>
+          <h2 className="font-semibold text-neutral-800 text-lg">ฝากเซ้ง-ประเมินคืนทุน</h2>
         </div>
         {hasMore && (
           <Link href="/editorial-picks" className="text-sm text-orange-600 hover:underline">

@@ -104,7 +104,7 @@ export function PicksManager() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Star className="h-4 w-4 text-orange-500 fill-orange-400" />
-          <h2 className="font-semibold text-sm text-neutral-800">โพสแนะนำ</h2>
+          <h2 className="font-semibold text-sm text-neutral-800">ฝากเซ้ง-ประเมินคืนทุน</h2>
         </div>
         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${picks.length >= MAX_PICKS ? "bg-red-100 text-red-600" : "bg-neutral-100 text-neutral-500"}`}>
           {picks.length}/{MAX_PICKS}

@@ -13,15 +13,17 @@ const LISTING_PICK_SELECT = `
   )
 `;
 
-export async function getEditorialPicks() {
+export async function getEditorialPicks(excludeIds: string[] = []) {
   const supabase = createAdminClient();
-  const { data } = await supabase
+  let query = supabase
     .from("editorial_picks")
     .select(LISTING_PICK_SELECT)
     .eq("listings.status", "published")
     .is("listings.promo_type", null)
     .order("display_order", { ascending: true })
     .limit(40);
+  if (excludeIds.length > 0) query = query.not("listing_id", "in", `(${excludeIds.join(",")})`);
+  const { data } = await query;
   return (data ?? []).filter((r: unknown) => (r as EditorialPickRow).listings !== null) as unknown as EditorialPickRow[];
 }
 

@@ -21,6 +21,7 @@ import { TopMenuBar } from "@/components/top-menu-bar";
 import { ChartSection } from "@/components/admin/chart-section";
 import { PageViewsChart } from "@/components/admin/pageviews-chart";
 import { PicksManager } from "@/components/admin/picks-manager";
+import { HomeFeaturedManager } from "@/components/admin/home-featured-manager";
 import { ContentManager } from "@/components/admin/content-manager";
 import { SiteSettings } from "@/components/admin/site-settings";
 import { AdminTabs } from "@/components/admin/admin-tabs";
@@ -276,6 +277,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
         {/* Content manager — listings & users */}
         <ContentManager isAdmin={isAdmin} />
+
+        {/* Home-featured picks manager (top of homepage) */}
+        <HomeFeaturedManager />
 
         {/* Editorial picks manager */}
         <PicksManager />

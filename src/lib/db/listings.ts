@@ -394,9 +394,9 @@ export async function searchListings(params: SearchParams): Promise<{
   };
 }
 
-export async function getFeaturedListings(): Promise<SearchListing[]> {
+export async function getFeaturedListings(excludeIds: string[] = []): Promise<SearchListing[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("listings")
     .select(LISTING_CARD_SELECT)
     .eq("status", "published")
@@ -405,6 +405,8 @@ export async function getFeaturedListings(): Promise<SearchListing[]> {
     .gt("featured_until", new Date().toISOString())
     .order("published_at", { ascending: false })
     .limit(10);
+  if (excludeIds.length > 0) query = query.not("id", "in", `(${excludeIds.join(",")})`);
+  const { data } = await query;
   return (data ?? []) as unknown as SearchListing[];
 }
 
@@ -483,9 +485,9 @@ export async function getRelatedListings(
   return (data ?? []) as unknown as SearchListing[];
 }
 
-export async function getLatestListings(limit = 8): Promise<SearchListing[]> {
+export async function getLatestListings(limit = 8, excludeIds: string[] = []): Promise<SearchListing[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("listings")
     .select(LISTING_CARD_SELECT)
     .eq("status", "published")
@@ -493,6 +495,8 @@ export async function getLatestListings(limit = 8): Promise<SearchListing[]> {
     .is("promo_type", null)
     .order("published_at", { ascending: false })
     .limit(limit);
+  if (excludeIds.length > 0) query = query.not("id", "in", `(${excludeIds.join(",")})`);
+  const { data } = await query;
   return (data ?? []) as unknown as SearchListing[];
 }
 
@@ -524,15 +528,17 @@ export async function getUserProfile(userId: string) {
   return data;
 }
 
-export async function getPromoListings(limit = 8): Promise<SearchListing[]> {
+export async function getPromoListings(limit = 8, excludeIds: string[] = []): Promise<SearchListing[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("listings")
     .select(LISTING_CARD_SELECT)
     .eq("status", "published")
     .not("promo_type", "is", null)
     .order("promo_activated_at", { ascending: false })
     .limit(limit);
+  if (excludeIds.length > 0) query = query.not("id", "in", `(${excludeIds.join(",")})`);
+  const { data } = await query;
   return (data ?? []) as unknown as SearchListing[];
 }
 
