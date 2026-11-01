@@ -81,21 +81,32 @@ export async function GET(req: NextRequest) {
     if (!res.ok) return NextResponse.json({ province: null, district: null, subdistrict: null, postcode: null });
     const data = (await res.json()) as NominatimReverse;
     const addr = data.address ?? {};
-    const result: ReverseResult = {
-      province: addr.province ?? addr.state ?? null,
-      district: addr.district ?? addr.county ?? addr.city_district ?? addr.city ?? null,
-      // Prefer municipality/suburb/village (admin_level 7–8 in TH) over town,
-      // which Nominatim often fills with the enclosing city name (same as district).
-      subdistrict:
-        addr.suburb ??
-        addr.neighbourhood ??
-        addr.quarter ??
-        addr.municipality ??
-        addr.village ??
-        addr.town ??
-        null,
-      postcode: addr.postcode ?? null,
-    };
+    // Bangkok uses a different Nominatim shape: `city` is the province
+    // (กรุงเทพมหานคร), `suburb` is the district (เขต…), `quarter` is the
+    // subdistrict (แขวง…). Elsewhere, `city` is actually the district.
+    const isBangkok = addr.city === "กรุงเทพมหานคร" || addr.city === "Bangkok";
+    const result: ReverseResult = isBangkok
+      ? {
+          province: addr.city ?? null,
+          district: addr.suburb ?? addr.city_district ?? null,
+          subdistrict: addr.quarter ?? addr.neighbourhood ?? null,
+          postcode: addr.postcode ?? null,
+        }
+      : {
+          province: addr.province ?? addr.state ?? null,
+          district: addr.district ?? addr.county ?? addr.city_district ?? addr.city ?? null,
+          // Prefer municipality/suburb/village (admin_level 7–8 in TH) over town,
+          // which Nominatim often fills with the enclosing city name (same as district).
+          subdistrict:
+            addr.suburb ??
+            addr.neighbourhood ??
+            addr.quarter ??
+            addr.municipality ??
+            addr.village ??
+            addr.town ??
+            null,
+          postcode: addr.postcode ?? null,
+        };
     cacheSet(key, result);
     return NextResponse.json(result);
   } catch {
