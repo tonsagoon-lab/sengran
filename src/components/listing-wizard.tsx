@@ -41,6 +41,8 @@ import { AIDescriptionHelper } from "@/components/listings/ai-description-helper
 import { RichTextDisplay } from "@/components/rich-text-display";
 import { stripHtmlTags } from "@/lib/utils/html";
 import { ProvinceCombobox } from "@/components/listings/province-combobox";
+import { DistrictCombobox } from "@/components/listings/district-combobox";
+import { SubdistrictCombobox } from "@/components/listings/subdistrict-combobox";
 import { ImageUploader } from "@/components/listings/image-uploader";
 import { GoogleMapsInput } from "@/components/google-maps-input";
 import {
@@ -96,6 +98,9 @@ interface WizardState {
   // Step 2
   province_id: string;
   district: string;
+  district_id: number | null;
+  subdistrict: string;
+  subdistrict_id: number | null;
   address: string;
   latitude: string;
   longitude: string;
@@ -160,8 +165,13 @@ const step1Schema = z
 
 const step2Schema = z.object({
   province_id: z.string().min(1, "กรุณาเลือกจังหวัด"),
-  district: z.string().trim().min(1, "กรุณากรอกเขต/อำเภอ"),
+  district: z.string().trim().min(1, "กรุณาเลือกเขต/อำเภอ"),
+  subdistrict: z.string().trim().min(1, "กรุณาเลือกตำบล/แขวง"),
 });
+
+function normalizeAdminName(s: string): string {
+  return s.replace(/^(จังหวัด|อำเภอ|เขต|ตำบล|แขวง)\s*/g, "").replace(/\s+/g, "").toLowerCase();
+}
 
 // ── Progress bar ───────────────────────────────────────────────
 
@@ -261,6 +271,9 @@ function buildInitialState(listing?: WizardProps["listing"]): WizardState {
     description: listing?.description ?? "",
     province_id: listing?.province_id != null ? String(listing.province_id) : "",
     district: listing?.district ?? "",
+    district_id: null,
+    subdistrict: listing?.subdistrict ?? "",
+    subdistrict_id: null,
     address: listing?.address ?? "",
     latitude: listing?.latitude != null ? String(listing.latitude) : "",
     longitude: listing?.longitude != null ? String(listing.longitude) : "",
@@ -299,6 +312,9 @@ function migrateState(raw: string, listingId?: string): WizardState | null {
       description: parsed.description ?? "",
       province_id: parsed.province_id ?? "",
       district: parsed.district ?? "",
+      district_id: typeof parsed.district_id === "number" ? parsed.district_id : null,
+      subdistrict: parsed.subdistrict ?? "",
+      subdistrict_id: typeof parsed.subdistrict_id === "number" ? parsed.subdistrict_id : null,
       address: parsed.address ?? "",
       latitude: parsed.latitude ?? "",
       longitude: parsed.longitude ?? "",
@@ -458,6 +474,40 @@ export function ListingWizard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Resolve district_id / subdistrict_id from saved name text (edit mode or
+  // older session data pre-dating the combobox). Without this the subdistrict
+  // combobox stays disabled because it keys off district_id.
+  useEffect(() => {
+    if (!data.province_id) return;
+    if (data.district_id != null) return;
+    if (!data.district) return;
+    const provinceName = provinces.find((p) => String(p.id) === data.province_id)?.name_th;
+    if (!provinceName) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const dres = await fetch(`/api/thai-admin/districts?province=${encodeURIComponent(provinceName)}`);
+        const districts = (await dres.json()) as Array<{ id: number; name_th: string }>;
+        if (cancelled) return;
+        const dKey = normalizeAdminName(data.district);
+        const d = districts.find((dd) => normalizeAdminName(dd.name_th) === dKey);
+        if (!d) return;
+        const patch: Partial<WizardState> = { district_id: d.id, district: d.name_th };
+        if (data.subdistrict) {
+          const sres = await fetch(`/api/thai-admin/subdistricts?districtId=${d.id}`);
+          const subdistricts = (await sres.json()) as Array<{ id: number; name_th: string }>;
+          if (cancelled) return;
+          const sKey = normalizeAdminName(data.subdistrict);
+          const s = subdistricts.find((ss) => normalizeAdminName(ss.name_th) === sKey);
+          if (s) { patch.subdistrict_id = s.id; patch.subdistrict = s.name_th; }
+        }
+        setDataRaw((prev) => ({ ...prev, ...patch }));
+      } catch { /* best-effort */ }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.province_id, data.district]);
+
   const setData = useCallback(
     (updater: Partial<WizardState> | ((prev: WizardState) => WizardState)) => {
       setDataRaw((prev) => {
@@ -529,6 +579,7 @@ export function ListingWizard({
       const result = step2Schema.safeParse({
         province_id: data.province_id,
         district: data.district,
+        subdistrict: data.subdistrict,
       });
       if (!result.success) {
         const errs: Record<string, string> = {};
@@ -557,13 +608,14 @@ export function ListingWizard({
       if (data.listing_type === "sale") setData({ rent_price: "", deposit_months: "" });
       if (data.listing_type === "both") setData({ promo_type: "", promo_value: "" });
     }
-    // Step 2: auto-geocode district + province if no pin dropped yet
+    // Step 2: auto-geocode subdistrict + district + province if no pin dropped yet
     if (step === 2 && !data.latitude && !data.longitude && data.district.trim() && data.province_id) {
       const provinceName = provinces.find((p) => String(p.id) === data.province_id)?.name_th;
       if (provinceName) {
         setGeocoding(true);
         try {
-          const q = `${data.district.trim()}, ${provinceName}, Thailand`;
+          const parts = [data.subdistrict.trim(), data.district.trim(), provinceName, "Thailand"].filter(Boolean);
+          const q = parts.join(", ");
           const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
           const results = (await res.json()) as Array<{ lat: string; lon: string }>;
           if (results.length > 0) {
@@ -608,6 +660,7 @@ export function ListingWizard({
     fd.set("revenue_period", data.revenue_period);
     fd.set("province_id", data.province_id);
     fd.set("district", data.district);
+    fd.set("subdistrict", data.subdistrict);
     fd.set("address", data.address);
     fd.set("latitude", data.latitude);
     fd.set("longitude", data.longitude);
@@ -651,6 +704,50 @@ export function ListingWizard({
     data.latitude && data.longitude
       ? { lat: Number(data.latitude), lng: Number(data.longitude) }
       : null;
+
+  // Reverse-geocode user-dropped pins and auto-fill admin hierarchy.
+  // Only called from GoogleMapsInput onChange (not on hydration), so we never
+  // clobber a saved subdistrict/district on initial render.
+  async function reverseGeocodeAndFill(lat: number, lng: number) {
+    try {
+      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+      const geo = (await res.json()) as {
+        province: string | null; district: string | null; subdistrict: string | null;
+      };
+      const patch: Partial<WizardState> = {};
+      if (!geo.province) return;
+      const pKey = normalizeAdminName(geo.province);
+      const p = provinces.find((pp) => normalizeAdminName(pp.name_th) === pKey);
+      if (!p) return;
+      patch.province_id = String(p.id);
+
+      if (geo.district) {
+        const dres = await fetch(`/api/thai-admin/districts?province=${encodeURIComponent(p.name_th)}`);
+        const districts = (await dres.json()) as Array<{ id: number; name_th: string }>;
+        const dKey = normalizeAdminName(geo.district);
+        const d = districts.find((dd) => normalizeAdminName(dd.name_th) === dKey);
+        if (d) {
+          patch.district_id = d.id;
+          patch.district = d.name_th;
+
+          if (geo.subdistrict) {
+            const sres = await fetch(`/api/thai-admin/subdistricts?districtId=${d.id}`);
+            const subdistricts = (await sres.json()) as Array<{ id: number; name_th: string }>;
+            const sKey = normalizeAdminName(geo.subdistrict);
+            const s = subdistricts.find((ss) => normalizeAdminName(ss.name_th) === sKey);
+            if (s) {
+              patch.subdistrict_id = s.id;
+              patch.subdistrict = s.name_th;
+            }
+          }
+        }
+      }
+
+      setData(patch);
+    } catch {
+      /* non-blocking */
+    }
+  }
 
   // Summary helpers
   const provinceName = provinces.find((p) => String(p.id) === data.province_id)?.name_th ?? "—";
@@ -924,6 +1021,7 @@ export function ListingWizard({
                     latitude: coords ? String(coords.lat) : "",
                     longitude: coords ? String(coords.lng) : "",
                   });
+                  if (coords) void reverseGeocodeAndFill(coords.lat, coords.lng);
                 }}
               />
 
@@ -932,24 +1030,47 @@ export function ListingWizard({
                 <ProvinceCombobox
                   provinces={provinces}
                   value={data.province_id}
-                  onChange={(val) => setData({ province_id: val })}
+                  onChange={(val) =>
+                    setData({
+                      province_id: val,
+                      district_id: null,
+                      district: "",
+                      subdistrict_id: null,
+                      subdistrict: "",
+                    })
+                  }
                   error={errors.province_id}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="district">เขต/อำเภอ <span className="text-red-500">*</span></Label>
-                <Input
-                  id="district"
-                  value={data.district}
-                  onChange={(e) => setData({ district: e.target.value })}
-                  placeholder="เขตบางรัก"
-                  aria-invalid={!!errors.district}
+                <Label>เขต/อำเภอ <span className="text-red-500">*</span></Label>
+                <DistrictCombobox
+                  provinceName={provinces.find((p) => String(p.id) === data.province_id)?.name_th ?? null}
+                  value={{ id: data.district_id, name: data.district }}
+                  onChange={(v) =>
+                    setData({
+                      district_id: v.id,
+                      district: v.name,
+                      subdistrict_id: null,
+                      subdistrict: "",
+                    })
+                  }
+                  error={errors.district}
                 />
-                {errors.district && <p className="text-sm text-red-500">{errors.district}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label>ตำบล/แขวง <span className="text-red-500">*</span></Label>
+                <SubdistrictCombobox
+                  districtId={data.district_id}
+                  value={{ id: data.subdistrict_id, name: data.subdistrict }}
+                  onChange={(v) => setData({ subdistrict_id: v.id, subdistrict: v.name })}
+                  error={errors.subdistrict}
+                />
                 {!data.latitude && !data.longitude && (
                   <p className="text-[11px] text-neutral-400">
-                    ไม่ได้ปักหมุด? เราจะใช้เขต/อำเภอนี้ปักหมุดให้อัตโนมัติ
+                    ไม่ได้ปักหมุด? เราจะใช้ตำบล/อำเภอนี้ปักหมุดให้อัตโนมัติ
                   </p>
                 )}
               </div>
@@ -1036,6 +1157,13 @@ export function ListingWizard({
                   <>
                     <span className="text-neutral-500">เขต/อำเภอ</span>
                     <span className="font-medium break-words min-w-0">{data.district}</span>
+                  </>
+                )}
+
+                {data.subdistrict && (
+                  <>
+                    <span className="text-neutral-500">ตำบล/แขวง</span>
+                    <span className="font-medium break-words min-w-0">{data.subdistrict}</span>
                   </>
                 )}
               </div>

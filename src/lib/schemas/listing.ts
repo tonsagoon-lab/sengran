@@ -14,6 +14,7 @@ export const listingSchema = z
     category_id: z.string().optional(),
     province_id: z.string().min(1, "กรุณาเลือกจังหวัด"),
     district: z.string().max(100).optional(),
+    subdistrict: z.string().max(100).optional(),
     address: z.string().max(500).optional(),
     area_sqm: z.string().optional(),
     video_url: z

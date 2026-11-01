@@ -134,6 +134,7 @@ export type Database = {
           category_id: number | null;
           province_id: number | null;
           district: string | null;
+          subdistrict: string | null;
           address: string | null;
           latitude: number | null;
           longitude: number | null;
@@ -176,6 +177,7 @@ export type Database = {
           category_id?: number | null;
           province_id?: number | null;
           district?: string | null;
+          subdistrict?: string | null;
           address?: string | null;
           latitude?: number | null;
           longitude?: number | null;
@@ -214,6 +216,7 @@ export type Database = {
           category_id?: number | null;
           province_id?: number | null;
           district?: string | null;
+          subdistrict?: string | null;
           address?: string | null;
           latitude?: number | null;
           longitude?: number | null;
