@@ -640,6 +640,9 @@ export function ListingWizard({
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
   const [aiHelperOpen, setAiHelperOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  // Guards against out-of-order Nominatim responses when the user drops pins
+  // in quick succession. Only the latest pin's patch is committed to state.
+  const geocodeSeqRef = useRef(0);
 
   const selectedCategoryName = categories.find((c) => String(c.id) === data.category_id)?.name_th ?? "";
 
@@ -708,41 +711,62 @@ export function ListingWizard({
   // Reverse-geocode user-dropped pins and auto-fill admin hierarchy.
   // Only called from GoogleMapsInput onChange (not on hydration), so we never
   // clobber a saved subdistrict/district on initial render.
+  //
+  // On every new pin we CLEAR the admin hierarchy before refilling. Without
+  // this, a partial Nominatim match (e.g. new province matches but new
+  // district doesn't) would leave stale district/subdistrict from the
+  // previous pin — the bug reported as "ปักใหม่แล้วค่าไม่เปลี่ยนตาม".
   async function reverseGeocodeAndFill(lat: number, lng: number) {
+    const seq = ++geocodeSeqRef.current;
     try {
       const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
       const geo = (await res.json()) as {
         province: string | null; district: string | null; subdistrict: string | null;
       };
-      const patch: Partial<WizardState> = {};
+      // On error/no-response from Nominatim, leave current state alone rather
+      // than destroying the user's manual entries. The route returns null
+      // fields for both empty results and network errors.
       if (!geo.province) return;
+
+      // Start cleared — refill only what Nominatim can match.
+      const patch: Partial<WizardState> = {
+        province_id: "",
+        district_id: null,
+        district: "",
+        subdistrict_id: null,
+        subdistrict: "",
+      };
+
       const pKey = normalizeAdminName(geo.province);
       const p = provinces.find((pp) => normalizeAdminName(pp.name_th) === pKey);
-      if (!p) return;
-      patch.province_id = String(p.id);
+      if (p) {
+        patch.province_id = String(p.id);
 
-      if (geo.district) {
-        const dres = await fetch(`/api/thai-admin/districts?province=${encodeURIComponent(p.name_th)}`);
-        const districts = (await dres.json()) as Array<{ id: number; name_th: string }>;
-        const dKey = normalizeAdminName(geo.district);
-        const d = districts.find((dd) => normalizeAdminName(dd.name_th) === dKey);
-        if (d) {
-          patch.district_id = d.id;
-          patch.district = d.name_th;
+        if (geo.district) {
+          const dres = await fetch(`/api/thai-admin/districts?province=${encodeURIComponent(p.name_th)}`);
+          const districts = (await dres.json()) as Array<{ id: number; name_th: string }>;
+          const dKey = normalizeAdminName(geo.district);
+          const d = districts.find((dd) => normalizeAdminName(dd.name_th) === dKey);
+          if (d) {
+            patch.district_id = d.id;
+            patch.district = d.name_th;
 
-          if (geo.subdistrict) {
-            const sres = await fetch(`/api/thai-admin/subdistricts?districtId=${d.id}`);
-            const subdistricts = (await sres.json()) as Array<{ id: number; name_th: string }>;
-            const sKey = normalizeAdminName(geo.subdistrict);
-            const s = subdistricts.find((ss) => normalizeAdminName(ss.name_th) === sKey);
-            if (s) {
-              patch.subdistrict_id = s.id;
-              patch.subdistrict = s.name_th;
+            if (geo.subdistrict) {
+              const sres = await fetch(`/api/thai-admin/subdistricts?districtId=${d.id}`);
+              const subdistricts = (await sres.json()) as Array<{ id: number; name_th: string }>;
+              const sKey = normalizeAdminName(geo.subdistrict);
+              const s = subdistricts.find((ss) => normalizeAdminName(ss.name_th) === sKey);
+              if (s) {
+                patch.subdistrict_id = s.id;
+                patch.subdistrict = s.name_th;
+              }
             }
           }
         }
       }
 
+      // Drop stale results if a newer pin fired after us.
+      if (seq !== geocodeSeqRef.current) return;
       setData(patch);
     } catch {
       /* non-blocking */
