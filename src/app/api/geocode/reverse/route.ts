@@ -11,6 +11,7 @@ type NominatimReverse = {
     city_district?: string;
     suburb?: string;
     neighbourhood?: string;
+    municipality?: string;
     town?: string;
     village?: string;
     quarter?: string;
@@ -83,7 +84,16 @@ export async function GET(req: NextRequest) {
     const result: ReverseResult = {
       province: addr.province ?? addr.state ?? null,
       district: addr.district ?? addr.county ?? addr.city_district ?? addr.city ?? null,
-      subdistrict: addr.suburb ?? addr.neighbourhood ?? addr.town ?? addr.village ?? addr.quarter ?? null,
+      // Prefer municipality/suburb/village (admin_level 7–8 in TH) over town,
+      // which Nominatim often fills with the enclosing city name (same as district).
+      subdistrict:
+        addr.suburb ??
+        addr.neighbourhood ??
+        addr.quarter ??
+        addr.municipality ??
+        addr.village ??
+        addr.town ??
+        null,
       postcode: addr.postcode ?? null,
     };
     cacheSet(key, result);
