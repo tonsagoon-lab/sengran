@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { Loader2, MapPin, X, CheckCircle2, XCircle, Link2, Search, Hand } from "lucide-react";
+import { Loader2, MapPin, X, CheckCircle2, XCircle, Hand } from "lucide-react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,8 +36,14 @@ interface Suggestion {
   nominatim?: { lat: string; lon: string };
 }
 
-type Mode = "link" | "search";
-type LinkStatus = "idle" | "loading" | "success" | "error";
+type InputStatus = "idle" | "searching" | "resolving" | "linkError";
+
+function isUrlLike(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  if (/^https?:\/\//i.test(t)) return true;
+  return /maps\.app\.goo\.gl|goo\.gl\/maps|google\.[a-z.]+\/maps/i.test(t);
+}
 
 const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -58,20 +64,14 @@ function loadPlacesLibrary(): Promise<google.maps.PlacesLibrary> {
 }
 
 export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProps) {
-  const [mode, setMode] = useState<Mode>("search");
   const [coords, setCoords] = useState<Coords | null>(initialCoords ?? null);
   const [locationName, setLocationName] = useState<string | null>(null);
 
-  // Link mode state
-  const [linkValue, setLinkValue] = useState("");
-  const [linkStatus, setLinkStatus] = useState<LinkStatus>(initialCoords ? "success" : "idle");
-  const linkDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Search mode state
-  const [searchQuery, setSearchQuery] = useState("");
+  // Unified input state
+  const [inputValue, setInputValue] = useState("");
+  const [status, setStatus] = useState<InputStatus>("idle");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Google Places session token — rotates after each pick
@@ -87,29 +87,19 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // ── Link mode ──────────────────────────────────────────────
+  // ── Link resolution ────────────────────────────────────────
   const resolveLink = useCallback(async (url: string) => {
-    if (!url.trim()) { setLinkStatus("idle"); setCoords(null); onChange(null); return; }
-    setLinkStatus("loading");
     const result = await resolveGoogleMapsUrl(url);
     if (result) {
       setCoords(result);
       setLocationName(null);
-      setLinkStatus("success");
+      setStatus("idle");
+      setSuggestions([]);
       onChange(result);
     } else {
-      setCoords(null);
-      setLinkStatus("error");
-      onChange(null);
+      setStatus("linkError");
     }
   }, [onChange]);
-
-  function handleLinkChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value;
-    setLinkValue(val);
-    if (linkDebounceRef.current) clearTimeout(linkDebounceRef.current);
-    linkDebounceRef.current = setTimeout(() => resolveLink(val), 500);
-  }
 
   // ── Search: Google Places (primary) ────────────────────────
   async function searchGooglePlaces(input: string): Promise<Suggestion[]> {
@@ -152,29 +142,37 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
     });
   }
 
-  function handleSearchInput(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
-    setSearchQuery(val);
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    if (!val.trim()) { setSuggestions([]); setSearchLoading(false); return; }
-    setSearchLoading(true);
-    searchDebounceRef.current = setTimeout(async () => {
+    setInputValue(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = val.trim();
+    if (!trimmed) { setSuggestions([]); setStatus("idle"); return; }
+
+    if (isUrlLike(trimmed)) {
+      setSuggestions([]);
+      setStatus("resolving");
+      debounceRef.current = setTimeout(() => resolveLink(trimmed), 500);
+      return;
+    }
+
+    setStatus("searching");
+    debounceRef.current = setTimeout(async () => {
       try {
         const results = GOOGLE_API_KEY
-          ? await searchGooglePlaces(val)
-          : await searchNominatim(val);
+          ? await searchGooglePlaces(trimmed)
+          : await searchNominatim(trimmed);
         setSuggestions(results);
       } catch (err) {
         console.error("[places] search failed", err);
-        // If Google Places fails (quota, network), fall back once to Nominatim
         if (GOOGLE_API_KEY) {
           try {
-            setSuggestions(await searchNominatim(val));
+            setSuggestions(await searchNominatim(trimmed));
           } catch { setSuggestions([]); }
         } else {
           setSuggestions([]);
         }
-      } finally { setSearchLoading(false); }
+      } finally { setStatus("idle"); }
     }, 300);
   }
 
@@ -189,8 +187,9 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
         const newCoords: Coords = { lat: loc.lat(), lng: loc.lng() };
         setCoords(newCoords);
         setLocationName(place.displayName ?? s.mainText);
-        setSearchQuery("");
+        setInputValue("");
         setSuggestions([]);
+        setStatus("idle");
         onChange(newCoords);
         // Rotate session token after successful pick
         sessionTokenRef.current = null;
@@ -205,8 +204,9 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
       const newCoords: Coords = { lat: parseFloat(s.nominatim.lat), lng: parseFloat(s.nominatim.lon) };
       setCoords(newCoords);
       setLocationName(s.mainText);
-      setSearchQuery("");
+      setInputValue("");
       setSuggestions([]);
+      setStatus("idle");
       onChange(newCoords);
     }
   }
@@ -215,17 +215,16 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
   function handleClear() {
     setCoords(null);
     setLocationName(null);
-    setLinkValue("");
-    setLinkStatus("idle");
-    setSearchQuery("");
+    setInputValue("");
     setSuggestions([]);
+    setStatus("idle");
     onChange(null);
   }
 
   function handleMapDrag(c: Coords) {
     setCoords(c);
     setLocationName(null);
-    setLinkStatus("idle");
+    setStatus("idle");
     onChange(c);
   }
 
@@ -238,126 +237,70 @@ export function GoogleMapsInput({ initialCoords, onChange }: GoogleMapsInputProp
             ตำแหน่งที่ตั้งบนแผนที่
           </Label>
           <p className="text-xs text-neutral-500 mt-0.5">
-            <span className="font-medium text-orange-600">แนะนำให้ปักหมุด</span> เพื่อให้ผู้ซื้อเห็นทำเลชัดเจน — ค้นหาชื่อสถานที่ หรือลากหมุดบนแผนที่ก็ได้
+            <span className="font-medium text-orange-600">แนะนำให้ปักหมุด</span> เพื่อให้ผู้ซื้อเห็นทำเลชัดเจน — พิมพ์ค้นหา วางลิงก์ Google Maps หรือลากหมุดบนแผนที่ก็ได้
           </p>
         </div>
       </div>
 
-      {/* Mode tabs */}
-      <div className="flex rounded-lg border overflow-hidden text-sm">
-        <button
-          type="button"
-          onClick={() => setMode("search")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors ${
-            mode === "search"
-              ? "bg-orange-50 text-orange-700 font-medium"
-              : "bg-white text-neutral-500 hover:bg-neutral-50"
-          }`}
-        >
-          <Search className="h-3.5 w-3.5" />
-          ค้นหาสถานที่
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("link")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 border-l transition-colors ${
-            mode === "link"
-              ? "bg-orange-50 text-orange-700 font-medium"
-              : "bg-white text-neutral-500 hover:bg-neutral-50"
-          }`}
-        >
-          <Link2 className="h-3.5 w-3.5" />
-          วาง Google Maps link
-        </button>
-      </div>
-
-      {/* Search mode */}
-      {mode === "search" && (
-        <div ref={containerRef} className="relative z-[500]">
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none" />
-            <Input
-              value={searchQuery}
-              onChange={handleSearchInput}
-              placeholder="เช่น ลาดพร้าว, เซ็นทรัลเวิลด์, บางนา..."
-              className="pl-9 pr-8"
-            />
-            {searchLoading && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-neutral-400" />
-            )}
-            {searchQuery && !searchLoading && (
-              <button
-                type="button"
-                onClick={() => { setSearchQuery(""); setSuggestions([]); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          {suggestions.length > 0 && (
-            <ul className="absolute z-[1000] mt-1 w-full rounded-lg border bg-white shadow-lg overflow-hidden">
-              {suggestions.map((s) => (
-                <li key={s.id}>
-                  <button
-                    type="button"
-                    onMouseDown={() => handleSelectPlace(s)}
-                    className="w-full text-left px-3 py-2.5 hover:bg-orange-50 transition-colors border-b last:border-0"
-                  >
-                    <p className="text-sm font-medium text-neutral-800 truncate">{s.mainText}</p>
-                    {s.secondaryText && (
-                      <p className="text-xs text-neutral-400 truncate mt-0.5">{s.secondaryText}</p>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
+      {/* Unified input */}
+      <div ref={containerRef} className="relative z-[500]">
+        <div className="relative">
+          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none" />
+          <Input
+            value={inputValue}
+            onChange={handleInput}
+            placeholder="พิมพ์ค้นหาสถานที่ หรือวางลิงก์ Google Maps"
+            className="pl-9 pr-8"
+          />
+          {(status === "searching" || status === "resolving") && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-neutral-400" />
           )}
-
-          {!searchLoading && searchQuery.length > 1 && suggestions.length === 0 && (
-            <p className="text-xs text-neutral-400 mt-1">ไม่พบสถานที่ ลองพิมพ์ชื่ออื่นหรือเป็นภาษาอังกฤษ</p>
+          {inputValue && status !== "searching" && status !== "resolving" && (
+            <button
+              type="button"
+              onClick={() => { setInputValue(""); setSuggestions([]); setStatus("idle"); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
         </div>
-      )}
 
-      {/* Link mode */}
-      {mode === "link" && (
-        <div>
-          <div className="relative">
-            <Input
-              value={linkValue}
-              onChange={handleLinkChange}
-              placeholder="วาง Google Maps link ที่นี่"
-              className="pr-8"
-            />
-            {linkValue && (
-              <button
-                type="button"
-                onClick={() => { setLinkValue(""); setLinkStatus("idle"); }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-          <p className="text-xs text-neutral-400 mt-1">
-            Google Maps → ค้นหาร้าน → กด &quot;แชร์&quot; → &quot;คัดลอกลิงก์&quot;
+        {suggestions.length > 0 && (
+          <ul className="absolute z-[1000] mt-1 w-full rounded-lg border bg-white shadow-lg overflow-hidden">
+            {suggestions.map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onMouseDown={() => handleSelectPlace(s)}
+                  className="w-full text-left px-3 py-2.5 hover:bg-orange-50 transition-colors border-b last:border-0"
+                >
+                  <p className="text-sm font-medium text-neutral-800 truncate">{s.mainText}</p>
+                  {s.secondaryText && (
+                    <p className="text-xs text-neutral-400 truncate mt-0.5">{s.secondaryText}</p>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {status === "resolving" && (
+          <p className="flex items-center gap-1.5 text-xs text-neutral-500 mt-1">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            กำลังตรวจสอบลิงก์...
           </p>
-          {linkStatus === "loading" && (
-            <div className="flex items-center gap-2 text-sm text-neutral-500 mt-1.5">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              กำลังตรวจสอบลิงก์...
-            </div>
-          )}
-          {linkStatus === "error" && (
-            <div className="flex items-center gap-2 text-sm text-red-500 mt-1.5">
-              <XCircle className="h-4 w-4" />
-              ดึงตำแหน่งไม่ได้ กรุณาตรวจสอบลิงก์
-            </div>
-          )}
-        </div>
-      )}
+        )}
+        {status === "linkError" && (
+          <p className="flex items-center gap-1.5 text-xs text-red-500 mt-1">
+            <XCircle className="h-3 w-3" />
+            ดึงตำแหน่งจากลิงก์ไม่ได้ ลองค้นหาด้วยชื่อสถานที่แทน
+          </p>
+        )}
+        {status !== "resolving" && status !== "linkError" && status !== "searching" && inputValue.trim().length > 1 && suggestions.length === 0 && !isUrlLike(inputValue) && (
+          <p className="text-xs text-neutral-400 mt-1">ไม่พบสถานที่ ลองพิมพ์ชื่ออื่นหรือเป็นภาษาอังกฤษ</p>
+        )}
+      </div>
 
       {/* Selected location pill */}
       {coords && (

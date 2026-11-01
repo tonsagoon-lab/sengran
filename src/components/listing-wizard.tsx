@@ -160,6 +160,7 @@ const step1Schema = z
 
 const step2Schema = z.object({
   province_id: z.string().min(1, "กรุณาเลือกจังหวัด"),
+  district: z.string().trim().min(1, "กรุณากรอกเขต/อำเภอ"),
 });
 
 // ── Progress bar ───────────────────────────────────────────────
@@ -525,7 +526,10 @@ export function ListingWizard({
       }
     }
     if (stepNum === 2) {
-      const result = step2Schema.safeParse({ province_id: data.province_id });
+      const result = step2Schema.safeParse({
+        province_id: data.province_id,
+        district: data.district,
+      });
       if (!result.success) {
         const errs: Record<string, string> = {};
         result.error.issues.forEach((i) => { errs[i.path[0] as string] = i.message; });
@@ -543,13 +547,31 @@ export function ListingWizard({
     return true;
   }
 
-  function next() {
+  const [geocoding, setGeocoding] = useState(false);
+
+  async function next() {
     if (!validate(step)) return;
     // Clear inapplicable price fields when type changed
     if (step === 1) {
       if (data.listing_type === "rent") setData({ sale_price: "", promo_type: "", promo_value: "" });
       if (data.listing_type === "sale") setData({ rent_price: "", deposit_months: "" });
       if (data.listing_type === "both") setData({ promo_type: "", promo_value: "" });
+    }
+    // Step 2: auto-geocode district + province if no pin dropped yet
+    if (step === 2 && !data.latitude && !data.longitude && data.district.trim() && data.province_id) {
+      const provinceName = provinces.find((p) => String(p.id) === data.province_id)?.name_th;
+      if (provinceName) {
+        setGeocoding(true);
+        try {
+          const q = `${data.district.trim()}, ${provinceName}, Thailand`;
+          const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+          const results = (await res.json()) as Array<{ lat: string; lon: string }>;
+          if (results.length > 0) {
+            setData({ latitude: results[0].lat, longitude: results[0].lon });
+          }
+        } catch { /* non-blocking: proceed without pin */ }
+        finally { setGeocoding(false); }
+      }
     }
     setStep(step + 1);
   }
@@ -916,13 +938,20 @@ export function ListingWizard({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="district">เขต/อำเภอ</Label>
+                <Label htmlFor="district">เขต/อำเภอ <span className="text-red-500">*</span></Label>
                 <Input
                   id="district"
                   value={data.district}
                   onChange={(e) => setData({ district: e.target.value })}
                   placeholder="เขตบางรัก"
+                  aria-invalid={!!errors.district}
                 />
+                {errors.district && <p className="text-sm text-red-500">{errors.district}</p>}
+                {!data.latitude && !data.longitude && (
+                  <p className="text-[11px] text-neutral-400">
+                    ไม่ได้ปักหมุด? เราจะใช้เขต/อำเภอนี้ปักหมุดให้อัตโนมัติ
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -1165,7 +1194,8 @@ export function ListingWizard({
         </Button>
 
         {step < TOTAL_STEPS ? (
-          <Button type="button" onClick={next} className="bg-orange-500 hover:bg-orange-600 text-white">
+          <Button type="button" disabled={geocoding} onClick={next} className="bg-orange-500 hover:bg-orange-600 text-white">
+            {geocoding && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
             ถัดไป
             <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
