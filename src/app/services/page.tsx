@@ -43,22 +43,6 @@ export default async function ServicesPage() {
       <TopMenuBar />
       <div className="bg-gradient-to-b from-orange-50 to-white">
         <div className="mx-auto max-w-6xl px-4 py-6 md:py-10 space-y-8 md:space-y-12">
-          {/* Hero */}
-          <section>
-            <div className="overflow-hidden rounded-xl md:rounded-2xl shadow-sm">
-              <Image
-                src="/services/hero.png"
-                alt="เซ้งร้าน.com — บริการฝากเซ้งและโฆษณาครบทุกช่องทาง"
-                width={2056}
-                height={765}
-                className="w-full h-auto"
-                sizes="(max-width: 768px) 100vw, 1152px"
-                priority
-                quality={90}
-              />
-            </div>
-          </section>
-
           {/* Heading */}
           <section className="text-center space-y-2">
             <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">
