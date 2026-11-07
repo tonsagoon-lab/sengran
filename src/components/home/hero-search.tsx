@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { getAllCategories, getAllProvinces } from "@/lib/db/listings";
-import { SearchBox } from "@/components/listings/search-box";
-import { FilterSheet } from "@/components/home/filter-sheet";
+import { HeroSearchTabs } from "@/components/home/hero-search-tabs";
 
 export async function HeroSearch() {
   const [categories, provinces] = await Promise.all([
@@ -34,12 +33,7 @@ export async function HeroSearch() {
           รายการ ทั่วประเทศ กว่า 10 ปี
         </p>
 
-        <div className="mx-auto flex w-full max-w-xl items-stretch gap-2 rounded-2xl bg-white/95 backdrop-blur p-2 shadow-xl ring-1 ring-black/5">
-          <div className="flex-1 min-w-0">
-            <SearchBox targetPath="/listings" />
-          </div>
-          <FilterSheet categories={categories} provinces={provinces} />
-        </div>
+        <HeroSearchTabs categories={categories} provinces={provinces} />
       </div>
     </section>
   );
