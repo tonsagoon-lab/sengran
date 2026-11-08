@@ -8,7 +8,7 @@ interface LatestListingsProps {
 }
 
 export async function LatestListings({ supabaseUrl, excludeIds = [] }: LatestListingsProps) {
-  const listings = await getLatestListings(8, excludeIds);
+  const listings = await getLatestListings(6, excludeIds);
   if (listings.length === 0) return null;
 
   return (

@@ -134,6 +134,11 @@ export default async function HomePage() {
           <HomeFeaturedSection supabaseUrl={supabaseUrl} />
         </Suspense>
 
+        {/* Latest listings */}
+        <Suspense fallback={<SectionSkeleton />}>
+          <LatestListings supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
+        </Suspense>
+
         {/* Near me */}
         <div id="near-me">
           <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
@@ -162,11 +167,6 @@ export default async function HomePage() {
         {/* Promotions */}
         <Suspense fallback={null}>
           <PromoListings supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
-        </Suspense>
-
-        {/* Latest listings */}
-        <Suspense fallback={<SectionSkeleton />}>
-          <LatestListings supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
         </Suspense>
 
       </div>
