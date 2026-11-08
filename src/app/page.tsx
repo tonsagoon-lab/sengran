@@ -139,15 +139,15 @@ export default async function HomePage() {
           <LatestListings supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
         </Suspense>
 
-        {/* Near me */}
-        <div id="near-me">
-          <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
-        </div>
-
         {/* Map preview */}
         <Suspense fallback={null}>
           <MapPreviewSection />
         </Suspense>
+
+        {/* Near me */}
+        <div id="near-me">
+          <NearMeSection provinces={provinces} supabaseUrl={supabaseUrl} />
+        </div>
 
         {/* Editorial picks */}
         <Suspense fallback={null}>
