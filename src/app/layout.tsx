@@ -7,7 +7,6 @@ import { Navbar } from "@/components/shared/navbar";
 import { HomeFooter } from "@/components/home/home-footer";
 import { SystemAnnouncementBar } from "@/components/system-announcement-bar";
 import { CookieConsent } from "@/components/cookie-consent";
-import { InstallPrompt } from "@/components/install-prompt";
 import { OAuthCodeHandler } from "@/components/shared/oauth-code-handler";
 import { PageViewTracker } from "@/components/shared/page-view-tracker";
 import { Analytics } from "@vercel/analytics/react";
@@ -89,7 +88,6 @@ export default function RootLayout({
         <div className="flex-1">{children}</div>
         <HomeFooter />
         <CookieConsent />
-        <InstallPrompt />
         <Analytics />
       </body>
     </html>
