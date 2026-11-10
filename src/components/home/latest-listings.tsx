@@ -12,10 +12,10 @@ export async function LatestListings({ supabaseUrl, excludeIds = [] }: LatestLis
   if (listings.length === 0) return null;
 
   return (
-    <section className="space-y-4">
+    <section className="rounded-2xl bg-neutral-900 p-5 md:p-8 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-neutral-800 text-lg">🆕 ประกาศล่าสุด</h2>
-        <Link href="/listings" className="text-sm text-orange-600 hover:underline">
+        <h2 className="font-semibold text-white text-lg">🆕 ประกาศล่าสุด</h2>
+        <Link href="/listings" className="text-sm text-orange-400 hover:text-orange-300 hover:underline">
           ดูทั้งหมด →
         </Link>
       </div>
@@ -31,7 +31,7 @@ export async function LatestListings({ supabaseUrl, excludeIds = [] }: LatestLis
       </div>
       <Link
         href="/listings?sort=latest"
-        className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-orange-400 bg-orange-50 hover:bg-orange-100 text-orange-600 font-semibold py-3 text-sm transition-colors"
+        className="flex items-center justify-center gap-2 w-full rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 text-sm transition-colors"
       >
         🆕 ดูประกาศร้านล่าสุดเพิ่มเติม →
       </Link>
