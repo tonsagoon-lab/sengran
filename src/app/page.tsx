@@ -134,6 +134,11 @@ export default async function HomePage() {
           <HomeFeaturedSection supabaseUrl={supabaseUrl} />
         </Suspense>
 
+        {/* Promotions */}
+        <Suspense fallback={null}>
+          <PromoListings supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
+        </Suspense>
+
         {/* Latest listings */}
         <Suspense fallback={<SectionSkeleton />}>
           <LatestListings supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
@@ -162,11 +167,6 @@ export default async function HomePage() {
         {/* Trust / social proof */}
         <Suspense fallback={null}>
           <TrustSection />
-        </Suspense>
-
-        {/* Promotions */}
-        <Suspense fallback={null}>
-          <PromoListings supabaseUrl={supabaseUrl} excludeIds={homeFeaturedIds} />
         </Suspense>
 
       </div>
