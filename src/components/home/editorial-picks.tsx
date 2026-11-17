@@ -38,7 +38,7 @@ export async function EditorialPicks({ supabaseUrl, excludeIds = [] }: Editorial
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-lg">⭐</span>
-          <h2 className="font-semibold text-neutral-800 text-lg">ฝากเซ้ง-ประเมินคืนทุน</h2>
+          <h2 className="font-semibold text-neutral-800 text-lg">ฝากเซ้ง-ประเมิณราคา</h2>
         </div>
         {hasMore && (
           <Link href="/editorial-picks" className="text-sm text-orange-600 hover:underline">
