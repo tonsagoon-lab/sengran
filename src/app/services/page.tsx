@@ -60,9 +60,9 @@ export default async function ServicesPage() {
               href="#contact"
               className="group block overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all"
             >
-              <div className="relative aspect-[1024/1536] w-full bg-neutral-900">
+              <div className="relative aspect-square w-full bg-neutral-900">
                 <Image
-                  src="/services/package.jpeg"
+                  src="/services/package.png"
                   alt="แพ็กเกจเซ้งร้านสุดเทพ ระดับ Premium"
                   fill
                   className="object-cover"
@@ -93,7 +93,7 @@ export default async function ServicesPage() {
               href="#contact"
               className="group block overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all"
             >
-              <div className="relative aspect-[1122/1402] w-full bg-neutral-900">
+              <div className="relative aspect-[1199/1312] w-full bg-neutral-900">
                 <Image
                   src="/services/agent.png"
                   alt="ฝากเซ้ง ขายไว ได้จริง — ค่านายหน้า 5%"
